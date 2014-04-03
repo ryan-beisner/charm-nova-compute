@@ -78,11 +78,11 @@ def config_changed():
         # generated.
         initialize_ssh_keys()
         import_authorized_keys()
-        import_authorized_keys(user='nova', prefix='nova')
 
     if config('enable-resize') is True:
         enable_shell(user='nova')
         initialize_ssh_keys(user='nova')
+        import_authorized_keys(user='nova', prefix='nova')
     else:
         disable_shell(user='nova')
 
