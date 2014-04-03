@@ -77,6 +77,8 @@ def config_changed():
         # Check-in with nova-c-c and register new ssh key, if it has just been
         # generated.
         initialize_ssh_keys()
+        import_authorized_keys()
+        import_authorized_keys(user='nova', prefix='nova')
 
     if config('enable-resize') is True:
         enable_shell(user='nova')
