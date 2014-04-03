@@ -71,6 +71,15 @@ options:
     description: |
       TCP authentication scheme for libvirt live migration.  Available options
       include sasl or none.
+  authorized-keys-path:
+    default: '{homedir}/.ssh/authorized_keys'
+    type: string
+    description: |
+      Only used when migration-auth-type is set to ssh.
+      Full path to authorized_keys file, can be useful for systems with non default
+      AuthorizedKeysFile location. It will be formatted using the following variables:
+          homedir - user's home directory
+          username - username
   # needed if using flatmanager
   bridge-interface:
     default: br100

@@ -321,8 +321,9 @@ def initialize_ssh_keys(user='root'):
 
 
 def import_authorized_keys(user='root', prefix=None):
-    """Import SSH authorized_keys + known_hosts from a cloud-compute relation
-    and store in user's $HOME/.ssh.
+    """Import SSH authorized_keys + known_hosts from a cloud-compute relation.
+    Store known_hosts in user's $HOME/.ssh and authorized_keys in a path
+    specified using authorized-keys-path config option.
     """
     if prefix:
         hosts = relation_get('{}_known_hosts'.format(prefix))
@@ -336,13 +337,16 @@ def import_authorized_keys(user='root', prefix=None):
     #      in all cases.
     if not hosts or not auth_keys:
         return
+    homedir = pwd.getpwnam(user).pw_dir
+    dest_auth_keys = config('authorized-keys-path').format(
+        homedir=homedir, username=user)
+    dest_known_hosts = os.path.join(homedir, '.ssh/known_hosts')
+    log('Saving new known_hosts file to %s and authorized_keys file to: %s.' %
+        (dest_known_hosts, dest_auth_keys))
 
-    dest = os.path.join(pwd.getpwnam(user).pw_dir, '.ssh')
-    log('Saving new known_hosts and authorized_keys file to: %s.' % dest)
-
-    with open(os.path.join(dest, 'authorized_keys'), 'wb') as _keys:
+    with open(dest_auth_keys, 'wb') as _keys:
         _keys.write(b64decode(auth_keys))
-    with open(os.path.join(dest, 'known_hosts'), 'wb') as _hosts:
+    with open(dest_known_hosts, 'wb') as _hosts:
         _hosts.write(b64decode(hosts))
 
 
