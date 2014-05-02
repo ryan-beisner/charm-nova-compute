@@ -338,26 +338,47 @@ def import_authorized_keys(user='root', prefix=None):
     """Import SSH authorized_keys + known_hosts from a cloud-compute relation
     and store in user's $HOME/.ssh.
     """
+    known_hosts = []
+    authorized_keys = []
     if prefix:
-        hosts = relation_get('{}_known_hosts'.format(prefix))
-        auth_keys = relation_get('{}_authorized_keys'.format(prefix))
+        known_hosts_index = relation_get(
+                '{}_known_hosts_max_index'.format(prefix))
+        if known_hosts_index:
+            for index in range(0, int(known_hosts_index)):
+                known_hosts.append(relation_get(
+                                   '{}_known_hosts_{}'.format(prefix, index)))
+        authorized_keys_index = relation_get(
+                '{}_authorized_keys_max_index'.format(prefix))
+        if authorized_keys:
+            for index in range(0, int(authorized_keys_index)):
+                authorized_keys.append(relation_get(
+                    '{}_authorized_keys_{}'.format(prefix, index)))
     else:
         # XXX: Should this be managed via templates + contexts?
-        hosts = relation_get('known_hosts')
-        auth_keys = relation_get('authorized_keys')
+        known_hosts_index = relation_get('known_hosts_max_index')
+        if known_hosts_index:
+            for index in range(0, int(known_hosts_index)):
+                known_hosts.append(relation_get(
+                    'known_hosts_{}'.format(index)))
+        authorized_keys_index = relation_get('authorized_keys_max_index')
+        if authorized_keys_index:
+            for index in range(0, int(authorized_keys_index)):
+                authorized_keys.append(relation_get(
+                    'authorized_keys_{}'.format(index)))
 
-    # XXX: Need to fix charm-helpers to return None for empty settings,
-    #      in all cases.
-    if not hosts or not auth_keys:
+    # XXX: Should partial return of known_hosts or authorized_keys
+    #      be allowed ?
+    if not len(known_hosts) or not len(authorized_keys):
         return
 
     dest = os.path.join(pwd.getpwnam(user).pw_dir, '.ssh')
     log('Saving new known_hosts and authorized_keys file to: %s.' % dest)
-
-    with open(os.path.join(dest, 'authorized_keys'), 'wb') as _keys:
-        _keys.write(b64decode(auth_keys))
     with open(os.path.join(dest, 'known_hosts'), 'wb') as _hosts:
-        _hosts.write(b64decode(hosts))
+        for index in range(0, int(known_hosts_index)):
+            _hosts.write(known_hosts[index])
+    with open(os.path.join(dest, 'authorized_keys'), 'wb') as _keys:
+        for index in range(0, int(authorized_keys_index)):
+            _keys.write(authorized_keys[index])
 
 
 def do_openstack_upgrade():
