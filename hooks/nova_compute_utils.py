@@ -342,13 +342,13 @@ def import_authorized_keys(user='root', prefix=None):
     authorized_keys = []
     if prefix:
         known_hosts_index = relation_get(
-                '{}_known_hosts_max_index'.format(prefix))
+            '{}_known_hosts_max_index'.format(prefix))
         if known_hosts_index:
             for index in range(0, int(known_hosts_index)):
                 known_hosts.append(relation_get(
                                    '{}_known_hosts_{}'.format(prefix, index)))
         authorized_keys_index = relation_get(
-                '{}_authorized_keys_max_index'.format(prefix))
+            '{}_authorized_keys_max_index'.format(prefix))
         if authorized_keys_index:
             for index in range(0, int(authorized_keys_index)):
                 authorized_keys.append(relation_get(
