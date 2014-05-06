@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import uuid
 
 from charmhelpers.core.hookenv import (
     Hooks,
@@ -12,10 +13,11 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     service_name,
+    related_units,
     unit_get,
     UnregisteredHookError,
 )
-
+from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import (
     restart_on_change,
 )
@@ -51,7 +53,8 @@ from nova_compute_utils import (
     QUANTUM_CONF, NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
-    fix_path_ownership
+    fix_path_ownership,
+    resource_map,
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -115,6 +118,8 @@ def amqp_changed():
         CONFIGS.write(QUANTUM_CONF)
     if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
         CONFIGS.write(NEUTRON_CONF)
+    [neutron_plugin_relation_joined(rid=rid, remote_restart=True)
+        for rid in relation_ids('neutron-plugin')]
 
 
 @hooks.hook('shared-db-relation-joined')
@@ -206,21 +211,16 @@ def ceph_joined():
 
 
 @hooks.hook('neutron-plugin-relation-joined')
-def nova_cell_relation_joined(rid=None, remote_restart=False):
+def neutron_plugin_relation_joined(rid=None, remote_restart=False):
     if remote_restart:
         relation_set(relation_id=rid, restart_trigger = str(uuid.uuid4()))
     if is_relation_made('amqp', ['password']):
-        amqp_rids = relation_ids('amqp')
-        amqp_units = related_units(amqp_rids[0])
-        if len(amqp_rids) > 1 or len(amqp_units) > 1:
-            print "Too many rabbits!"
-        rel_settings = relation_get(unit=amqp_units[0], rid=amqp_rids[0])
-        rel_settings['vhost'] = config('rabbit-vhost')
-        rel_settings['username'] = config('rabbit-user')
-        if 'password' in rel_settings:
+        rabbit_context=context.AMQPContext()
+        rel_settings = rabbit_context()
+        if 'rabbitmq_password' in rel_settings:
             relation_set(relation_id=rid, **rel_settings)
     else:
-        relation_set(relation_id=rid, password='')
+        relation_set(relation_id=rid, rabbitmq_password='')
 
 @hooks.hook('ceph-relation-changed')
 @restart_on_change(restart_map())
