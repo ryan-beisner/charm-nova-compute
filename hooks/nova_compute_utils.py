@@ -349,7 +349,7 @@ def import_authorized_keys(user='root', prefix=None):
                                    '{}_known_hosts_{}'.format(prefix, index)))
         authorized_keys_index = relation_get(
                 '{}_authorized_keys_max_index'.format(prefix))
-        if authorized_keys:
+        if authorized_keys_index:
             for index in range(0, int(authorized_keys_index)):
                 authorized_keys.append(relation_get(
                     '{}_authorized_keys_{}'.format(prefix, index)))
@@ -370,15 +370,14 @@ def import_authorized_keys(user='root', prefix=None):
     #      be allowed ?
     if not len(known_hosts) or not len(authorized_keys):
         return
-
     dest = os.path.join(pwd.getpwnam(user).pw_dir, '.ssh')
     log('Saving new known_hosts and authorized_keys file to: %s.' % dest)
     with open(os.path.join(dest, 'known_hosts'), 'wb') as _hosts:
         for index in range(0, int(known_hosts_index)):
-            _hosts.write(known_hosts[index])
+            _hosts.write('{}\n'.format(known_hosts[index]))
     with open(os.path.join(dest, 'authorized_keys'), 'wb') as _keys:
         for index in range(0, int(authorized_keys_index)):
-            _keys.write(authorized_keys[index])
+            _keys.write('{}\n'.format(authorized_keys[index]))
 
 
 def do_openstack_upgrade():
