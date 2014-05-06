@@ -205,6 +205,23 @@ def ceph_joined():
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
 
 
+@hooks.hook('neutron-plugin-relation-joined')
+def nova_cell_relation_joined(rid=None, remote_restart=False):
+    if remote_restart:
+        relation_set(relation_id=rid, restart_trigger = str(uuid.uuid4()))
+    if is_relation_made('amqp', ['password']):
+        amqp_rids = relation_ids('amqp')
+        amqp_units = related_units(amqp_rids[0])
+        if len(amqp_rids) > 1 or len(amqp_units) > 1:
+            print "Too many rabbits!"
+        rel_settings = relation_get(unit=amqp_units[0], rid=amqp_rids[0])
+        rel_settings['vhost'] = config('rabbit-vhost')
+        rel_settings['username'] = config('rabbit-user')
+        if 'password' in rel_settings:
+            relation_set(relation_id=rid, **rel_settings)
+    else:
+        relation_set(relation_id=rid, password='')
+
 @hooks.hook('ceph-relation-changed')
 @restart_on_change(restart_map())
 def ceph_changed():
