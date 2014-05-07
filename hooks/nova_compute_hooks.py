@@ -118,8 +118,6 @@ def amqp_changed():
         CONFIGS.write(QUANTUM_CONF)
     if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
         CONFIGS.write(NEUTRON_CONF)
-    [neutron_plugin_relation_joined(rid=rid, remote_restart=True)
-        for rid in relation_ids('neutron-plugin')]
 
 
 @hooks.hook('shared-db-relation-joined')
@@ -214,13 +212,6 @@ def ceph_joined():
 def neutron_plugin_relation_joined(rid=None, remote_restart=False):
     if remote_restart:
         relation_set(relation_id=rid, restart_trigger = str(uuid.uuid4()))
-    if is_relation_made('amqp', ['password']):
-        rabbit_context=context.AMQPContext()
-        rel_settings = rabbit_context()
-        if 'rabbitmq_password' in rel_settings:
-            relation_set(relation_id=rid, **rel_settings)
-    else:
-        relation_set(relation_id=rid, rabbitmq_password='')
 
 @hooks.hook('ceph-relation-changed')
 @restart_on_change(restart_map())
