@@ -185,55 +185,89 @@ class NovaComputeUtilsTests(CharmTestCase):
     def _test_import_authorized_keys_base(self, getpwnam, prefix=None):
         getpwnam.return_value = self.fake_user('foo')
         self.relation_get.side_effect = [
-            'Zm9vX2tleQo=',  # relation_get('known_hosts')
-            'Zm9vX2hvc3QK',  # relation_get('authorized_keys')
+            3,          # relation_get('known_hosts_max_index')
+            'k_h_0',    # relation_get_('known_hosts_0')
+            'k_h_1',    # relation_get_('known_hosts_1')
+            'k_h_2',    # relation_get_('known_hosts_2')
+            3,          # relation_get('authorized_keys_max_index')
+            'auth_0',   # relation_get('authorized_keys_0')
+            'auth_1',   # relation_get('authorized_keys_1')
+            'auth_2',   # relation_get('authorized_keys_2')
         ]
 
         ex_open = [
-            call('/home/foo/.ssh/authorized_keys', 'wb'),
-            call('/home/foo/.ssh/known_hosts', 'wb')
+            call('/home/foo/.ssh/known_hosts', 'wb'),
+            call('/home/foo/.ssh/authorized_keys', 'wb')
         ]
         ex_write = [
-            call('foo_host\n'),
-            call('foo_key\n'),
+            call('k_h_0\n'),
+            call('k_h_1\n'),
+            call('k_h_2\n'),
+            call('auth_0\n'),
+            call('auth_1\n'),
+            call('auth_2\n')
         ]
 
         with patch_open() as (_open, _file):
             utils.import_authorized_keys(user='foo')
             self.assertEquals(ex_open, _open.call_args_list)
             self.assertEquals(ex_write, _file.write.call_args_list)
-
-        self.relation_get.assert_has_called([
-            call('known_hosts').
-            call('authorized_keys')
-        ])
+            expected_relations = [
+                call('known_hosts_max_index'),
+                call('known_hosts_0'),
+                call('known_hosts_1'),
+                call('known_hosts_2'),
+                call('authorized_keys_max_index'),
+                call('authorized_keys_0'),
+                call('authorized_keys_1'),
+                call('authorized_keys_2')
+                ]
+            self.assertEquals(sorted(self.relation_get.call_args_list),
+                              sorted(expected_relations))
 
     @patch('pwd.getpwnam')
     def test_import_authorized_keys_prefix(self, getpwnam):
         getpwnam.return_value = self.fake_user('foo')
         self.relation_get.side_effect = [
-            'Zm9vX2tleQo=',  # relation_get('known_hosts')
-            'Zm9vX2hvc3QK',  # relation_get('authorized_keys')
+            3,          # relation_get('bar_known_hosts_max_index')
+            'k_h_0',    # relation_get_('bar_known_hosts_0')
+            'k_h_1',    # relation_get_('bar_known_hosts_1')
+            'k_h_2',    # relation_get_('bar_known_hosts_2')
+            3,          # relation_get('bar_authorized_keys_max_index')
+            'auth_0',   # relation_get('bar_authorized_keys_0')
+            'auth_1',   # relation_get('bar_authorized_keys_1')
+            'auth_2',   # relation_get('bar_authorized_keys_2')
         ]
 
         ex_open = [
-            call('/home/foo/.ssh/authorized_keys', 'wb'),
-            call('/home/foo/.ssh/known_hosts', 'wb')
+            call('/home/foo/.ssh/known_hosts', 'wb'),
+            call('/home/foo/.ssh/authorized_keys', 'wb')
         ]
         ex_write = [
-            call('foo_host\n'),
-            call('foo_key\n'),
+            call('k_h_0\n'),
+            call('k_h_1\n'),
+            call('k_h_2\n'),
+            call('auth_0\n'),
+            call('auth_1\n'),
+            call('auth_2\n')
         ]
 
         with patch_open() as (_open, _file):
             utils.import_authorized_keys(user='foo', prefix='bar')
             self.assertEquals(ex_open, _open.call_args_list)
             self.assertEquals(ex_write, _file.write.call_args_list)
-
-        self.relation_get.assert_has_called([
-            call('bar_known_hosts').
-            call('bar_authorized_keys')
-        ])
+            expected_relations = [
+                call('bar_known_hosts_max_index'),
+                call('bar_known_hosts_0'),
+                call('bar_known_hosts_1'),
+                call('bar_known_hosts_2'),
+                call('bar_authorized_keys_max_index'),
+                call('bar_authorized_keys_0'),
+                call('bar_authorized_keys_1'),
+                call('bar_authorized_keys_2')
+                ]
+            self.assertEquals(sorted(self.relation_get.call_args_list),
+                              sorted(expected_relations))
 
     @patch('subprocess.check_call')
     def test_import_keystone_cert_missing_data(self, check_call):
