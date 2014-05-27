@@ -17,6 +17,8 @@ def headers_package():
     kver = check_output(['uname', '-r']).strip()
     return 'linux-headers-%s' % kver
 
+QUANTUM_CONF_DIR = '/etc/quantum'
+
 
 def kernel_version():
     """ Retrieve the current major kernel version as a tuple e.g. (3, 13) """
@@ -35,6 +37,8 @@ def determine_dkms_package():
 
 
 # legacy
+
+
 def quantum_plugins():
     from charmhelpers.contrib.openstack import context
     return {
@@ -46,7 +50,8 @@ def quantum_plugins():
             'contexts': [
                 context.SharedDBContext(user=config('neutron-database-user'),
                                         database=config('neutron-database'),
-                                        relation_prefix='neutron')],
+                                        relation_prefix='neutron',
+                                        ssl_dir=QUANTUM_CONF_DIR)],
             'services': ['quantum-plugin-openvswitch-agent'],
             'packages': [[headers_package()] + determine_dkms_package(),
                          ['quantum-plugin-openvswitch-agent']],
@@ -61,7 +66,8 @@ def quantum_plugins():
             'contexts': [
                 context.SharedDBContext(user=config('neutron-database-user'),
                                         database=config('neutron-database'),
-                                        relation_prefix='neutron')],
+                                        relation_prefix='neutron',
+                                        ssl_dir=QUANTUM_CONF_DIR)],
             'services': [],
             'packages': [],
             'server_packages': ['quantum-server',
@@ -69,6 +75,8 @@ def quantum_plugins():
             'server_services': ['quantum-server']
         }
     }
+
+NEUTRON_CONF_DIR = '/etc/neutron'
 
 
 def neutron_plugins():
@@ -83,7 +91,8 @@ def neutron_plugins():
             'contexts': [
                 context.SharedDBContext(user=config('neutron-database-user'),
                                         database=config('neutron-database'),
-                                        relation_prefix='neutron')],
+                                        relation_prefix='neutron',
+                                        ssl_dir=NEUTRON_CONF_DIR)],
             'services': ['neutron-plugin-openvswitch-agent'],
             'packages': [[headers_package()] + determine_dkms_package(),
                          ['neutron-plugin-openvswitch-agent']],
@@ -98,20 +107,37 @@ def neutron_plugins():
             'contexts': [
                 context.SharedDBContext(user=config('neutron-database-user'),
                                         database=config('neutron-database'),
-                                        relation_prefix='neutron')],
+                                        relation_prefix='neutron',
+                                        ssl_dir=NEUTRON_CONF_DIR)],
             'services': [],
             'packages': [],
             'server_packages': ['neutron-server',
                                 'neutron-plugin-nicira'],
             'server_services': ['neutron-server']
+        },
+        'nsx': {
+            'config': '/etc/neutron/plugins/vmware/nsx.ini',
+            'driver': 'vmware',
+            'contexts': [
+                context.SharedDBContext(user=config('neutron-database-user'),
+                                        database=config('neutron-database'),
+                                        relation_prefix='neutron',
+                                        ssl_dir=NEUTRON_CONF_DIR)],
+            'services': [],
+            'packages': [],
+            'server_packages': ['neutron-server',
+                                'neutron-plugin-vmware'],
+            'server_services': ['neutron-server']
         }
     }
-    # NOTE: patch in ml2 plugin for icehouse onwards
     if release >= 'icehouse':
+        # NOTE: patch in ml2 plugin for icehouse onwards
         plugins['ovs']['config'] = '/etc/neutron/plugins/ml2/ml2_conf.ini'
         plugins['ovs']['driver'] = 'neutron.plugins.ml2.plugin.Ml2Plugin'
         plugins['ovs']['server_packages'] = ['neutron-server',
                                              'neutron-plugin-ml2']
+        # NOTE: patch in vmware renames nvp->nsx for icehouse onwards
+        plugins['nvp'] = plugins['nsx']
     return plugins
 
 

@@ -2,8 +2,7 @@
 PYTHON := /usr/bin/env python
 
 lint:
-	@flake8 --exclude hooks/charmhelpers hooks
-	@flake8 --exclude hooks/charmhelpers unit_tests
+	@flake8 --exclude hooks/charmhelpers hooks unit_tests
 	@charm proof
 
 test:
@@ -12,3 +11,7 @@ test:
 
 sync:
 	@charm-helper-sync -c charm-helpers.yaml
+
+publish: lint test
+	bzr push lp:charms/nova-compute
+	bzr push lp:charms/trusty/nova-compute
