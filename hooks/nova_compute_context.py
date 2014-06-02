@@ -230,10 +230,6 @@ class CloudComputeContext(context.OSContextGenerator):
 
         neutron_ctxt['neutron_security_groups'] = _neutron_security_groups()
 
-        # NOTE(jamespage) support override of neutron security via config
-        if config('disable-neutron-security-groups') is not None:
-            neutron_ctxt['disable_neutron_security_groups'] = config('disable-neutron-security-groups')
-
         ks_url = '%s://%s:%s/v2.0' % (neutron_ctxt['auth_protocol'],
                                       neutron_ctxt['keystone_host'],
                                       neutron_ctxt['auth_port'])
@@ -350,3 +346,10 @@ class NeutronComputeContext(context.NeutronContext):
 
         ovs_ctxt['local_ip'] = get_host_ip(unit_get('private-address'))
         return ovs_ctxt
+
+    def __call__(self):
+        ctxt = super(NeutronComputeContext,self).__call__()
+        # NOTE(jamespage) support override of neutron security via config
+        if config('disable-neutron-security-groups') is not None:
+            ctxt['disable_neutron_security_groups'] = config('disable-neutron-security-groups')
+        return ctxt    
