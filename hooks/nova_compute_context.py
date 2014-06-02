@@ -48,6 +48,9 @@ def _neutron_security_groups():
         Inspects current cloud-compute relation and determine if nova-c-c has
         instructed us to use neutron security groups.
         '''
+        # NOTE(jamespage) support override of neutron security via config
+        if config('disable-neutron-security-groups') is not None:
+            return config('disable-neutron-security-groups')
         for rid in relation_ids('cloud-compute'):
             for unit in related_units(rid):
                 groups = [
