@@ -135,7 +135,7 @@ class NovaComputeCephContext(context.CephContext):
         ctxt['rbd_pool'] = 'nova'
 
         if config('libvirt_image_backend') == 'rbd':
-            os_ver = get_os_version_package('ceph-common')
+            os_ver = get_os_version_package('nova-compute')
             if float(os_ver) >= float(get_os_version_codename('havana')):
                 ctxt['libvirt_images_type'] = 'rbd'
             else:
