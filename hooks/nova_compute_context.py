@@ -12,10 +12,16 @@ from charmhelpers.core.hookenv import (
     related_units,
     service_name,
     unit_get,
+    WARNING,
     ERROR,
 )
 
-from charmhelpers.contrib.openstack.utils import get_host_ip, os_release
+from charmhelpers.contrib.openstack.utils import (
+    get_host_ip,
+    os_release,
+    get_os_version_package,
+    get_os_version_codename
+)
 from charmhelpers.contrib.network.ovs import add_bridge
 
 
@@ -127,6 +133,16 @@ class NovaComputeCephContext(context.CephContext):
         ctxt['rbd_user'] = svc
         ctxt['rbd_secret_uuid'] = CEPH_SECRET_UUID
         ctxt['rbd_pool'] = 'nova'
+
+        if config('libvirt_image_backend') == 'rbd':
+            os_ver = get_os_version_package('ceph-common')
+            if float(os_ver) >= float(get_os_version_codename('havana')):
+                ctxt['libvirt_images_type'] = 'rbd'
+            else:
+                log("RBD imagebackend only supported in openstack >= Havana "
+                    "- ignoring", level=WARNING)
+        elif config('libvirt_image_backend') == 'lvm':
+            ctxt['libvirt_images_type'] = 'lvm'
 
         return ctxt
 

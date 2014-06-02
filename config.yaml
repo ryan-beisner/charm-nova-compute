@@ -105,3 +105,8 @@ options:
           juju-myservice-0
       If you're running multiple environments with the same services in them
       this allows you to differentiate between them.
+  libvirt_image_backend:
+    type: string
+    description:
+      Tell Nova which libvirt image backend to use. Supported backends are rbd and lvm.
+      If no backend is specified, the Nova default is used (probably qcow2).
