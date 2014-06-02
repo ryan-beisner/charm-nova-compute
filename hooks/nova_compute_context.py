@@ -48,9 +48,6 @@ def _neutron_security_groups():
         Inspects current cloud-compute relation and determine if nova-c-c has
         instructed us to use neutron security groups.
         '''
-        # NOTE(jamespage) support override of neutron security via config
-        if config('disable-neutron-security-groups') is not None:
-            return not config('disable-neutron-security-groups')
         for rid in relation_ids('cloud-compute'):
             for unit in related_units(rid):
                 groups = [
@@ -232,6 +229,10 @@ class CloudComputeContext(context.OSContextGenerator):
             return {}
 
         neutron_ctxt['neutron_security_groups'] = _neutron_security_groups()
+
+        # NOTE(jamespage) support override of neutron security via config
+        if config('disable-neutron-security-groups') is not None:
+            neutron_ctxt['disable_neutron_security_groups'] = config('disable-neutron-security-groups')
 
         ks_url = '%s://%s:%s/v2.0' % (neutron_ctxt['auth_protocol'],
                                       neutron_ctxt['keystone_host'],
