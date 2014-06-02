@@ -110,3 +110,6 @@ options:
     description: |
       Disable neutron based security groups - setting this configuration option
       will override any settings configured via the nova-cloud-controller charm.
+      .
+      BE CAREFUL - this option allows you to disable all port level security within
+      and OpenStack cloud.
