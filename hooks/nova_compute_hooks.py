@@ -235,7 +235,7 @@ def ceph_changed():
         # the pool otherwise we risk race issues. So, for now, we require the
         # pool to have been created BEFORE the ceph-relation is joined.
         pool = config('rbd_pool')
-        if ceph_pool_exists(service=svc, name=pool):
+        if not ceph_pool_exists(service=svc, name=pool):
             msg = ("RBD pool '%s' does not exist and must be created manually "
                    "before adding the ceph relation - please create pool '%s' "
                    "then retry" % (pool, pool) )
