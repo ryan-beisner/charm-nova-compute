@@ -132,7 +132,7 @@ class NovaComputeCephContext(context.CephContext):
         ctxt['service_name'] = svc
         ctxt['rbd_user'] = svc
         ctxt['rbd_secret_uuid'] = CEPH_SECRET_UUID
-        ctxt['rbd_pool'] = 'nova'
+        ctxt['rbd_pool'] = config('rbd_pool')
 
         if config('libvirt_image_backend') == 'rbd':
             os_ver = get_os_version_package('nova-compute')
