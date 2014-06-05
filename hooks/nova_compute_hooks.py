@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import sys
+import uuid
+from charmhelpers.contrib.openstack import context
 
 from charmhelpers.core.hookenv import (
     Hooks,
@@ -12,10 +14,11 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     service_name,
+    related_units,
     unit_get,
     UnregisteredHookError,
 )
-
+from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import (
     restart_on_change,
 )
@@ -33,7 +36,7 @@ from charmhelpers.contrib.openstack.utils import (
 
 from charmhelpers.contrib.storage.linux.ceph import ensure_ceph_keyring
 from charmhelpers.payload.execd import execd_preinstall
-
+import nova_compute_context
 from nova_compute_utils import (
     create_libvirt_secret,
     determine_packages,
@@ -51,7 +54,8 @@ from nova_compute_utils import (
     QUANTUM_CONF, NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
-    fix_path_ownership
+    fix_path_ownership,
+    resource_map,
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -94,7 +98,6 @@ def config_changed():
 
     CONFIGS.write_all()
 
-
 @hooks.hook('amqp-relation-joined')
 def amqp_joined(relation_id=None):
     relation_set(relation_id=relation_id,
@@ -115,6 +118,7 @@ def amqp_changed():
         CONFIGS.write(QUANTUM_CONF)
     if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
         CONFIGS.write(NEUTRON_CONF)
+    [neutron_plugin_relation_joined(rid, remote_restart=True) for rid in relation_ids('neutron-plugin')]
 
 
 @hooks.hook('shared-db-relation-joined')
@@ -203,6 +207,20 @@ def compute_changed():
 @restart_on_change(restart_map())
 def ceph_joined():
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
+
+
+@hooks.hook('neutron-plugin-relation-joined')
+def neutron_plugin_relation_joined(rid=None, remote_restart=False):
+    amqp_ctxt = context.AMQPContext()
+    rel_settings = amqp_ctxt()
+    ncc_context = nova_compute_context.CloudComputeContext()
+    if 'network_manager_config' in ncc_context():
+        nm_conf = ncc_context()['network_manager_config']
+        if 'neutron_security_groups' in nm_conf:
+            rel_settings['neutron_security_groups'] = nm_conf['neutron_security_groups']
+    if remote_restart:
+        rel_settings['restart_trigger'] = str(uuid.uuid4())
+    relation_set(relation_id=rid, **rel_settings)
 
 
 @hooks.hook('ceph-relation-changed')

@@ -14,7 +14,8 @@ from charmhelpers.core.hookenv import (
     relation_ids,
     relation_get,
     DEBUG,
-    service_name
+    service_name,
+    is_relation_made,
 )
 
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
@@ -152,7 +153,7 @@ def resource_map():
     # Neutron/quantum requires additional contexts, as well as new resources
     # depending on the plugin used.
     # NOTE(james-page): only required for ovs plugin right now
-    if net_manager in ['neutron', 'quantum']:
+    if net_manager in ['neutron', 'quantum'] and not is_relation_made('neutron-plugin'):
         if plugin == 'ovs':
             if net_manager == 'quantum':
                 nm_rsc = QUANTUM_RESOURCES
