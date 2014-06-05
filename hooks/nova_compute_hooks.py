@@ -216,8 +216,8 @@ def neutron_plugin_relation_joined(rid=None, remote_restart=False):
     ncc_context = nova_compute_context.CloudComputeContext()
     if 'network_manager_config' in ncc_context():
         nm_conf = ncc_context()['network_manager_config']
-    if 'neutron_security_groups' in nm_conf:
-        rel_settings['neutron_security_groups'] = nm_conf['neutron_security_groups']
+        if 'neutron_security_groups' in nm_conf:
+            rel_settings['neutron_security_groups'] = nm_conf['neutron_security_groups']
     if remote_restart:
         rel_settings['restart_trigger'] = str(uuid.uuid4())
     relation_set(relation_id=rid, **rel_settings)
