@@ -2,6 +2,7 @@
 
 import sys
 import uuid
+from charmhelpers.contrib.openstack import context
 
 from charmhelpers.core.hookenv import (
     Hooks,
@@ -97,7 +98,6 @@ def config_changed():
 
     CONFIGS.write_all()
 
-
 @hooks.hook('amqp-relation-joined')
 def amqp_joined(relation_id=None):
     relation_set(relation_id=relation_id,
@@ -118,6 +118,7 @@ def amqp_changed():
         CONFIGS.write(QUANTUM_CONF)
     if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
         CONFIGS.write(NEUTRON_CONF)
+    [neutron_plugin_relation_joined(rid) for rid in relation_ids('neutron-plugin')]
 
 
 @hooks.hook('shared-db-relation-joined')
@@ -210,8 +211,12 @@ def ceph_joined():
 
 @hooks.hook('neutron-plugin-relation-joined')
 def neutron_plugin_relation_joined(rid=None, remote_restart=False):
+    amqp_ctxt = context.AMQPContext()
+    rel_settings = amqp_ctxt()
     if remote_restart:
-        relation_set(relation_id=rid, restart_trigger = str(uuid.uuid4()))
+        rel_settings['restart_trigger'] = str(uuid.uuid4())
+    relation_set(relation_id=rid, **rel_settings)
+
 
 @hooks.hook('ceph-relation-changed')
 @restart_on_change(restart_map())
