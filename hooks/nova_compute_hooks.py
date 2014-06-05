@@ -118,7 +118,7 @@ def amqp_changed():
         CONFIGS.write(QUANTUM_CONF)
     if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
         CONFIGS.write(NEUTRON_CONF)
-    [neutron_plugin_relation_joined(rid) for rid in relation_ids('neutron-plugin')]
+    [neutron_plugin_relation_joined(rid, remote_restart=True) for rid in relation_ids('neutron-plugin')]
 
 
 @hooks.hook('shared-db-relation-joined')
