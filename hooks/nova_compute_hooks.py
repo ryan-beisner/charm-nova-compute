@@ -201,6 +201,7 @@ def compute_changed():
     import_authorized_keys()
     import_authorized_keys(user='nova', prefix='nova')
     import_keystone_ca_cert()
+    [neutron_plugin_relation_joined(rid) for rid in relation_ids('neutron-plugin')]
 
 
 @hooks.hook('ceph-relation-joined')
@@ -210,7 +211,7 @@ def ceph_joined():
 
 
 @hooks.hook('neutron-plugin-relation-joined')
-def neutron_plugin_relation_joined(rid=None, remote_restart=False):
+def neutron_plugin_relation_joined(rid=None):
     rel_settings = {}
     ncc_context = nova_compute_context.CloudComputeContext()
     if 'network_manager_config' in ncc_context():
