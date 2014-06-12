@@ -52,7 +52,9 @@ TO_PATCH = [
     'enable_shell',
     # misc_utils
     'ensure_ceph_keyring',
-    'execd_preinstall'
+    'execd_preinstall',
+    # socket
+    'gethostname'
 ]
 
 
@@ -67,6 +69,7 @@ class NovaComputeRelationsTests(CharmTestCase):
                                                      TO_PATCH)
         self.config.side_effect = self.test_config.get
         self.filter_installed_packages.side_effect = fake_filter
+        self.gethostname.return_value = 'testserver'
 
     def test_install_hook(self):
         repo = 'cloud:precise-grizzly'
@@ -271,6 +274,7 @@ class NovaComputeRelationsTests(CharmTestCase):
     def test_compute_joined_no_migration_no_resize(self):
         self.migration_enabled.return_value = False
         hooks.compute_joined()
+        self.relation_set.assertCalledWith(hostname='arm')
         self.assertFalse(self.relation_set.called)
 
     def test_compute_joined_with_ssh_migration(self):
@@ -281,27 +285,32 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.relation_set.assert_called_with(
             relation_id=None,
             ssh_public_key='foo',
-            migration_auth_type='ssh'
+            migration_auth_type='ssh',
+            hostname='testserver',
         )
         hooks.compute_joined(rid='cloud-compute:2')
         self.relation_set.assert_called_with(
             relation_id='cloud-compute:2',
             ssh_public_key='foo',
-            migration_auth_type='ssh'
+            migration_auth_type='ssh',
+            hostname='testserver',
         )
 
     def test_compute_joined_with_resize(self):
+        self.migration_enabled.return_value = False
         self.test_config.set('enable-resize', True)
         self.public_ssh_key.return_value = 'bar'
         hooks.compute_joined()
         self.relation_set.assert_called_with(
             relation_id=None,
-            nova_ssh_public_key='bar'
+            nova_ssh_public_key='bar',
+            hostname='testserver',
         )
         hooks.compute_joined(rid='cloud-compute:2')
         self.relation_set.assert_called_with(
             relation_id='cloud-compute:2',
-            nova_ssh_public_key='bar'
+            nova_ssh_public_key='bar',
+            hostname='testserver',
         )
 
     def test_compute_changed(self):
