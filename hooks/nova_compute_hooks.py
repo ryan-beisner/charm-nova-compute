@@ -55,6 +55,7 @@ from nova_compute_utils import (
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
+from socket import gethostname
 
 hooks = Hooks()
 CONFIGS = register_configs()
@@ -173,18 +174,20 @@ def image_service_changed():
 
 @hooks.hook('cloud-compute-relation-joined')
 def compute_joined(rid=None):
+    # NOTE(james-page) in MAAS environments the actual hostname is a CNAME
+    # record so won't get scanned based on private-address which is an IP
+    # add the hostname configured locally to the relation.
+    settings = {
+        'hostname': gethostname()
+    }
     if migration_enabled():
         auth_type = config('migration-auth-type')
-        settings = {
-            'migration_auth_type': auth_type
-        }
+        settings['migration_auth_type'] = auth_type
         if auth_type == 'ssh':
             settings['ssh_public_key'] = public_ssh_key()
         relation_set(relation_id=rid, **settings)
     if config('enable-resize'):
-        settings = {
-            'nova_ssh_public_key': public_ssh_key(user='nova')
-        }
+        settings['nova_ssh_public_key'] = public_ssh_key(user='nova')
         relation_set(relation_id=rid, **settings)
 
 
