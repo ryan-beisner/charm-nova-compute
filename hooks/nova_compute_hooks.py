@@ -209,17 +209,6 @@ def ceph_joined():
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
 
 
-@hooks.hook('neutron-plugin-relation-joined')
-def neutron_plugin_relation_joined(rid=None, remote_restart=False):
-    rel_settings = {}
-    ncc_context = nova_compute_context.CloudComputeContext()
-    if 'network_manager_config' in ncc_context():
-        nm_conf = ncc_context()['network_manager_config']
-        if 'neutron_security_groups' in nm_conf:
-            rel_settings['neutron_security_groups'] = nm_conf['neutron_security_groups']
-    relation_set(relation_id=rid, **rel_settings)
-
-
 @hooks.hook('ceph-relation-changed')
 @restart_on_change(restart_map())
 def ceph_changed():
