@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
 import sys
-import uuid
-from charmhelpers.contrib.openstack import context
 
 from charmhelpers.core.hookenv import (
     Hooks,
@@ -14,11 +12,9 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     service_name,
-    related_units,
     unit_get,
     UnregisteredHookError,
 )
-from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import (
     restart_on_change,
 )
@@ -36,7 +32,6 @@ from charmhelpers.contrib.openstack.utils import (
 
 from charmhelpers.contrib.storage.linux.ceph import ensure_ceph_keyring
 from charmhelpers.payload.execd import execd_preinstall
-import nova_compute_context
 from nova_compute_utils import (
     create_libvirt_secret,
     determine_packages,
@@ -55,7 +50,6 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
-    resource_map,
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -118,7 +112,6 @@ def amqp_changed():
         CONFIGS.write(QUANTUM_CONF)
     if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
         CONFIGS.write(NEUTRON_CONF)
-    [neutron_plugin_relation_joined(rid, remote_restart=True) for rid in relation_ids('neutron-plugin')]
 
 
 @hooks.hook('shared-db-relation-joined')
