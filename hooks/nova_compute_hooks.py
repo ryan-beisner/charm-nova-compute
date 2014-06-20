@@ -92,6 +92,7 @@ def config_changed():
 
     CONFIGS.write_all()
 
+
 @hooks.hook('amqp-relation-joined')
 def amqp_joined(relation_id=None):
     relation_set(relation_id=relation_id,
