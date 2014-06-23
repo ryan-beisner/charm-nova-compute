@@ -15,7 +15,6 @@ from charmhelpers.core.hookenv import (
     relation_get,
     DEBUG,
     service_name,
-    is_relation_made,
 )
 
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
