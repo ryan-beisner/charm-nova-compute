@@ -108,11 +108,12 @@ def amqp_changed():
         log('amqp relation incomplete. Peer not ready?')
         return
     CONFIGS.write(NOVA_CONF)
-
-    if network_manager() == 'quantum' and neutron_plugin() == 'ovs':
-        CONFIGS.write(QUANTUM_CONF)
-    if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
-        CONFIGS.write(NEUTRON_CONF)
+    # No need to write NEUTRON_CONF if neutron-plugin is managing it
+    if not relation_ids('neutron-plugin'):
+        if network_manager() == 'quantum' and neutron_plugin() == 'ovs':
+            CONFIGS.write(QUANTUM_CONF)
+        if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
+            CONFIGS.write(NEUTRON_CONF)
 
 
 @hooks.hook('shared-db-relation-joined')
