@@ -173,9 +173,17 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'CONFIGS')
     def test_amqp_changed_with_data_and_quantum(self, configs):
+        self.relation_ids.return_value = []
         self._amqp_test(configs, quantum=True)
         self.assertEquals([call('/etc/nova/nova.conf'),
                            call('/etc/quantum/quantum.conf')],
+                          configs.write.call_args_list)
+
+    @patch.object(hooks, 'CONFIGS')
+    def test_amqp_changed_with_data_and_quantum_api(self, configs):
+        self.relation_ids.return_value = ['neutron-plugin:0']
+        self._amqp_test(configs, quantum=True)
+        self.assertEquals([call('/etc/nova/nova.conf')],
                           configs.write.call_args_list)
 
     def test_db_joined(self):

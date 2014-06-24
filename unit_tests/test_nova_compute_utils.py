@@ -155,6 +155,16 @@ class NovaComputeUtilsTests(CharmTestCase):
 
         self.assertEquals(ex, result)
 
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'network_manager')
+    def test_resource_map_neutron_ovs_plugin(self, net_man, _plugin):
+        self.skipTest('skipped until contexts are properly mocked.')
+        self.is_relation_made = True
+        net_man.return_value = 'Neutron'
+        _plugin.return_value = 'ovs'
+        result = utils.resource_map()
+        self.assertTrue('/etc/neutron/neutron.conf' not in result)
+
     def fake_user(self, username='foo'):
         user = MagicMock()
         user.pw_dir = '/home/' + username

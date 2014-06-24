@@ -15,7 +15,6 @@ from charmhelpers.core.hookenv import (
     unit_get,
     UnregisteredHookError,
 )
-
 from charmhelpers.core.host import (
     restart_on_change,
 )
@@ -33,7 +32,6 @@ from charmhelpers.contrib.openstack.utils import (
 
 from charmhelpers.contrib.storage.linux.ceph import ensure_ceph_keyring
 from charmhelpers.payload.execd import execd_preinstall
-
 from nova_compute_utils import (
     create_libvirt_secret,
     determine_packages,
@@ -51,7 +49,7 @@ from nova_compute_utils import (
     QUANTUM_CONF, NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
-    fix_path_ownership
+    fix_path_ownership,
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -111,11 +109,12 @@ def amqp_changed():
         log('amqp relation incomplete. Peer not ready?')
         return
     CONFIGS.write(NOVA_CONF)
-
-    if network_manager() == 'quantum' and neutron_plugin() == 'ovs':
-        CONFIGS.write(QUANTUM_CONF)
-    if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
-        CONFIGS.write(NEUTRON_CONF)
+    # No need to write NEUTRON_CONF if neutron-plugin is managing it
+    if not relation_ids('neutron-plugin'):
+        if network_manager() == 'quantum' and neutron_plugin() == 'ovs':
+            CONFIGS.write(QUANTUM_CONF)
+        if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
+            CONFIGS.write(NEUTRON_CONF)
 
 
 @hooks.hook('shared-db-relation-joined')
