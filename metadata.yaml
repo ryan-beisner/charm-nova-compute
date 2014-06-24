@@ -27,6 +27,9 @@ requires:
   nova-ceilometer:
     interface: nova-ceilometer
     scope: container
+  neutron-plugin:
+    interface: neutron-plugin
+    scope: container
 peers:
   compute-peer:
     interface: nova
