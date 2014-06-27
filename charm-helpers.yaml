@@ -10,3 +10,4 @@ include:
         - cluster
     - contrib.network.ovs
     - payload.execd
+    - contrib.network.ip
