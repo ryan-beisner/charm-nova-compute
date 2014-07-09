@@ -310,7 +310,30 @@ class CloudComputeContext(context.OSContextGenerator):
 
         if self.restart_trigger():
             ctxt['restart_trigger'] = self.restart_trigger()
+        return ctxt
 
+
+class InstanceConsoleContext(context.OSContextGenerator):
+    interfaces = []
+
+    def __call__(self):
+        ctxt = {}
+        for rid in relation_ids('cloud-compute'):
+            for unit in related_units(rid):
+                rel = {'rid': rid, 'unit': unit}
+                proto = relation_get('console_access_protocol', **rel)
+                if not proto:
+                    # only bother with units that have a neutron url set.
+                    continue
+                ctxt = {
+                    'console_access_protocol': proto,
+                    'console_proxy_address': relation_get(
+                        'console_proxy_address', **rel),
+                    'console_keymap': relation_get(
+                        'console_keymap', **rel),
+                }
+                break
+        ctxt['local_spice_addr'] = get_host_ip(unit_get('private-address'))
         return ctxt
 
 
