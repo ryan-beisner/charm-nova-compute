@@ -32,7 +32,7 @@ from nova_compute_context import (
     NovaComputeLibvirtContext,
     NovaComputeCephContext,
     NeutronComputeContext,
-    InstanceConsoleContext(),
+    InstanceConsoleContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
