@@ -316,15 +316,14 @@ class CloudComputeContext(context.OSContextGenerator):
 class InstanceConsoleContext(context.OSContextGenerator):
     interfaces = []
 
-    def get_console_settings(self, proto, **kwargs):
+    def get_console_info(self, proto, **kwargs):
         console_settings = {
-            proto + '_proxy_address': \
-                    relation_get('console_proxy_%s_address' % \
-                    (proto), **kwargs),
-            proto + '_proxy_host': \
-                    relation_get('console_proxy_%s_host' % (proto), **kwargs),
-            proto + '_proxy_port': \
-                    relation_get('console_proxy_%s_port' % (proto), **kwargs),
+            proto + '_proxy_address':
+                relation_get('console_proxy_%s_address' % (proto), **kwargs),
+            proto + '_proxy_host':
+                relation_get('console_proxy_%s_host' % (proto), **kwargs),
+            proto + '_proxy_port':
+                relation_get('console_proxy_%s_port' % (proto), **kwargs),
         }
         return console_settings
 
@@ -341,10 +340,10 @@ class InstanceConsoleContext(context.OSContextGenerator):
                 ctxt['console_access_protocol'] = proto
                 ctxt['console_vnc_type'] = True if 'vnc' in proto else False
                 if proto == 'vnc':
-                    ctxt = dict(ctxt, **self.get_console_settings('xvpvnc', **rel))
-                    ctxt = dict(ctxt, **self.get_console_settings('novnc', **rel))
+                    ctxt = dict(ctxt, **self.get_console_info('xvpvnc', **rel))
+                    ctxt = dict(ctxt, **self.get_console_info('novnc', **rel))
                 else:
-                    ctxt = dict(ctxt, **self.get_console_settings(proto, **rel))
+                    ctxt = dict(ctxt, **self.get_console_info(proto, **rel))
                 break
         ctxt['console_listen_addr'] = get_host_ip(unit_get('private-address'))
         return ctxt
