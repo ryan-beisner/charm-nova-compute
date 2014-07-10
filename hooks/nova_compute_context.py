@@ -316,6 +316,18 @@ class CloudComputeContext(context.OSContextGenerator):
 class InstanceConsoleContext(context.OSContextGenerator):
     interfaces = []
 
+    def get_console_settings(self, proto, **kwargs):
+        console_settings = {
+            proto + '_proxy_address': \
+                    relation_get('console_proxy_%s_address' % \
+                    (proto), **kwargs),
+            proto + '_proxy_host': \
+                    relation_get('console_proxy_%s_host' % (proto), **kwargs),
+            proto + '_proxy_port': \
+                    relation_get('console_proxy_%s_port' % (proto), **kwargs),
+        }
+        return console_settings
+
     def __call__(self):
         ctxt = {}
         for rid in relation_ids('cloud-compute'):
@@ -323,17 +335,18 @@ class InstanceConsoleContext(context.OSContextGenerator):
                 rel = {'rid': rid, 'unit': unit}
                 proto = relation_get('console_access_protocol', **rel)
                 if not proto:
-                    # only bother with units that have a neutron url set.
+                    # only bother with units that have a proto set.
                     continue
-                ctxt = {
-                    'console_access_protocol': proto,
-                    'console_proxy_address': relation_get(
-                        'console_proxy_address', **rel),
-                    'console_keymap': relation_get(
-                        'console_keymap', **rel),
-                }
+                ctxt['console_keymap'] = relation_get('console_keymap', **rel)
+                ctxt['console_access_protocol'] = proto
+                ctxt['console_vnc_type'] = True if 'vnc' in proto else False
+                if proto == 'vnc':
+                    ctxt = dict(ctxt, **self.get_console_settings('xvpvnc', **rel))
+                    ctxt = dict(ctxt, **self.get_console_settings('novnc', **rel))
+                else:
+                    ctxt = dict(ctxt, **self.get_console_settings(proto, **rel))
                 break
-        ctxt['local_spice_addr'] = get_host_ip(unit_get('private-address'))
+        ctxt['console_listen_addr'] = get_host_ip(unit_get('private-address'))
         return ctxt
 
 
