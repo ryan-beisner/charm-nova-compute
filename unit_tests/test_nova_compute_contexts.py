@@ -191,12 +191,6 @@ class NovaComputeContextTests(CharmTestCase):
         with patch.object(qplugin, '_ensure_packages'):
             self.assertEquals({'disable_neutron_security_groups': True},
                               qplugin())
-
-    @patch.object(context.NeutronComputeContext, 'network_manager')
-    @patch.object(context.NeutronComputeContext, 'plugin')
-    def test_disable_security_groups_false(self, plugin, nm):
-        plugin.return_value = "ovs"
-        nm.return_value = "neutron"
         self.test_config.set('disable-neutron-security-groups', False)
         qplugin = context.NeutronComputeContext()
         with patch.object(qplugin, '_ensure_packages'):
