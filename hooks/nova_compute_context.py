@@ -348,8 +348,9 @@ class NeutronComputeContext(context.NeutronContext):
         return ovs_ctxt
 
     def __call__(self):
-        ctxt = super(NeutronComputeContext,self).__call__()
+        ctxt = super(NeutronComputeContext, self).__call__()
         # NOTE(jamespage) support override of neutron security via config
         if config('disable-neutron-security-groups') is not None:
-            ctxt['disable_neutron_security_groups'] = config('disable-neutron-security-groups')
-        return ctxt    
+            ctxt['disable_neutron_security_groups'] = \
+                config('disable-neutron-security-groups')
+        return ctxt
