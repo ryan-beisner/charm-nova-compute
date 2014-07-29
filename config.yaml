@@ -105,3 +105,21 @@ options:
           juju-myservice-0
       If you're running multiple environments with the same services in them
       this allows you to differentiate between them.
+  disable-neutron-security-groups:
+    type: boolean
+    description: |
+      Disable neutron based security groups - setting this configuration option
+      will override any settings configured via the nova-cloud-controller charm.
+      .
+      BE CAREFUL - this option allows you to disable all port level security within
+      and OpenStack cloud.
+  # Network configuration options
+  # by default all access is over 'private-address'
+  os-data-network:
+    type: string
+    description: |
+      The IP address and netmask of the OpenStack Data network (e.g.,
+      192.168.0.0/24)
+      .
+      This network will be used for tenant network traffic in overlay
+      networks.
