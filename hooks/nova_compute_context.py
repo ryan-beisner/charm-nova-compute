@@ -17,7 +17,7 @@ from charmhelpers.core.hookenv import (
 
 from charmhelpers.contrib.openstack.utils import get_host_ip, os_release
 from charmhelpers.contrib.network.ovs import add_bridge
-
+from charmhelpers.contrib.network.ip import get_address_in_network
 
 # This is just a label and it must be consistent across
 # nova-compute nodes to support live migration.
@@ -379,5 +379,15 @@ class NeutronComputeContext(context.NeutronContext):
 
         self._ensure_bridge()
 
-        ovs_ctxt['local_ip'] = get_host_ip(unit_get('private-address'))
+        ovs_ctxt['local_ip'] = \
+            get_address_in_network(config('os-data-network'),
+                                   get_host_ip(unit_get('private-address')))
         return ovs_ctxt
+
+    def __call__(self):
+        ctxt = super(NeutronComputeContext, self).__call__()
+        # NOTE(jamespage) support override of neutron security via config
+        if config('disable-neutron-security-groups') is not None:
+            ctxt['disable_neutron_security_groups'] = \
+                config('disable-neutron-security-groups')
+        return ctxt
