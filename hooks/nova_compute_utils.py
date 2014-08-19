@@ -128,6 +128,15 @@ VIRT_TYPES = {
     'lxc': ['nova-compute-lxc'],
 }
 
+# Maps virt-type config to a libvirt URI.
+LIBVIRT_URIS = {
+    'kvm': 'qemu:///system',
+    'qemu': 'qemu:///system',
+    'xen': 'xen:///',
+    'uml': 'uml:///system',
+    'lxc': 'lxc:///',
+}
+
 
 def ceph_config_file():
     return CHARM_CEPH_CONF.format(service_name())
@@ -422,14 +431,15 @@ def import_keystone_ca_cert():
 
 
 def create_libvirt_secret(secret_file, secret_uuid, key):
-    if secret_uuid in check_output(['virsh', 'secret-list']):
+    uri = LIBVIRT_URIS[config('virt-type')]
+    if secret_uuid in check_output(['virsh', '-c', uri, 'secret-list']):
         log('Libvirt secret already exists for uuid %s.' % secret_uuid,
             level=DEBUG)
         return
     log('Defining new libvirt secret for uuid %s.' % secret_uuid)
-    cmd = ['virsh', 'secret-define', '--file', secret_file]
+    cmd = ['virsh', '-c', uri, 'secret-define', '--file', secret_file]
     check_call(cmd)
-    cmd = ['virsh', 'secret-set-value', '--secret', secret_uuid,
+    cmd = ['virsh', '-c', uri, 'secret-set-value', '--secret', secret_uuid,
            '--base64', key]
     check_call(cmd)
 
