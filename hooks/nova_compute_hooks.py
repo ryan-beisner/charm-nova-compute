@@ -255,10 +255,9 @@ def nova_ceilometer_relation_changed():
 
 @hooks.hook('zeromq-configuration-relation-joined')
 def zeromq_configuration_relation_joined(relid=None):
-    if services:
-        relation_set(relation_id=relid,
-                     topics=" ".join(services()),
-                     users="nova")
+    relation_set(relation_id=relid,
+                 topics=" ".join(services()),
+                 users="nova")
 
 
 @hooks.hook('zeromq-configuration-relation-changed')
