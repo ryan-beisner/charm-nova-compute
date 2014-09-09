@@ -458,3 +458,6 @@ def disable_shell(user):
 def fix_path_ownership(path, user='nova'):
     cmd = ['chown', user, path]
     check_call(cmd)
+
+def get_topics():
+    return ['compute']

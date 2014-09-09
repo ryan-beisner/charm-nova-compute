@@ -51,6 +51,7 @@ from nova_compute_utils import (
     enable_shell, disable_shell,
     fix_path_ownership,
     services,
+    get_topics,
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -256,7 +257,7 @@ def nova_ceilometer_relation_changed():
 @hooks.hook('zeromq-configuration-relation-joined')
 def zeromq_configuration_relation_joined(relid=None):
     relation_set(relation_id=relid,
-                 topics=" ".join(services()),
+                 topics=" ".join(get_topics()),
                  users="nova")
 
 
