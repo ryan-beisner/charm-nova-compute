@@ -79,7 +79,8 @@ BASE_RESOURCE_MAP = {
                          interface='nova-ceilometer',
                          service='nova',
                          config_file=NOVA_CONF),
-                     InstanceConsoleContext(), ],
+                     InstanceConsoleContext(),
+		     context.ZeroMQContext()],
     },
 }
 

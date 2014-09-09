@@ -50,6 +50,7 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
+    services,
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -249,6 +250,20 @@ def upgrade_charm():
 @restart_on_change(restart_map())
 def nova_ceilometer_relation_changed():
     CONFIGS.write_all()
+
+
+@hooks.hook('zeromq-configuration-relation-joined')
+def zeromq_configuration_relation_joined(relid=None):
+    if services:
+        relation_set(relation_id=relid,
+                     topics=" ".join(services()),
+                     users="nova")
+
+
+@hooks.hook('zeromq-configuration-relation-changed')
+@restart_on_change(restart_map(), stopstart=True)
+def zeromq_configuration_relation_changed():
+    CONFIGS.write(NOVA_CONF)
 
 
 def main():
