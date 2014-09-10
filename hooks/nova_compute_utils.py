@@ -80,7 +80,8 @@ BASE_RESOURCE_MAP = {
                          service='nova',
                          config_file=NOVA_CONF),
                      InstanceConsoleContext(),
-		     context.ZeroMQContext()],
+		     context.ZeroMQContext(),
+                     context.NotificationDriverContext()],
     },
 }
 
