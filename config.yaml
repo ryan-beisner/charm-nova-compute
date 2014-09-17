@@ -123,3 +123,8 @@ options:
       .
       This network will be used for tenant network traffic in overlay
       networks.
+  # IPv6
+  prefer-ipv6:
+    default: false
+    type: boolean
+    description: "Enable IPv6"
