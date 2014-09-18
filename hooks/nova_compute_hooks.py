@@ -50,6 +50,7 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
+    setup_ipv6
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -65,6 +66,9 @@ CONFIGS = register_configs()
 
 @hooks.hook()
 def install():
+    if config('prefer-ipv6'):
+        setup_ipv6()
+
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
     apt_update()
@@ -74,6 +78,9 @@ def install():
 @hooks.hook('config-changed')
 @restart_on_change(restart_map())
 def config_changed():
+    if config('prefer-ipv6'):
+        setup_ipv6()
+
     global CONFIGS
     if openstack_upgrade_available('nova-common'):
         CONFIGS = do_openstack_upgrade()
