@@ -8,8 +8,7 @@ from subprocess import check_call, check_output
 from charmhelpers.fetch import (
     apt_update,
     apt_upgrade,
-    apt_install,
-    add_source
+    apt_install
 )
 
 from charmhelpers.core.host import (
