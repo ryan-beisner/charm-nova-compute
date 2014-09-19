@@ -54,7 +54,7 @@ from nova_compute_utils import (
 )
 
 from charmhelpers.contrib.network.ip import (
-    get_ipv6_addr,
+    get_ipv6_addr
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -191,7 +191,7 @@ def compute_joined(rid=None):
         'hostname': gethostname()
     }
     if config('prefer-ipv6'):
-        settings = {'private-address': get_ipv6_addr()}
+        settings = {'private-address': get_ipv6_addr()[0]}
     if migration_enabled():
         auth_type = config('migration-auth-type')
         settings['migration_auth_type'] = auth_type
