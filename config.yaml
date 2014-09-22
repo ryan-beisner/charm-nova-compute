@@ -66,11 +66,11 @@ options:
     type: boolean
     description: Configure libvirt for live migration.
   migration-auth-type:
-    default: sasl
     type: string
+    default:
     description: |
       TCP authentication scheme for libvirt live migration.  Available options
-      include sasl or none.
+      include ssh.
   # needed if using flatmanager
   bridge-interface:
     default: br100
@@ -91,9 +91,11 @@ options:
     description: Network interface on which to build bridge
   instances-path:
     type: string
+    default:
     description: Instance path to use - empty means default of /var/lib/nova/instances
   config-flags:
     type: string
+    default:
     description: Comma separated list of key=value config flags to be set in nova.conf.
   nagios_context:
     default: "juju"
@@ -107,6 +109,7 @@ options:
       this allows you to differentiate between them.
   disable-neutron-security-groups:
     type: boolean
+    default:
     description: |
       Disable neutron based security groups - setting this configuration option
       will override any settings configured via the nova-cloud-controller charm.
@@ -117,6 +120,7 @@ options:
   # by default all access is over 'private-address'
   os-data-network:
     type: string
+    default:
     description: |
       The IP address and netmask of the OpenStack Data network (e.g.,
       192.168.0.0/24)
