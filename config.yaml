@@ -51,7 +51,7 @@ options:
   virt-type:
     default: kvm
     type: string
-    description: "Virtualization flavor. Supported: kvm, xen, uml, lxc. qemu"
+    description: "Virtualization flavor. Supported: kvm, xen, uml, lxc. qemu, flex"
   multi-host:
     default: "yes"
     type: string
@@ -127,3 +127,16 @@ options:
       .
       This network will be used for tenant network traffic in overlay
       networks.
+  # Flex configuratoin options
+  flex-block-device:
+     type: string
+     default:
+     description: |
+       The default block device for btrfs volumes.
+       .
+       This will be use to store the flex containers instance
+   flex-mnt-point:
+      type: string
+      default:
+      description: |
+        The initial mount point for the btrfs volume

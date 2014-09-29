@@ -6,7 +6,12 @@ from copy import deepcopy
 from subprocess import check_call, check_output
 
 from charmhelpers.fetch import apt_update, apt_upgrade, apt_install
-from charmhelpers.core.host import mkdir, service_restart
+from charmhelpers.core.host import (
+    mkdir, 
+    service_restart,
+    mount, umount
+)
+
 from charmhelpers.core.hookenv import (
     config,
     log,
@@ -83,6 +88,26 @@ BASE_RESOURCE_MAP = {
     },
 }
 
+FLEX_RESOURCE_MAP = {
+    NOVA_CONF: {
+        'services': ['nova-compute'],
+        'contexts':  [context.AMQPContext(ssl_dir=NOVA_CONF_DIR),
+                     context.SharedDBContext(
+                        relation_prefix='nova', ssl_dir=NOVA_CONF_DIR),
+                     context.PostgresqlDBContext(),
+                     context.ImageServiceContext(),
+                     context.OSConfigFlagContext(),
+                     CloudComputeContext(),
+                     NovaComputeCephContext(),
+                     context.SyslogContext(),
+                     context.SubordinateConfigContext(
+                        interface='nova-ceilometer',
+                        service='nova',
+                        config_file=NOVA_CONF),
+                     InstanceConsoleContext(),
+                    ],
+    },
+}
 CEPH_CONF = '/etc/ceph/ceph.conf'
 CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
 CEPH_SECRET = '/etc/ceph/secret.xml'
@@ -126,6 +151,7 @@ VIRT_TYPES = {
     'xen': ['nova-compute-xen'],
     'uml': ['nova-compute-uml'],
     'lxc': ['nova-compute-lxc'],
+    'flex': ['nova-compute-flex'],
 }
 
 # Maps virt-type config to a libvirt URI.
@@ -149,6 +175,8 @@ def resource_map():
     '''
     # TODO: Cache this on first call?
     resource_map = deepcopy(BASE_RESOURCE_MAP)
+    if config('virt-type').lower() == 'flex':
+        resource_map = deepcopy(FLEX_RESOURCE_MAP)
     net_manager = network_manager()
     plugin = neutron_plugin()
 
@@ -444,6 +472,46 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
     check_call(cmd)
 
 
+def configure_flex(user='nova'):
+    ''' Configures flex '''
+    configure_subuid(user='nova')
+
+    ''' Configure the btrfs vvolume '''
+    flex_block_device = config('flex-block-device')
+    if not flex_block_device:
+        log('btrfs deivce is not specified')
+        return
+        
+    instances_path = config('intances-path')
+    flex_mnt_point = config('flex-mnt-point')
+    if not flex_mnt_point:
+        log('btrfs temporary mnt point is not speciefied')
+        return
+
+    umount(flex_mnt_point)
+    cmd = ['mkfs.btrfs', '-f', flex_block_device]
+    check_call(cmd)
+    mount(flex_block_device,
+          '/var/lib/nova/instances',
+          options='user_subvol_rm_allowed',
+          persist=True,
+          filesystem='btrfs')
+
+    configure_flex_networking()
+
+    fix_path_ownership('/var/lib/nova/instances', user='nova')
+    service_restart('nova-compute')
+
+
+def configure_flex_networking(user='nova'):
+    with open('/etc/lxc/lxc-usernet', 'wb') as out:
+        out.write('nova veth br-int 1000\n')
+        out.write('nova veth br100 1000\n')
+
+def configure_subuid(user):
+    cmd = ['usermod', '-v', '100000-200000', '-w', '100000-200000', user]
+    check_call(cmd)
+
 def enable_shell(user):
     cmd = ['usermod', '-s', '/bin/bash', user]
     check_call(cmd)
@@ -456,4 +524,10 @@ def disable_shell(user):
 
 def fix_path_ownership(path, user='nova'):
     cmd = ['chown', user, path]
+    check_call(cmd)
+
+def enable_flex_ppa():
+    cmd = ['apt-add-repository', '-y',
+           'ppa:zulcss/flex-testing'
+          ]
     check_call(cmd)
