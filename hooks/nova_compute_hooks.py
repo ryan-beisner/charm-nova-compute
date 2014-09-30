@@ -66,9 +66,6 @@ CONFIGS = register_configs()
 
 @hooks.hook()
 def install():
-    if config('prefer-ipv6'):
-        assert_charm_supports_ipv6()
-
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
     apt_update()
