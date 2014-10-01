@@ -5,8 +5,18 @@ from base64 import b64decode
 from copy import deepcopy
 from subprocess import check_call, check_output
 
-from charmhelpers.fetch import apt_update, apt_upgrade, apt_install
-from charmhelpers.core.host import mkdir, service_restart
+from charmhelpers.fetch import (
+    apt_update,
+    apt_upgrade,
+    apt_install
+)
+
+from charmhelpers.core.host import (
+    mkdir,
+    service_restart,
+    lsb_release
+)
+
 from charmhelpers.core.hookenv import (
     config,
     log,
@@ -457,3 +467,10 @@ def disable_shell(user):
 def fix_path_ownership(path, user='nova'):
     cmd = ['chown', user, path]
     check_call(cmd)
+
+
+def assert_charm_supports_ipv6():
+    """Check whether we are able to support charms ipv6."""
+    if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
+        raise Exception("IPv6 is not supported in the charms for Ubuntu "
+                        "versions less than Trusty 14.04")

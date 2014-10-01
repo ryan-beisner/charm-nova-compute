@@ -50,6 +50,11 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
+    assert_charm_supports_ipv6
+)
+
+from charmhelpers.contrib.network.ip import (
+    get_ipv6_addr
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -70,6 +75,9 @@ def install():
 @hooks.hook('config-changed')
 @restart_on_change(restart_map())
 def config_changed():
+    if config('prefer-ipv6'):
+        assert_charm_supports_ipv6()
+
     global CONFIGS
     if openstack_upgrade_available('nova-common'):
         CONFIGS = do_openstack_upgrade()
@@ -179,6 +187,8 @@ def compute_joined(rid=None):
     settings = {
         'hostname': gethostname()
     }
+    if config('prefer-ipv6'):
+        settings = {'private-address': get_ipv6_addr()[0]}
     if migration_enabled():
         auth_type = config('migration-auth-type')
         settings['migration_auth_type'] = auth_type
