@@ -173,9 +173,8 @@ def resource_map():
     # Neutron/quantum requires additional contexts, as well as new resources
     # depending on the plugin used.
     # NOTE(james-page): only required for ovs plugin right now
-    if (net_manager in ['neutron', 'quantum'] and not
-            relation_ids('neutron-plugin')):
-        if plugin == 'ovs':
+    if net_manager in ['neutron', 'quantum']:
+        if not relation_ids('neutron-plugin') and plugin == 'ovs':
             if net_manager == 'quantum':
                 nm_rsc = QUANTUM_RESOURCES
             if net_manager == 'neutron':
