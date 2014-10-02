@@ -174,7 +174,7 @@ def resource_map():
     # depending on the plugin used.
     # NOTE(james-page): only required for ovs plugin right now
     if net_manager in ['neutron', 'quantum']:
-        if relation_ids('neutron-plugin') and plugin == 'ovs':
+        if not relation_ids('neutron-plugin') and plugin == 'ovs':
             if net_manager == 'quantum':
                 nm_rsc = QUANTUM_RESOURCES
             if net_manager == 'neutron':
