@@ -15,7 +15,7 @@ from charmhelpers.fetch import (
 from charmhelpers.core.host import (
     mkdir, 
     service_restart,
-    mount, umount
+    mount, umount,
     lsb_release
 )
 
