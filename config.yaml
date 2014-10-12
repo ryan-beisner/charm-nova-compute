@@ -135,12 +135,12 @@ options:
        The default block device for btrfs volumes.
        .
        This will be use to store the flex containers instance
-   flex-mnt-point:
-      type: string
-      default: /mnt
-      description: |
-        The initial mount point for the btrfs volume
-   prefer-ipv6:
+  flex-mnt-point:
+     type: string
+     default: /mnt
+     description: |
+       The initial mount point for the btrfs volume
+  prefer-ipv6:
      type: boolean
      default: False
      description: |
