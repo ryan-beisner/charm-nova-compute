@@ -25,6 +25,10 @@ from charmhelpers.fetch import (
     filter_installed_packages,
 )
 
+from charmhelpers.contrib.storage.linux.ceph import (
+    pool_exists as ceph_pool_exists
+)
+
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available,
@@ -237,6 +241,18 @@ def ceph_changed():
         create_libvirt_secret(secret_file=CEPH_SECRET,
                               secret_uuid=CEPH_SECRET_UUID,
                               key=relation_get('key'))
+
+    if config('libvirt_image_backend') == 'rbd':
+        # We need a means of syncing compute units so that only one will create
+        # the pool otherwise we risk race issues. So, for now, we require the
+        # pool to have been created BEFORE the ceph-relation is joined.
+        pool = config('rbd_pool')
+        if not ceph_pool_exists(service=svc, name=pool):
+            msg = ("RBD pool '%s' does not exist and must be created manually "
+                   "before adding the ceph relation - please create pool '%s' "
+                   "then retry" % (pool, pool) )
+            log(msg, level=ERROR)
+            raise Exception(msg)
 
 
 @hooks.hook('amqp-relation-broken',
