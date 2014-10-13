@@ -250,7 +250,7 @@ def ceph_changed():
         if not ceph_pool_exists(service=svc, name=pool):
             msg = ("RBD pool '%s' does not exist and must be created manually "
                    "before adding the ceph relation - please create pool '%s' "
-                   "then retry" % (pool, pool) )
+                   "then retry" % (pool, pool))
             log(msg, level=ERROR)
             raise Exception(msg)
 
