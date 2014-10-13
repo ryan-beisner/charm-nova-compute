@@ -12,7 +12,6 @@ from charmhelpers.core.hookenv import (
     related_units,
     service_name,
     unit_get,
-    WARNING,
     ERROR,
 )
 
