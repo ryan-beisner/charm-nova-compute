@@ -319,11 +319,11 @@ class InstanceConsoleContext(context.OSContextGenerator):
     def get_console_info(self, proto, **kwargs):
         console_settings = {
             proto + '_proxy_address':
-                relation_get('console_proxy_%s_address' % (proto), **kwargs),
+            relation_get('console_proxy_%s_address' % (proto), **kwargs),
             proto + '_proxy_host':
-                relation_get('console_proxy_%s_host' % (proto), **kwargs),
+            relation_get('console_proxy_%s_host' % (proto), **kwargs),
             proto + '_proxy_port':
-                relation_get('console_proxy_%s_port' % (proto), **kwargs),
+            relation_get('console_proxy_%s_port' % (proto), **kwargs),
         }
         return console_settings
 
