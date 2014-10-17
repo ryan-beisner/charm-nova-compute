@@ -479,7 +479,7 @@ def configure_flex(user='nova'):
         log('btrfs device is not specified')
         return
 
-    instances_path = config_data.get('intances-path',
+    instances_path = config_data.get('instances-path',
                                      DEFAULT_INSTANCE_PATH)
     flex_mnt_point = config_data.get('flex-mnt-point')
     if flex_mnt_point:
