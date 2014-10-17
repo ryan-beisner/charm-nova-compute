@@ -18,6 +18,11 @@ from charmhelpers.core.host import (
     lsb_release
 )
 
+from charmhelpers.contrib.storage.linux.utils import (
+    is_device_mounted,
+    is_block_device,
+)
+
 from charmhelpers.core.hookenv import (
     config,
     log,
@@ -479,13 +484,16 @@ def configure_flex(user='nova'):
         return
 
     umount(flex_mnt_point)
-    cmd = ['mkfs.btrfs', '-f', flex_block_device]
-    check_call(cmd)
-    mount(flex_block_device,
-          instances_path,
-          options='user_subvol_rm_allowed',
-          persist=True,
-          filesystem='btrfs')
+
+    if (is_block_device(flex_block_device) and
+            not is_device_mounted(flex_block_device)):
+        cmd = ['mkfs.btrfs', '-f', flex_block_device]
+        check_call(cmd)
+        mount(flex_block_device,
+              instances_path,
+              options='user_subvol_rm_allowed',
+              persist=True,
+              filesystem='btrfs')
 
     configure_flex_networking()
 
