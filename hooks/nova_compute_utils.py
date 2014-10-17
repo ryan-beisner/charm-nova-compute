@@ -60,6 +60,7 @@ BASE_PACKAGES = [
     'genisoimage',  # was missing as a package dependency until raring.
 ]
 
+DEFAULT_INSTANCE_PATH = '/var/lib/nova/instances'
 NOVA_CONF_DIR = "/etc/nova"
 QEMU_CONF = '/etc/libvirt/qemu.conf'
 LIBVIRTD_CONF = '/etc/libvirt/libvirtd.conf'
@@ -469,6 +470,7 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
 
 def configure_flex(user='nova'):
     ''' Configures flex '''
+    config_data = config()
     configure_subuid(user='nova')
 
     ''' Configure the btrfs vvolume '''
@@ -477,8 +479,9 @@ def configure_flex(user='nova'):
         log('btrfs device is not specified')
         return
 
-    instances_path = config('intances-path')
-    flex_mnt_point = config('flex-mnt-point')
+    instances_path = config_data.get('intances-path'),
+                                     DEFAULT_INSTANCE_PATH)
+    flex_mnt_point = config_data.get('flex-mnt-point')
     if not flex_mnt_point:
         log('btrfs temporary mnt point is not speciefied')
         return
