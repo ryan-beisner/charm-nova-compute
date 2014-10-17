@@ -482,11 +482,8 @@ def configure_flex(user='nova'):
     instances_path = config_data.get('intances-path'),
                                      DEFAULT_INSTANCE_PATH)
     flex_mnt_point = config_data.get('flex-mnt-point')
-    if not flex_mnt_point:
-        log('btrfs temporary mnt point is not speciefied')
-        return
-
-    umount(flex_mnt_point)
+    if flex_mnt_point:
+        umount(flex_mnt_point)
 
     if (is_block_device(flex_block_device) and
             not is_device_mounted(flex_block_device)):
