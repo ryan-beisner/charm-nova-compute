@@ -20,6 +20,7 @@ from charmhelpers.core.host import (
 )
 
 from charmhelpers.fetch import (
+    add_source,
     apt_install,
     apt_update,
     filter_installed_packages,
@@ -49,6 +50,7 @@ from nova_compute_utils import (
     QUANTUM_CONF, NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
+    configure_flex,
     fix_path_ownership,
     assert_charm_supports_ipv6
 )
@@ -68,6 +70,8 @@ CONFIGS = register_configs()
 def install():
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
+    if config('virt-type').lower() == 'flex':
+        add_source("ppa:zulcss/flex-testing")
     apt_update()
     apt_install(determine_packages(), fatal=True)
 
@@ -96,6 +100,9 @@ def config_changed():
     if config('instances-path') is not None:
         fp = config('instances-path')
         fix_path_ownership(fp, user='nova')
+
+    if config('virt-type').lower() == 'flex':
+        configure_flex(user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
 

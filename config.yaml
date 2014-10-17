@@ -51,7 +51,7 @@ options:
   virt-type:
     default: kvm
     type: string
-    description: "Virtualization flavor. Supported: kvm, xen, uml, lxc. qemu"
+    description: "Virtualization flavor. Supported: kvm, xen, uml, lxc. qemu, flex"
   multi-host:
     default: "yes"
     type: string
@@ -139,3 +139,17 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  # Flex configuratoin options
+  flex-block-device:
+    type: string
+    default: /dev/vdb
+    description: |
+      The default block device for btrfs volumes.
+      .
+      This will be use to store the flex containers instance
+  flex-mnt-point:
+    type: string
+    default: /mnt
+    description: |
+      The initial mount point for the btrfs volume
+

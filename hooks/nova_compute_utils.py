@@ -14,6 +14,7 @@ from charmhelpers.fetch import (
 from charmhelpers.core.host import (
     mkdir,
     service_restart,
+    mount, umount,
     lsb_release
 )
 
@@ -61,18 +62,6 @@ LIBVIRT_BIN = '/etc/default/libvirt-bin'
 NOVA_CONF = '%s/nova.conf' % NOVA_CONF_DIR
 
 BASE_RESOURCE_MAP = {
-    QEMU_CONF: {
-        'services': ['libvirt-bin'],
-        'contexts': [],
-    },
-    LIBVIRTD_CONF: {
-        'services': ['libvirt-bin'],
-        'contexts': [NovaComputeLibvirtContext()],
-    },
-    LIBVIRT_BIN: {
-        'services': ['libvirt-bin'],
-        'contexts': [NovaComputeLibvirtContext()],
-    },
     NOVA_CONF: {
         'services': ['nova-compute'],
         'contexts': [context.AMQPContext(ssl_dir=NOVA_CONF_DIR),
@@ -92,6 +81,22 @@ BASE_RESOURCE_MAP = {
                      InstanceConsoleContext(), ],
     },
 }
+
+LIBVIRT_RESOURCE_MAP = {
+    QEMU_CONF: {
+        'services': ['libvirt-bin'],
+        'contexts': [],
+    },
+    LIBVIRTD_CONF: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtContext()],
+    },
+    LIBVIRT_BIN: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtContext()],
+    },
+}
+LIBVIRT_RESOURCE_MAP.update(BASE_RESOURCE_MAP)
 
 CEPH_CONF = '/etc/ceph/ceph.conf'
 CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
@@ -136,6 +141,7 @@ VIRT_TYPES = {
     'xen': ['nova-compute-xen'],
     'uml': ['nova-compute-uml'],
     'lxc': ['nova-compute-lxc'],
+    'flex': ['nova-compute-flex'],
 }
 
 # Maps virt-type config to a libvirt URI.
@@ -158,7 +164,10 @@ def resource_map():
     hook execution.
     '''
     # TODO: Cache this on first call?
-    resource_map = deepcopy(BASE_RESOURCE_MAP)
+    if config('virt-type').lower() != 'flex':
+        resource_map = deepcopy(LIBVIRT_RESOURCE_MAP)
+    else:
+        resource_map = deepcopy(BASE_RESOURCE_MAP)
     net_manager = network_manager()
     plugin = neutron_plugin()
 
@@ -450,6 +459,48 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
     check_call(cmd)
     cmd = ['virsh', '-c', uri, 'secret-set-value', '--secret', secret_uuid,
            '--base64', key]
+    check_call(cmd)
+
+
+def configure_flex(user='nova'):
+    ''' Configures flex '''
+    configure_subuid(user='nova')
+
+    ''' Configure the btrfs vvolume '''
+    flex_block_device = config('flex-block-device')
+    if not flex_block_device:
+        log('btrfs deivce is not specified')
+        return
+
+    instances_path = config('intances-path')
+    flex_mnt_point = config('flex-mnt-point')
+    if not flex_mnt_point:
+        log('btrfs temporary mnt point is not speciefied')
+        return
+
+    umount(flex_mnt_point)
+    cmd = ['mkfs.btrfs', '-f', flex_block_device]
+    check_call(cmd)
+    mount(flex_block_device,
+          instances_path,
+          options='user_subvol_rm_allowed',
+          persist=True,
+          filesystem='btrfs')
+
+    configure_flex_networking()
+
+    fix_path_ownership(instances_path, user='nova')
+    service_restart('nova-compute')
+
+
+def configure_flex_networking(user='nova'):
+    with open('/etc/lxc/lxc-usernet', 'wb') as out:
+        out.write('nova veth br-int 1000\n')
+        out.write('nova veth br100 1000\n')
+
+
+def configure_subuid(user):
+    cmd = ['usermod', '-v', '100000-200000', '-w', '100000-200000', user]
     check_call(cmd)
 
 
