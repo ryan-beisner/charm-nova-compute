@@ -469,7 +469,7 @@ def configure_flex(user='nova'):
     ''' Configure the btrfs vvolume '''
     flex_block_device = config('flex-block-device')
     if not flex_block_device:
-        log('btrfs deivce is not specified')
+        log('btrfs device is not specified')
         return
 
     instances_path = config('intances-path')
