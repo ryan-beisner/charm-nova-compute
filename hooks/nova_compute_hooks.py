@@ -28,6 +28,7 @@ from charmhelpers.fetch import (
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available,
+    os_requires_version,
 )
 
 from charmhelpers.contrib.storage.linux.ceph import ensure_ceph_keyring
@@ -264,6 +265,7 @@ def nova_ceilometer_relation_changed():
 
 
 @hooks.hook('zeromq-configuration-relation-joined')
+@os_requires_version('juno', 'nova-common')
 def zeromq_configuration_relation_joined(relid=None):
     relation_set(relation_id=relid,
                  topics=" ".join(get_topics()),
