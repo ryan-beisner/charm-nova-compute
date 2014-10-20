@@ -33,6 +33,3 @@ requires:
   zeromq-configuration:
     interface: zeromq-configuration
     scope: container
-peers:
-  compute-peer:
-    interface: nova
