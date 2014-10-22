@@ -51,6 +51,7 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     configure_flex,
+    configure_flex_storage,
     fix_path_ownership,
     assert_charm_supports_ipv6
 )
@@ -102,6 +103,7 @@ def config_changed():
         fix_path_ownership(fp, user='nova')
 
     if config('virt-type').lower() == 'flex':
+        configure_flex_storage()
         configure_flex(user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
