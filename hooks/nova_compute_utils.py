@@ -548,7 +548,7 @@ def ensure_block_device(block_device):
     :returns: str: Full path of block device to ensure.
     '''
     _none = ['None', 'none', None]
-    if (block_deivce in _none):
+    if (block_device in _none):
         log('prepare_storage(): Missing required input: '
             'block_device=%s.' % block_device, level=ERROR)
         raise
