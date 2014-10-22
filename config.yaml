@@ -142,14 +142,14 @@ options:
   # Flex configuratoin options
   flex-block-device:
     type: string
-    default: /dev/vdb
+    default: sdb
     description: |
-      The default block device for btrfs volumes.
+      Deivce to be used to back Flex storage. May be an valid block
+      device or a path and size to a local file (/path/to/file.img|$sizeG),
+      which will be created and used as a loopback device (for testing only).
+      Multiple devices may not be specified as a space-seperated list of devices.
+      If set to "guess", the charm will attempt to format and mount all extra
+      block devices (this is currently experimentall and potentially danagerous).
       .
       This will be use to store the flex containers instance
-  flex-mnt-point:
-    type: string
-    default: /mnt
-    description: |
-      The initial mount point for the btrfs volume
 
