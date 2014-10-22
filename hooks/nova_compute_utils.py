@@ -484,6 +484,7 @@ def configure_flex(user='nova'):
 
 def configure_flex_storage():
     ''' Configure the btrfs volume'''
+    config_data = config()
     flex_block_device = config('flex-block-device')
     if not flex_block_device:
         log('btrfs device is not specified')
