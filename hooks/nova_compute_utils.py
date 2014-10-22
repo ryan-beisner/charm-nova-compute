@@ -503,7 +503,6 @@ def configure_flex(user='nova'):
 
 def configure_flex_networking(user='nova'):
     with open('/etc/lxc/lxc-usernet', 'wb') as out:
-        out.write('nova veth br-int 1000\n')
         out.write('nova veth br100 1000\n')
 
 
