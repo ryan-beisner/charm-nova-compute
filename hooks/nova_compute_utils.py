@@ -520,7 +520,7 @@ def find_block_devices():
     return [f for f in found if is_block_device(f)]
 
 def determine_block_devices():
-    flex_block_device = config('flex-block-device')
+    block_device = config('flex-block-device')
 
     if not block_device or block_device in ['None', 'none']:
         log('No storage deivces specified in config as block-device',
