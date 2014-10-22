@@ -479,7 +479,7 @@ def configure_flex(user='nova'):
 
     configure_flex_networking()
 
-    fix_path_ownership(config_data.get('instances_path',
+    fix_path_ownership(config_data.get('instances-path',
                                        DEFAULT_INSTACNE_PATH), 
                         user='nova')
     service_restart('nova-compute')
