@@ -492,8 +492,9 @@ def configure_flex_storage():
 
     instances_path = config_data.get('instances-path',
                                      DEFAULT_INSTANCE_PATH)
-    if is_device_mounted(flex_block_device):
-        umount(flex_block_device)
+
+    if config(flex-overwrite-block-device) in ['True', 'true']:
+        umount(flex_block_device, persist=True)
 
     for dev in determine_block_devices():
             cmd = ['mkfs.btrfs', '-f', dev]
