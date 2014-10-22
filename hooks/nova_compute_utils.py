@@ -473,7 +473,14 @@ def configure_flex(user='nova'):
     config_data = config()
     configure_subuid(user='nova')
 
-    ''' Configure the btrfs vvolume '''
+    configure_flex_storage()
+    configure_flex_networking()
+
+    fix_path_ownership(instances_path, user='nova')
+    service_restart('nova-compute')
+
+def configure_flex_storage():
+    ''' Configure the btrfs volume'''
     flex_block_device = config('flex-block-device')
     if not flex_block_device:
         log('btrfs device is not specified')
@@ -484,21 +491,51 @@ def configure_flex(user='nova'):
     if is_device_mounted(flex_block_device):
         umount(flex_block_device)
 
-    if (is_block_device(flex_block_device) and
-            not is_device_mounted(flex_block_device)):
-        cmd = ['mkfs.btrfs', '-f', flex_block_device]
-        check_call(cmd)
-        mount(flex_block_device,
-              instances_path,
-              options='user_subvol_rm_allowed',
-              persist=True,
-              filesystem='btrfs')
+    for dev in determine_block_devices():
+        if (is_block_device(dev) and
+                not is_device_mounted(dev)):
+            cmd = ['mkfs.btrfs', '-f', dev]
+            check_call(cmd)
+            mount(flex_block_device,
+                  instances_path,
+                  options='user_subvol_rm_allowed',
+                  persist=True,
+                  filesystem='btrfs')
 
-    configure_flex_networking()
+def find_block_devices():
+    found = []
+    incl = ['sd[a-z]', 'vd[a-z]', 'cciss\/c[0-9]d[0-9]']
+    blacklist = ['sda', 'vda', 'cciss/c0d0']
 
-    fix_path_ownership(instances_path, user='nova')
-    service_restart('nova-compute')
+    with open('/proc/partitions') as proc:
+        print proc
+        partitions = [p.split() for p in proc.readlines()[2:]]
+    for partition in [p[3] for p in partitions if p]:
+        for inc in incl:
+            _re = re.compile(r'^(%s)$' % inc)
+            if _re.match(partition) and partition not in blacklist:
+                found.append(os.path.join('/dev', partition))
+    return [f for f in found if is_block_device(f)]
 
+def determine_block_devices()
+    flex_block_device = config('flex-block-device')
+
+    if not block_device or block_device in ['None', 'none']:
+        log('No storage deivces specified in config as block-device',
+            level=ERROR)
+        return None
+
+    if block_device == 'guess':
+        bdevs = find_block_devices()
+    else:
+        bdevs = block_device.split(' ')
+
+    # attempt to ensure block devices, but filter out missing devs
+    _none = ['None', 'none', None]
+    valid_bdevs = \
+        [x for x in map(ensure_block_device, bdevs) if x not in _none]
+    log('Valid ensured block devices: %s' % valid_bdevs)
+    return valid_bdevs
 
 def configure_flex_networking(user='nova'):
     with open('/etc/lxc/lxc-usernet', 'wb') as out:
