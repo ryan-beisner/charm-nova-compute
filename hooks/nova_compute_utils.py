@@ -477,7 +477,6 @@ def configure_flex(user='nova'):
     config_data = config()
     configure_subuid(user='nova')
 
-    configure_flex_storage()
     configure_flex_networking()
 
     fix_path_ownership(instances_path, user='nova')
@@ -496,8 +495,6 @@ def configure_flex_storage():
         umount(flex_block_device)
 
     for dev in determine_block_devices():
-        if (is_block_device(dev) and
-                not is_device_mounted(dev)):
             cmd = ['mkfs.btrfs', '-f', dev]
             check_call(cmd)
             mount(dev,
