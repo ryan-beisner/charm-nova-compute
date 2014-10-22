@@ -481,9 +481,8 @@ def configure_flex(user='nova'):
 
     instances_path = config_data.get('instances-path',
                                      DEFAULT_INSTANCE_PATH)
-    flex_mnt_point = config_data.get('flex-mnt-point')
-    if flex_mnt_point:
-        umount(flex_mnt_point)
+    if is_device_mounted(flex_block_device):
+        umount(flex_block_device)
 
     if (is_block_device(flex_block_device) and
             not is_device_mounted(flex_block_device)):
