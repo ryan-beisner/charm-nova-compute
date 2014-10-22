@@ -152,9 +152,9 @@ options:
       block devices (this is currently experimentall and potentially danagerous).
       .
       This will be use to store the flex containers instance
-   flex-overwrite-block-device:
-     default: "false"
-     type: string
-     description: |
-       If true, charm will attempt to umount and overwrite existing and in-use
-       block-devices (WARNING).
+  flex-overwrite-block-device:
+    default: "false"
+    type: string
+    description: |
+      If true, charm will attempt to umount and overwrite existing and in-use
+      block-devices (WARNING).
