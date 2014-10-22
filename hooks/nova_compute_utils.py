@@ -23,6 +23,10 @@ from charmhelpers.contrib.storage.linux.utils import (
     is_block_device,
 )
 
+from charmhelpers.contrib.storage.linux.loopback import (
+    ensure_loopback_device,
+)
+
 from charmhelpers.core.hookenv import (
     config,
     log,
@@ -496,7 +500,7 @@ def configure_flex_storage():
                 not is_device_mounted(dev)):
             cmd = ['mkfs.btrfs', '-f', dev]
             check_call(cmd)
-            mount(flex_block_device,
+            mount(dev,
                   instances_path,
                   options='user_subvol_rm_allowed',
                   persist=True,
@@ -536,6 +540,40 @@ def determine_block_devices()
         [x for x in map(ensure_block_device, bdevs) if x not in _none]
     log('Valid ensured block devices: %s' % valid_bdevs)
     return valid_bdevs
+
+def ensure_block_device(block_device):
+    '''
+    Confirm block_device, create as loopback if necessary.
+
+    :param block_device: str: Full path of block device to ensure.
+
+    :returns: str: Full path of block device to ensure.
+    '''
+    _none = ['None', 'none', None]
+    if (block_deivce in _none):
+        log('prepare_storage(): Missing required input: '
+            'block_device=%s.' % block_device, level=ERROR)
+        raise
+
+    if block_device.startswith('/dev/'):
+        bdev = block_device
+    elif block_device.startswith('/'):
+        _bd = block_device.split('|')
+        if len(_bd) == 2:
+            bdev, size = _bd
+        else:
+            bdev = block_device
+            size = DEFAULT_LOOPBACK_SIZE
+        bdev = ensure_loopback_device(bdev, size)
+    else:
+        bdev = '/dev/%s' % block_device
+
+    if not is_block_device(bdev):
+        log('Failed to locate valid block device at %s' % bdev, level=ERROR)
+        # ignore missing block devices
+        return
+
+    return bdev
 
 def configure_flex_networking(user='nova'):
     with open('/etc/lxc/lxc-usernet', 'wb') as out:
