@@ -521,7 +521,7 @@ def find_block_devices():
                 found.append(os.path.join('/dev', partition))
     return [f for f in found if is_block_device(f)]
 
-def determine_block_devices()
+def determine_block_devices():
     flex_block_device = config('flex-block-device')
 
     if not block_device or block_device in ['None', 'none']:
