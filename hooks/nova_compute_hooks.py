@@ -273,7 +273,7 @@ def zeromq_configuration_relation_joined(relid=None):
 
 
 @hooks.hook('zeromq-configuration-relation-changed')
-@restart_on_change(restart_map(), stopstart=True)
+@restart_on_change(restart_map())
 def zeromq_configuration_relation_changed():
     CONFIGS.write(NOVA_CONF)
 
