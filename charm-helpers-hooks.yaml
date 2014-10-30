@@ -10,3 +10,4 @@ include:
         - cluster
     - contrib.network
     - payload.execd
+    - contrib.charmsupport
