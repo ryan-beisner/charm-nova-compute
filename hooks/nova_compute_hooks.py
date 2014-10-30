@@ -57,6 +57,8 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 
+from charmhelpers.contrib.charmsupport.nrpe import NRPE
+
 from nova_compute_context import CEPH_SECRET_UUID
 from socket import gethostname
 
@@ -98,6 +100,8 @@ def config_changed():
         fix_path_ownership(fp, user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
+
+    update_nrpe_config()
 
     CONFIGS.write_all()
 
@@ -253,12 +257,31 @@ def relation_broken():
 def upgrade_charm():
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
-
+    update_nrpe_config()
 
 @hooks.hook('nova-ceilometer-relation-changed')
 @restart_on_change(restart_map())
 def nova_ceilometer_relation_changed():
     CONFIGS.write_all()
+
+
+@hooks.hook('nrpe-external-master-relation-joined', 'nrpe-external-master-relation-changed')
+def update_nrpe_config():
+    apt_install('python-dbus')
+    nrpe = NRPE()
+
+    nrpe.add_check(
+        shortname='nova-compute',
+        description='nova-compute process',
+        check_cmd = 'check_upstart_job nova-compute',
+        )
+    nrpe.add_check(
+        shortname='libvirtd',
+        description='libvirtd process',
+        check_cmd = 'check_upstart_job libvirt-bin',
+        )
+
+    nrpe.write()
 
 
 def main():
