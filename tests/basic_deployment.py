@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import amulet
+import time
 
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
@@ -19,9 +20,9 @@ u = OpenStackAmuletUtils(ERROR)
 class NovaBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic nova compute deployment."""
 
-    def __init__(self, series=None, openstack=None, source=None):
+    def __init__(self, series=None, openstack=None, source=None, stable=False):
         """Deploy the entire test environment."""
-        super(NovaBasicDeployment, self).__init__(series, openstack, source)
+        super(NovaBasicDeployment, self).__init__(series, openstack, source, stable)
         self._add_services()
         self._add_relations()
         self._configure_services()
@@ -29,13 +30,16 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         self._initialize_tests()
 
     def _add_services(self):
-        """Add the service that we're testing, including the number of units,
-           where nova-compute is local, and the other charms are from
-           the charm store."""
-        this_service = ('nova-compute', 1)
-        other_services = [('mysql', 1), ('rabbitmq-server', 1),
-                          ('nova-cloud-controller', 1), ('keystone', 1),
-                          ('glance', 1)]
+        """Add services
+
+           Add the services that we're testing, where nova-compute is local,
+           and the rest of the service are from lp branches that are
+           compatible with the local charm (e.g. stable or next).
+           """
+        this_service = {'name': 'nova-compute'}
+        other_services = [{'name': 'mysql'}, {'name': 'rabbitmq-server'},
+                          {'name': 'nova-cloud-controller'}, {'name': 'keystone'},
+                          {'name': 'glance'}]
         super(NovaBasicDeployment, self)._add_services(this_service,
                                                        other_services)
 
@@ -75,6 +79,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         self.nova_compute_sentry = self.d.sentry.unit['nova-compute/0']
         self.nova_cc_sentry = self.d.sentry.unit['nova-cloud-controller/0']
         self.glance_sentry = self.d.sentry.unit['glance/0']
+
+        # Let things settle a bit before moving forward
+        time.sleep(30)
 
         # Authenticate admin with keystone
         self.keystone = u.authenticate_keystone_admin(self.keystone_sentry,
@@ -300,9 +307,14 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('nova-cc cloud-compute', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_restart_on_config_change(self):
+    def test_z_restart_on_config_change(self):
         """Verify that the specified services are restarted when the config
-           is changed."""
+           is changed.
+
+           Note(coreycb): The method name with the _z_ is a little odd
+           but it forces the test to run last.  It just makes things
+           easier because restarting services requires re-authorization.
+           """
         # NOTE(coreycb): Skipping failing test on essex until resolved.
         #                config-flags don't take effect on essex.
         if self._get_openstack_release() == self.precise_essex:
@@ -316,6 +328,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         for s in services:
             if not u.service_restarted(self.nova_compute_sentry, s,
                                        '/etc/nova/nova.conf', sleep_time=time):
+                self.d.configure('nova-compute', {'config-flags': 'verbose=True'})
                 msg = "service {} didn't restart after config change".format(s)
                 amulet.raise_status(amulet.FAIL, msg=msg)
             time = 0
