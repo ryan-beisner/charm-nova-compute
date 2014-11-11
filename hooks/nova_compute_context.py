@@ -118,6 +118,16 @@ class NovaComputeVirtContext(context.OSContextGenerator):
         return {}
 
 
+def assert_libvirt_imagebackend_allowed():
+    os_ver = get_os_version_package('nova-compute')
+    if float(os_ver) < float(get_os_version_codename('havana')):
+        msg = ("Libvirt RBD imagebackend only supported for openstack >= "
+               "Havana")
+        raise Exception(msg)
+
+    return True
+
+
 class NovaComputeCephContext(context.CephContext):
 
     def __call__(self):
@@ -133,14 +143,9 @@ class NovaComputeCephContext(context.CephContext):
         ctxt['rbd_secret_uuid'] = CEPH_SECRET_UUID
         ctxt['rbd_pool'] = config('rbd-pool')
 
-        if config('libvirt-image-backend') == 'rbd':
-            os_ver = get_os_version_package('nova-compute')
-            if float(os_ver) >= float(get_os_version_codename('havana')):
-                ctxt['libvirt_images_type'] = 'rbd'
-            else:
-                msg = ("Nova RBD imagebackend only supported in openstack "
-                       ">= Havana - ignoring")
-                raise Exception(msg)
+        if (config('libvirt-image-backend') == 'rbd' and
+                assert_libvirt_imagebackend_allowed()):
+            ctxt['libvirt_images_type'] = 'rbd'
         elif config('libvirt-image-backend') == 'lvm':
             ctxt['libvirt_images_type'] = 'lvm'
 

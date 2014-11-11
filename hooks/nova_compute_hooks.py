@@ -58,7 +58,11 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 
-from nova_compute_context import CEPH_SECRET_UUID
+from nova_compute_context import (
+    CEPH_SECRET_UUID,
+    assert_libvirt_imagebackend_allowed
+)
+
 from socket import gethostname
 
 hooks = Hooks()
@@ -241,7 +245,8 @@ def ceph_changed():
                               secret_uuid=CEPH_SECRET_UUID,
                               key=relation_get('key'))
 
-    if config('libvirt-image-backend') == 'rbd':
+    if (config('libvirt-image-backend') == 'rbd' and
+            assert_libvirt_imagebackend_allowed()):
         settings = relation_get()
         if settings and 'broker_rsp' in settings:
             rsp = json.loads(settings['broker_rsp'])
