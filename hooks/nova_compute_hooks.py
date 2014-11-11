@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+import json
 import sys
 
 from charmhelpers.core.hookenv import (
@@ -7,6 +7,7 @@ from charmhelpers.core.hookenv import (
     config,
     is_relation_made,
     log,
+    INFO,
     ERROR,
     relation_ids,
     relation_get,
@@ -23,10 +24,6 @@ from charmhelpers.fetch import (
     apt_install,
     apt_update,
     filter_installed_packages,
-)
-
-from charmhelpers.contrib.storage.linux.ceph import (
-    pool_exists as ceph_pool_exists
 )
 
 from charmhelpers.contrib.openstack.utils import (
@@ -227,13 +224,12 @@ def ceph_changed():
     if 'ceph' not in CONFIGS.complete_contexts():
         log('ceph relation incomplete. Peer not ready?')
         return
+
     svc = service_name()
+
     if not ensure_ceph_keyring(service=svc):
         log('Could not create ceph keyring: peer not ready?')
         return
-    CONFIGS.write(ceph_config_file())
-    CONFIGS.write(CEPH_SECRET)
-    CONFIGS.write(NOVA_CONF)
 
     # With some refactoring, this can move into NovaComputeCephContext
     # and allow easily extended to support other compute flavors.
@@ -243,16 +239,31 @@ def ceph_changed():
                               key=relation_get('key'))
 
     if config('libvirt_image_backend') == 'rbd':
-        # We need a means of syncing compute units so that only one will create
-        # the pool otherwise we risk race issues. So, for now, we require the
-        # pool to have been created BEFORE the ceph-relation is joined.
-        pool = config('rbd_pool')
-        if not ceph_pool_exists(service=svc, name=pool):
-            msg = ("RBD pool '%s' does not exist and must be created manually "
-                   "before adding the ceph relation - please create pool '%s' "
-                   "then retry" % (pool, pool))
-            log(msg, level=ERROR)
-            raise Exception(msg)
+        if not ensure_ceph_keyring(service=svc,
+                                   user='cinder', group='cinder'):
+            log('Could not create ceph keyring: peer not ready?')
+            return
+
+        settings = relation_get()
+        if settings and 'broker_rsp' in settings:
+            rsp = json.loads(settings['broker_rsp'])
+            # Non-zero return code implies failure
+            if rsp['exit-code']:
+                log("Ceph broker request failed (rsp=%s)" % (rsp), level=ERROR)
+                return
+
+            log("Ceph broker request succeeded (rsp=%s)" % (rsp), level=INFO)
+        else:
+            broker_req = {'api-version': 1, 'ops':
+                          [{'op': 'create-pool', 'name': svc,
+                            'replicas': config('ceph-osd-replication-count')}]}
+            for rid in relation_ids('ceph'):
+                relation_set(broker_req=json.dumps(broker_req))
+                log("Request(s) sent to Ceph broker (rid=%s)" % (rid))
+
+    CONFIGS.write(ceph_config_file())
+    CONFIGS.write(CEPH_SECRET)
+    CONFIGS.write(NOVA_CONF)
 
 
 @hooks.hook('amqp-relation-broken',
