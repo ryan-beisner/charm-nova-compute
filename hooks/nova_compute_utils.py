@@ -59,11 +59,6 @@ QEMU_CONF = '/etc/libvirt/qemu.conf'
 LIBVIRTD_CONF = '/etc/libvirt/libvirtd.conf'
 LIBVIRT_BIN = '/etc/default/libvirt-bin'
 NOVA_CONF = '%s/nova.conf' % NOVA_CONF_DIR
-CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
-
-
-def ceph_config_file():
-    return CHARM_CEPH_CONF.format(service_name())
 
 BASE_RESOURCE_MAP = {
     QEMU_CONF: {
@@ -94,15 +89,12 @@ BASE_RESOURCE_MAP = {
                          interface='nova-ceilometer',
                          service='nova',
                          config_file=NOVA_CONF),
-                     InstanceConsoleContext(), ],
-    },
-    ceph_config_file(): {
-        'contexts': [context.CephContext()],
-        'services': ['nova-compute']
+                     InstanceConsoleContext()],
     }
 }
 
 CEPH_CONF = '/etc/ceph/ceph.conf'
+CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
 CEPH_SECRET = '/etc/ceph/secret.xml'
 
 CEPH_RESOURCES = {
@@ -156,6 +148,10 @@ LIBVIRT_URIS = {
 }
 
 
+def ceph_config_file():
+    return CHARM_CEPH_CONF.format(service_name())
+
+
 def resource_map():
     '''
     Dynamically generate a map of resources that will be managed for a single
@@ -202,7 +198,7 @@ def resource_map():
     if relation_ids('ceph'):
         CEPH_RESOURCES[ceph_config_file()] = {
             'contexts': [NovaComputeCephContext()],
-            'services': [],
+            'services': ['nova-compute']
         }
         resource_map.update(CEPH_RESOURCES)
 
