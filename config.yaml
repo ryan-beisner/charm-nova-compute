@@ -139,12 +139,13 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
-  libvirt_image_backend:
+  libvirt-image-backend:
+    default: ""
     type: string
     description:
       Tell Nova which libvirt image backend to use. Supported backends are rbd and lvm.
       If no backend is specified, the Nova default is used (probably qcow2).
-  rbd_pool:
+  rbd-pool:
     default: "nova"
     type: string
     description: |
