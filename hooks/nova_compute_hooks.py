@@ -225,9 +225,8 @@ def ceph_changed():
         log('ceph relation incomplete. Peer not ready?')
         return
 
-    svc = service_name()
-
-    if not ensure_ceph_keyring(service=svc, user=svc, group=svc):
+    if not ensure_ceph_keyring(service=service_name(), user='nova',
+                               group='nova'):
         log('Could not create ceph keyring: peer not ready?')
         return
 
