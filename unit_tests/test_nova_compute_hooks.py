@@ -2,18 +2,29 @@ from mock import call, patch, MagicMock
 
 from test_utils import CharmTestCase
 
-import nova_compute_utils as utils
 
-_reg = utils.register_configs
-_map = utils.restart_map
+@patch("charmhelpers.core.hookenv.service_name")
+def import_mocked_utils(mock_service_name):
+    mock_service_name.return_value = "unit_test"
+    import nova_compute_utils as utils  # NOQA
+    global utils
 
-utils.register_configs = MagicMock()
-utils.restart_map = MagicMock()
+import_mocked_utils()
+utils = utils  # NOQA
 
-import nova_compute_hooks as hooks
 
-utils.register_configs = _reg
-utils.restart_map = _map
+@patch("nova_compute_utils.restart_map")
+@patch("nova_compute_utils.register_configs")
+@patch("charmhelpers.core.hookenv.service_name")
+def import_mocked_hooks(mock_service_name, mock_register_configs,
+                        mock_restart_map):
+    mock_service_name.return_value = "unit_test"
+    import nova_compute_hooks as hooks  # NOQA
+    global hooks
+
+import_mocked_hooks()
+hooks = hooks  # NOQA
+
 
 TO_PATCH = [
     # charmhelpers.core.hookenv
