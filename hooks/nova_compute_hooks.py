@@ -227,8 +227,7 @@ def ceph_changed():
 
     svc = service_name()
 
-    if not ensure_ceph_keyring(service=svc,
-                               user='nova', group='nova'):
+    if not ensure_ceph_keyring(service=svc, user=svc, group=svc):
         log('Could not create ceph keyring: peer not ready?')
         return
 
