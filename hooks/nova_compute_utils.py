@@ -200,18 +200,6 @@ def resource_map():
         resource_map[NOVA_CONF]['contexts'].append(NeutronComputeContext())
 
     if relation_ids('ceph'):
-        # Add charm ceph configuration to resources and
-        # ensure directory actually exists
-        mkdir(os.path.dirname(ceph_config_file()))
-        mkdir(os.path.dirname(CEPH_CONF))
-        # Install ceph config as an alternative for co-location with
-        # ceph and ceph-osd charms - nova-compute ceph.conf will be
-        # lower priority that both of these but thats OK
-        if not os.path.exists(ceph_config_file()):
-            # touch file for pre-templated generation
-            open(ceph_config_file(), 'w').close()
-        install_alternative(os.path.basename(CEPH_CONF),
-                            CEPH_CONF, ceph_config_file())
         CEPH_RESOURCES[ceph_config_file()] = {
             'contexts': [NovaComputeCephContext()],
             'services': [],
@@ -244,6 +232,20 @@ def register_configs():
     release = os_release('nova-common')
     configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
                                           openstack_release=release)
+
+    if relation_ids('ceph'):
+        # Add charm ceph configuration to resources and
+        # ensure directory actually exists
+        mkdir(os.path.dirname(ceph_config_file()))
+        mkdir(os.path.dirname(CEPH_CONF))
+        # Install ceph config as an alternative for co-location with
+        # ceph and ceph-osd charms - nova-compute ceph.conf will be
+        # lower priority that both of these but thats OK
+        if not os.path.exists(ceph_config_file()):
+            # touch file for pre-templated generation
+            open(ceph_config_file(), 'w').close()
+        install_alternative(os.path.basename(CEPH_CONF),
+                            CEPH_CONF, ceph_config_file())
 
     for cfg, d in resource_map().iteritems():
         configs.register(cfg, d['contexts'])

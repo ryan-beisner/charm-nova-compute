@@ -1,10 +1,18 @@
-from mock import patch, MagicMock, call
-
-from test_utils import CharmTestCase, patch_open
-
+import itertools
+import tempfile
 
 import nova_compute_utils as utils
-import itertools
+
+from mock import (
+    patch,
+    MagicMock,
+    call
+)
+from test_utils import (
+    CharmTestCase,
+    patch_open
+)
+
 
 TO_PATCH = [
     'config',
@@ -296,10 +304,12 @@ class NovaComputeUtilsTests(CharmTestCase):
             _file.write.assert_called_with('foo_cert\n')
         check_call.assert_called_with(['update-ca-certificates'])
 
+    @patch.object(utils, 'ceph_config_file')
     @patch('charmhelpers.contrib.openstack.templating.OSConfigRenderer')
     @patch.object(utils, 'quantum_enabled')
     @patch.object(utils, 'resource_map')
-    def test_register_configs(self, resource_map, quantum, renderer):
+    def test_register_configs(self, resource_map, quantum, renderer,
+                              mock_ceph_config_file):
         quantum.return_value = False
         self.os_release.return_value = 'havana'
         fake_renderer = MagicMock()
@@ -318,14 +328,16 @@ class NovaComputeUtilsTests(CharmTestCase):
             },
         }
         resource_map.return_value = rsc_map
-        utils.register_configs()
-        renderer.assert_called_with(
-            openstack_release='havana', templates_dir='templates/')
-        ex_reg = [
-            call('/etc/nova/nova-compute.conf', [ctxt2]),
-            call('/etc/nova/nova.conf', [ctxt1])
-        ]
-        self.assertEquals(fake_renderer.register.call_args_list, ex_reg)
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            mock_ceph_config_file.return_value = tmpfile.name
+            utils.register_configs()
+            renderer.assert_called_with(
+                openstack_release='havana', templates_dir='templates/')
+            ex_reg = [
+                call('/etc/nova/nova-compute.conf', [ctxt2]),
+                call('/etc/nova/nova.conf', [ctxt1])
+            ]
+            self.assertEquals(fake_renderer.register.call_args_list, ex_reg)
 
     @patch.object(utils, 'check_call')
     def test_enable_shell(self, _check_call):
