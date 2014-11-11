@@ -131,9 +131,9 @@ class NovaComputeCephContext(context.CephContext):
         ctxt['service_name'] = svc
         ctxt['rbd_user'] = svc
         ctxt['rbd_secret_uuid'] = CEPH_SECRET_UUID
-        ctxt['rbd_pool'] = config('rbd_pool')
+        ctxt['rbd_pool'] = config('rbd-pool')
 
-        if config('libvirt_image_backend') == 'rbd':
+        if config('libvirt-image-backend') == 'rbd':
             os_ver = get_os_version_package('nova-compute')
             if float(os_ver) >= float(get_os_version_codename('havana')):
                 ctxt['libvirt_images_type'] = 'rbd'
@@ -141,7 +141,7 @@ class NovaComputeCephContext(context.CephContext):
                 msg = ("Nova RBD imagebackend only supported in openstack "
                        ">= Havana - ignoring")
                 raise Exception(msg)
-        elif config('libvirt_image_backend') == 'lvm':
+        elif config('libvirt-image-backend') == 'lvm':
             ctxt['libvirt_images_type'] = 'lvm'
 
         return ctxt

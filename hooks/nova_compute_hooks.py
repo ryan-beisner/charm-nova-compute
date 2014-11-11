@@ -238,7 +238,7 @@ def ceph_changed():
                               secret_uuid=CEPH_SECRET_UUID,
                               key=relation_get('key'))
 
-    if config('libvirt_image_backend') == 'rbd':
+    if config('libvirt-image-backend') == 'rbd':
         if not ensure_ceph_keyring(service=svc,
                                    user='cinder', group='cinder'):
             log('Could not create ceph keyring: peer not ready?')
@@ -255,7 +255,7 @@ def ceph_changed():
             log("Ceph broker request succeeded (rsp=%s)" % (rsp), level=INFO)
         else:
             broker_req = {'api-version': 1, 'ops':
-                          [{'op': 'create-pool', 'name': svc,
+                          [{'op': 'create-pool', 'name': config('rbd-pool'),
                             'replicas': config('ceph-osd-replication-count')}]}
             for rid in relation_ids('ceph'):
                 relation_set(broker_req=json.dumps(broker_req))
