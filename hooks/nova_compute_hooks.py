@@ -227,9 +227,14 @@ def ceph_changed():
 
     svc = service_name()
 
-    if not ensure_ceph_keyring(service=svc):
+    if not ensure_ceph_keyring(service=svc,
+                               user='nova', group='nova'):
         log('Could not create ceph keyring: peer not ready?')
         return
+
+    CONFIGS.write(ceph_config_file())
+    CONFIGS.write(CEPH_SECRET)
+    CONFIGS.write(NOVA_CONF)
 
     # With some refactoring, this can move into NovaComputeCephContext
     # and allow easily extended to support other compute flavors.
@@ -239,11 +244,6 @@ def ceph_changed():
                               key=relation_get('key'))
 
     if config('libvirt-image-backend') == 'rbd':
-        if not ensure_ceph_keyring(service=svc,
-                                   user='cinder', group='cinder'):
-            log('Could not create ceph keyring: peer not ready?')
-            return
-
         settings = relation_get()
         if settings and 'broker_rsp' in settings:
             rsp = json.loads(settings['broker_rsp'])
@@ -260,10 +260,6 @@ def ceph_changed():
             for rid in relation_ids('ceph'):
                 relation_set(broker_req=json.dumps(broker_req))
                 log("Request(s) sent to Ceph broker (rid=%s)" % (rid))
-
-    CONFIGS.write(ceph_config_file())
-    CONFIGS.write(CEPH_SECRET)
-    CONFIGS.write(NOVA_CONF)
 
 
 @hooks.hook('amqp-relation-broken',
