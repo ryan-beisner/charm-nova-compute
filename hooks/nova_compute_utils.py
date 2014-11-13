@@ -23,8 +23,7 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_ids,
     relation_get,
-    DEBUG,
-    service_name,
+    DEBUG
 )
 
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
@@ -43,6 +42,8 @@ from nova_compute_context import (
     NovaComputeCephContext,
     NeutronComputeContext,
     InstanceConsoleContext,
+    CEPH_CONF,
+    ceph_config_file,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
@@ -93,8 +94,6 @@ BASE_RESOURCE_MAP = {
     }
 }
 
-CEPH_CONF = '/etc/ceph/ceph.conf'
-CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
 CEPH_SECRET = '/etc/ceph/secret.xml'
 
 CEPH_RESOURCES = {
@@ -146,10 +145,6 @@ LIBVIRT_URIS = {
     'uml': 'uml:///system',
     'lxc': 'lxc:///',
 }
-
-
-def ceph_config_file():
-    return CHARM_CEPH_CONF.format(service_name())
 
 
 def resource_map():

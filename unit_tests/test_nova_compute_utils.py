@@ -22,7 +22,6 @@ TO_PATCH = [
     'related_units',
     'relation_ids',
     'relation_get',
-    'service_name',
     'mkdir',
     'install_alternative'
 ]
@@ -40,7 +39,6 @@ class NovaComputeUtilsTests(CharmTestCase):
     def setUp(self):
         super(NovaComputeUtilsTests, self).setUp(utils, TO_PATCH)
         self.config.side_effect = self.test_config.get
-        self.service_name.return_value = 'nova-compute'
 
     @patch.object(utils, 'network_manager')
     def test_determine_packages_nova_network(self, net_man):
