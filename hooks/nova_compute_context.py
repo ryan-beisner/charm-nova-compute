@@ -1,9 +1,6 @@
-
 from charmhelpers.contrib.openstack import context
-
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
-
 from charmhelpers.core.hookenv import (
     config,
     log,
@@ -14,7 +11,6 @@ from charmhelpers.core.hookenv import (
     unit_get,
     ERROR,
 )
-
 from charmhelpers.contrib.openstack.utils import (
     get_host_ip,
     os_release,
@@ -29,6 +25,13 @@ from charmhelpers.contrib.network.ip import get_address_in_network
 CEPH_SECRET_UUID = '514c9fca-8cbe-11e2-9c52-3bc8c7819472'
 
 OVS_BRIDGE = 'br-int'
+
+CEPH_CONF = '/etc/ceph/ceph.conf'
+CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
+
+
+def ceph_config_file():
+    return CHARM_CEPH_CONF.format(service_name())
 
 
 def _save_flag_file(path, data):
@@ -146,6 +149,7 @@ class NovaComputeCephContext(context.CephContext):
         if (config('libvirt-image-backend') == 'rbd' and
                 assert_libvirt_imagebackend_allowed()):
             ctxt['libvirt_images_type'] = 'rbd'
+            ctxt['libvirt_rbd_images_ceph_conf'] = ceph_config_file()
         elif config('libvirt-image-backend') == 'lvm':
             ctxt['libvirt_images_type'] = 'lvm'
 
