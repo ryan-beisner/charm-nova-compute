@@ -483,7 +483,7 @@ def assert_charm_supports_ipv6():
 
 def configure_mtu():
     tunnel_nic_mtu = config('tunnel-nic-mtu')
-    if tunnel_nic_mtu > 1500:
+    if tunnel_nic_mtu >= 1500:
         tunnel_ip = unit_get('private-address')
         tunnel_nic = 'eth0'
         for nic in list_nics(['eth', 'bond']):
