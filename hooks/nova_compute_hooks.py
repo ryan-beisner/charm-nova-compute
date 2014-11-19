@@ -50,7 +50,8 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
-    assert_charm_supports_ipv6
+    assert_charm_supports_ipv6,
+    configure_mtu
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -70,6 +71,7 @@ def install():
     configure_installation_source(config('openstack-origin'))
     apt_update()
     apt_install(determine_packages(), fatal=True)
+    configure_mtu()
 
 
 @hooks.hook('config-changed')
@@ -100,6 +102,8 @@ def config_changed():
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
 
     CONFIGS.write_all()
+
+    configure_mtu()
 
 
 @hooks.hook('amqp-relation-joined')
