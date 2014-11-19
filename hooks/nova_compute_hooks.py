@@ -1,5 +1,4 @@
 #!/usr/bin/python
-import json
 import sys
 
 from charmhelpers.core.hookenv import (
@@ -31,7 +30,11 @@ from charmhelpers.contrib.openstack.utils import (
     openstack_upgrade_available,
 )
 
-from charmhelpers.contrib.storage.linux.ceph import ensure_ceph_keyring
+from charmhelpers.contrib.storage.linux.ceph import (
+    ensure_ceph_keyring,
+    CephBrokerRq,
+    CephBrokerRsp,
+)
 from charmhelpers.payload.execd import execd_preinstall
 from nova_compute_utils import (
     create_libvirt_secret,
@@ -249,19 +252,22 @@ def ceph_changed():
             assert_libvirt_imagebackend_allowed()):
         settings = relation_get()
         if settings and 'broker_rsp' in settings:
-            rsp = json.loads(settings['broker_rsp'])
+            rsp = CephBrokerRsp(settings['broker_rsp'])
             # Non-zero return code implies failure
-            if rsp['exit-code']:
-                log("Ceph broker request failed (rsp=%s)" % (rsp), level=ERROR)
+            if rsp.exit_code:
+                log("Ceph broker request failed (rc=%s, msg=%s)" %
+                    (rsp.exit_code, rsp.exit_msg), level=ERROR)
                 return
 
-            log("Ceph broker request succeeded (rsp=%s)" % (rsp), level=INFO)
+            log("Ceph broker request succeeded (rc=%s, msg=%s)" %
+                (rsp.exit_code, rsp.exit_msg), level=INFO)
         else:
-            broker_req = {'api-version': 1, 'ops':
-                          [{'op': 'create-pool', 'name': config('rbd-pool'),
-                            'replicas': config('ceph-osd-replication-count')}]}
+            rq = CephBrokerRq()
+            replicas = config('ceph-osd-replication-count')
+            rq.add_op_create_pool(name=config('rbd-pool'),
+                                  replica_count=replicas)
             for rid in relation_ids('ceph'):
-                relation_set(broker_req=json.dumps(broker_req))
+                relation_set(broker_req=rq.request)
                 log("Request(s) sent to Ceph broker (rid=%s)" % (rid))
 
 
