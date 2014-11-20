@@ -481,6 +481,7 @@ def assert_charm_supports_ipv6():
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
 
+
 def configure_mtu():
     tunnel_nic_mtu = config('tunnel-nic-mtu')
     if tunnel_nic_mtu >= 1500:
