@@ -57,7 +57,7 @@ options:
     type: string
     description: Whether to run nova-api and nova-network on the compute nodes.
   disk-cachemodes:
-    default: ""
+    default:
     type: string
     description: |
       Specific cachemodes to use for different disk types e.g:
