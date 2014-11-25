@@ -181,6 +181,13 @@ class NovaComputeContextTests(CharmTestCase):
         self.assertEquals(
             {'libvirtd_opts': '-d -l', 'listen_tls': 0}, libvirt())
 
+    def test_libvirt_disk_cachemodes(self):
+        self.test_config.set('disk-cachemodes', 'file=unsafe,block=none')
+        libvirt = context.NovaComputeLibvirtContext()
+        self.assertEquals(
+            {'libvirtd_opts': '-d', 'listen_tls': 0,
+             'disk_cachemodes': 'file=unsafe,block=none'}, libvirt())
+
     @patch.object(context.NeutronComputeContext, 'network_manager')
     @patch.object(context.NeutronComputeContext, 'plugin')
     def test_disable_security_groups_true(self, plugin, nm):
