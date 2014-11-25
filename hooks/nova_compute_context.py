@@ -103,7 +103,7 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('instances-path') is not None:
             ctxt['instances_path'] = config('instances-path')
 
-        if config('disk-cachemodes') != '':
+        if config('disk-cachemodes'):
             ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
         return ctxt
