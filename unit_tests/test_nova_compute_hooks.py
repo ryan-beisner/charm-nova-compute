@@ -54,7 +54,8 @@ TO_PATCH = [
     'ensure_ceph_keyring',
     'execd_preinstall',
     # socket
-    'gethostname'
+    'gethostname',
+    'create_sysctl',
 ]
 
 
@@ -140,6 +141,12 @@ class NovaComputeRelationsTests(CharmTestCase):
         hooks.config_changed()
         self.assertFalse(self.do_openstack_upgrade.called)
         self.assertFalse(compute_joined.called)
+
+    @patch.object(hooks, 'compute_joined')
+    def test_config_changed_with_sysctl(self, compute_joined):
+        self.test_config.set('sysctl', '{ kernel.max_pid : "1337" }')
+        hooks.config_changed()
+        self.assertTrue(self.create_sysctl.called)
 
     def test_amqp_joined(self):
         hooks.amqp_joined()
