@@ -329,6 +329,15 @@ class NovaComputeRelationsTests(CharmTestCase):
             call(user='nova', prefix='nova'),
         ])
 
+    def test_compute_changed_nonstandard_authorized_keys_path(self):
+        self.migration_enabled.return_value = False
+        self.test_config.set('enable-resize', True)
+        hooks.compute_changed()
+        self.import_authorized_keys.assert_called_with(
+            user='nova',
+            prefix='nova',
+        )
+
     def test_ceph_joined(self):
         hooks.ceph_joined()
         self.apt_install.assert_called_with(['ceph-common'], fatal=True)

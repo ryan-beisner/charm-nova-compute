@@ -248,6 +248,12 @@ class NovaComputeUtilsTests(CharmTestCase):
     def test_import_authorized_keys_prefix(self):
         self._test_import_authorized_keys_base(prefix='bar')
 
+    def test_import_authorized_keys_authkeypath(self):
+        nonstandard_path = '/etc/ssh/user-authorized-keys/{username}'
+        self.test_config.set('authorized-keys-path', nonstandard_path)
+        self._test_import_authorized_keys_base(
+            auth_key_path='/etc/ssh/user-authorized-keys/foo')
+
     @patch('subprocess.check_call')
     def test_import_keystone_cert_missing_data(self, check_call):
         self.relation_get.return_value = None
