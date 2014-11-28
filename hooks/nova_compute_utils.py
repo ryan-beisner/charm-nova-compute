@@ -405,6 +405,7 @@ def import_authorized_keys(user='root', prefix=None):
         for index in range(0, int(authorized_keys_index)):
             _keys.write('{}\n'.format(authorized_keys[index]))
 
+
 def do_openstack_upgrade():
     # NOTE(jamespage) horrible hack to make utils forget a cached value
     import charmhelpers.contrib.openstack.utils as utils
