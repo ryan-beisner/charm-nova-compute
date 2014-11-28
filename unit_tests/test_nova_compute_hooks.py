@@ -333,9 +333,10 @@ class NovaComputeRelationsTests(CharmTestCase):
         nonstandard_path='/etc/ssh/user-authorized-keys/{username}'
         hooks.compute_changed()
         self.assertTrue(self.import_keystone_ca_cert.called)
-        self.test_config.set('authorized_keys_path', nonstandard_path)
+        self.test_config.set('authorized-keys-path', nonstandard_path)
         self.import_authorized_keys.assert_has_calls([
-            call(user='nova'),
+            call(),
+            call(user='nova', prefix='nova'),
         ])
 
     def test_ceph_joined(self):
