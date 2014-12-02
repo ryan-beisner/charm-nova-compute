@@ -50,11 +50,12 @@ TO_PATCH = [
     'register_configs',
     'disable_shell',
     'enable_shell',
+    'additional_install_locations',
     # misc_utils
     'ensure_ceph_keyring',
     'execd_preinstall',
     # socket
-    'gethostname'
+    'gethostname',
 ]
 
 
