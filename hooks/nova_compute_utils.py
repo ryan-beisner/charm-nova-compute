@@ -8,7 +8,8 @@ from subprocess import check_call, check_output
 from charmhelpers.fetch import (
     apt_update,
     apt_upgrade,
-    apt_install
+    apt_install,
+    add_source
 )
 
 from charmhelpers.core.host import (
@@ -150,6 +151,28 @@ LIBVIRT_URIS = {
 
 def ceph_config_file():
     return CHARM_CEPH_CONF.format(service_name())
+
+
+def additional_install_locations(plugin):
+    '''
+    Add any required additional package locations for the charm, based
+    on the Neutron plugin being used. This will also force an immediate
+    package upgrade.
+    '''
+    if plugin == 'Calico':
+        add_source('ppa:cory-benfield/project-calico')
+        # Temporary workaround for BIRD.
+        os.environ['LANG'] = 'en_US.UTF-8'
+        add_source('ppa:cz.nic-labs/bird')
+
+        apt_update()
+        apt_upgrade()
+
+        # The new version of dnsmasq brings in new dependencies, and so
+        # we need to explicit install it here.
+        apt_install(['dnsmasq-base'])
+
+    return
 
 
 def resource_map():

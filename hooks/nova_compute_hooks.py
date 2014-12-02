@@ -50,7 +50,8 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
-    assert_charm_supports_ipv6
+    assert_charm_supports_ipv6,
+    additional_install_locations
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -68,6 +69,7 @@ CONFIGS = register_configs()
 def install():
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
+    additional_install_locations(neutron_plugin())
     apt_update()
     apt_install(determine_packages(), fatal=True)
 
@@ -205,6 +207,7 @@ def compute_joined(rid=None):
 def compute_changed():
     # rewriting all configs to pick up possible net or vol manager
     # config advertised from controller.
+    additional_install_locations(neutron_plugin())
     CONFIGS.write_all()
     import_authorized_keys()
     import_authorized_keys(user='nova', prefix='nova')

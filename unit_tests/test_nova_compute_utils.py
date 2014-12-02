@@ -16,7 +16,11 @@ TO_PATCH = [
     'relation_get',
     'service_name',
     'mkdir',
-    'install_alternative'
+    'install_alternative',
+    'add_source',
+    'apt_update',
+    'apt_upgrade',
+    'apt_install',
 ]
 
 OVS_PKGS = [
@@ -337,3 +341,10 @@ class NovaComputeUtilsTests(CharmTestCase):
         utils.disable_shell('dummy')
         _check_call.assert_called_with(['usermod', '-s', '/bin/false',
                                         'dummy'])
+
+    def test_additional_install_locations(self):
+        utils.additional_install_locations('Calico')
+        self.add_source.assert_any_call('ppa:cory-benfield/project-calico')
+        self.add_source.assert_any_call('ppa:cz.nic-labs/bird')
+        self.assertEqual(self.add_source.call_count, 2)
+
