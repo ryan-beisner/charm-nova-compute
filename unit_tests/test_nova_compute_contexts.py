@@ -15,6 +15,7 @@ TO_PATCH = [
     'log',
     'os_release',
     '_save_flag_file',
+    'unit_get',
 ]
 
 QUANTUM_CONTEXT = {
@@ -203,3 +204,12 @@ class NovaComputeContextTests(CharmTestCase):
         with patch.object(qplugin, '_ensure_packages'):
             self.assertEquals({'disable_neutron_security_groups': False},
                               qplugin())
+
+    @patch('subprocess.call')
+    def test_host_IP_context(self, _call):
+        self.log = fake_log
+        self.unit_get.return_value = '172.24.0.79'
+        host_ip = context.HostIPContext()
+        self.assertEquals(
+            {'host_ip': '172.24.0.79'}, host_ip())
+        self.unit_get.assert_called_with('private-address')
