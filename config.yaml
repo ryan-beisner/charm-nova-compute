@@ -139,7 +139,7 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
-  tunnel-nic-mtu:
+  phy-nic-mtu:
     type: int
     default: 1500
     description: |

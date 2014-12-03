@@ -15,12 +15,6 @@ from charmhelpers.core.host import (
     mkdir,
     service_restart,
     lsb_release,
-    list_nics,
-    set_nic_mtu
-)
-
-from charmhelpers.contrib.network.ip import (
-    get_ipv4_addr
 )
 
 from charmhelpers.core.hookenv import (
@@ -29,9 +23,8 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_ids,
     relation_get,
-    DEBUG, INFO,
+    DEBUG,
     service_name,
-    unit_get
 )
 
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
@@ -480,17 +473,3 @@ def assert_charm_supports_ipv6():
     if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
-
-
-def configure_mtu():
-    tunnel_nic_mtu = config('tunnel-nic-mtu')
-    if tunnel_nic_mtu >= 1500:
-        tunnel_ip = unit_get('private-address')
-        tunnel_nic = 'eth0'
-        for nic in list_nics(['eth', 'bond']):
-            if tunnel_ip in get_ipv4_addr(nic, fatal=False):
-                tunnel_nic = nic
-                break
-        set_nic_mtu(tunnel_nic, str(tunnel_nic_mtu))
-        log('set mtu={} for tunnel nic={}'
-            .format(tunnel_nic_mtu, tunnel_nic), level=INFO)

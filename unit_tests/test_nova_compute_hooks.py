@@ -55,7 +55,7 @@ TO_PATCH = [
     'execd_preinstall',
     # socket
     'gethostname',
-    'configure_mtu'
+    'configure_phy_nic_mtu'
 ]
 
 
@@ -81,13 +81,13 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.assertTrue(self.apt_update.called)
         self.apt_install.assert_called_with(['foo', 'bar'], fatal=True)
         self.execd_preinstall.assert_called()
-        self.assertTrue(self.configure_mtu.called)
+        self.assertTrue(self.configure_phy_nic_mtu.called)
 
     def test_config_changed_with_upgrade(self):
         self.openstack_upgrade_available.return_value = True
         hooks.config_changed()
         self.assertTrue(self.do_openstack_upgrade.called)
-        self.assertTrue(self.configure_mtu.called)
+        self.assertTrue(self.configure_phy_nic_mtu.called)
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_with_migration(self, compute_joined):

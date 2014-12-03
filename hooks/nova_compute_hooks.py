@@ -51,11 +51,11 @@ from nova_compute_utils import (
     enable_shell, disable_shell,
     fix_path_ownership,
     assert_charm_supports_ipv6,
-    configure_mtu
 )
 
 from charmhelpers.contrib.network.ip import (
-    get_ipv6_addr
+    get_ipv6_addr,
+    configure_phy_nic_mtu
 )
 
 from nova_compute_context import CEPH_SECRET_UUID
@@ -71,7 +71,7 @@ def install():
     configure_installation_source(config('openstack-origin'))
     apt_update()
     apt_install(determine_packages(), fatal=True)
-    configure_mtu()
+    configure_phy_nic_mtu()
 
 
 @hooks.hook('config-changed')
@@ -103,7 +103,7 @@ def config_changed():
 
     CONFIGS.write_all()
 
-    configure_mtu()
+    configure_phy_nic_mtu()
 
 
 @hooks.hook('amqp-relation-joined')
