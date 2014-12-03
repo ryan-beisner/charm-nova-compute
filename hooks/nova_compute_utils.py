@@ -43,6 +43,7 @@ from nova_compute_context import (
     NovaComputeCephContext,
     NeutronComputeContext,
     InstanceConsoleContext,
+    HostIPContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
@@ -89,7 +90,8 @@ BASE_RESOURCE_MAP = {
                          interface='nova-ceilometer',
                          service='nova',
                          config_file=NOVA_CONF),
-                     InstanceConsoleContext(), ],
+                     InstanceConsoleContext(),
+                     HostIPContext()],
     },
 }
 
