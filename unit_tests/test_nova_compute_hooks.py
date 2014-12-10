@@ -146,7 +146,7 @@ class NovaComputeRelationsTests(CharmTestCase):
     def test_config_changed_with_sysctl(self, compute_joined):
         self.test_config.set('sysctl', '{ kernel.max_pid : "1337" }')
         hooks.config_changed()
-	self.create_sysctl.assert_called()
+        self.create_sysctl.assert_called()
 
     def test_amqp_joined(self):
         hooks.amqp_joined()
