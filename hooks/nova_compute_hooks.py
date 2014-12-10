@@ -86,7 +86,7 @@ def config_changed():
 
     sysctl_dict = config('sysctl')
     if sysctl_dict:
-        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-quantum-gateway.conf')
+        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-nova-compute.conf')
 
     if migration_enabled() and config('migration-auth-type') == 'ssh':
         # Check-in with nova-c-c and register new ssh key, if it has just been
