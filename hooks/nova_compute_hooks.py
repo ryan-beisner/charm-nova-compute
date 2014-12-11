@@ -57,6 +57,8 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 
+from charmhelpers.core.sysctl import create as create_sysctl
+
 from nova_compute_context import CEPH_SECRET_UUID
 from socket import gethostname
 
@@ -81,6 +83,10 @@ def config_changed():
     global CONFIGS
     if openstack_upgrade_available('nova-common'):
         CONFIGS = do_openstack_upgrade()
+
+    sysctl_dict = config('sysctl')
+    if sysctl_dict:
+        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-nova-compute.conf')
 
     if migration_enabled() and config('migration-auth-type') == 'ssh':
         # Check-in with nova-c-c and register new ssh key, if it has just been
