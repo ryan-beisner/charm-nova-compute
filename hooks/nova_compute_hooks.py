@@ -65,6 +65,7 @@ from nova_compute_context import (
     CEPH_SECRET_UUID,
     assert_libvirt_imagebackend_allowed
 )
+from charmhelpers.core.sysctl import create as create_sysctl
 
 from socket import gethostname
 
@@ -90,14 +91,20 @@ def config_changed():
     if openstack_upgrade_available('nova-common'):
         CONFIGS = do_openstack_upgrade()
 
+    sysctl_dict = config('sysctl')
+    if sysctl_dict:
+        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-nova-compute.conf')
+
     if migration_enabled() and config('migration-auth-type') == 'ssh':
         # Check-in with nova-c-c and register new ssh key, if it has just been
         # generated.
         initialize_ssh_keys()
+        import_authorized_keys()
 
     if config('enable-resize') is True:
         enable_shell(user='nova')
         initialize_ssh_keys(user='nova')
+        import_authorized_keys(user='nova', prefix='nova')
     else:
         disable_shell(user='nova')
 

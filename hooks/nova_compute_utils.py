@@ -44,6 +44,7 @@ from nova_compute_context import (
     InstanceConsoleContext,
     CEPH_CONF,
     ceph_config_file,
+    HostIPContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
@@ -90,8 +91,9 @@ BASE_RESOURCE_MAP = {
                          interface='nova-ceilometer',
                          service='nova',
                          config_file=NOVA_CONF),
-                     InstanceConsoleContext()],
-    }
+                     InstanceConsoleContext(),
+                     HostIPContext()],
+    },
 }
 
 CEPH_SECRET = '/etc/ceph/secret.xml'
@@ -352,8 +354,9 @@ def initialize_ssh_keys(user='root'):
 
 
 def import_authorized_keys(user='root', prefix=None):
-    """Import SSH authorized_keys + known_hosts from a cloud-compute relation
-    and store in user's $HOME/.ssh.
+    """Import SSH authorized_keys + known_hosts from a cloud-compute relation.
+    Store known_hosts in user's $HOME/.ssh and authorized_keys in a path
+    specified using authorized-keys-path config option.
     """
     known_hosts = []
     authorized_keys = []
@@ -387,12 +390,17 @@ def import_authorized_keys(user='root', prefix=None):
     #      be allowed ?
     if not len(known_hosts) or not len(authorized_keys):
         return
-    dest = os.path.join(pwd.getpwnam(user).pw_dir, '.ssh')
-    log('Saving new known_hosts and authorized_keys file to: %s.' % dest)
-    with open(os.path.join(dest, 'known_hosts'), 'wb') as _hosts:
+    homedir = pwd.getpwnam(user).pw_dir
+    dest_auth_keys = config('authorized-keys-path').format(
+        homedir=homedir, username=user)
+    dest_known_hosts = os.path.join(homedir, '.ssh/known_hosts')
+    log('Saving new known_hosts file to %s and authorized_keys file to: %s.' %
+        (dest_known_hosts, dest_auth_keys))
+
+    with open(dest_known_hosts, 'wb') as _hosts:
         for index in range(0, int(known_hosts_index)):
             _hosts.write('{}\n'.format(known_hosts[index]))
-    with open(os.path.join(dest, 'authorized_keys'), 'wb') as _keys:
+    with open(dest_auth_keys, 'wb') as _keys:
         for index in range(0, int(authorized_keys_index)):
             _keys.write('{}\n'.format(authorized_keys[index]))
 
