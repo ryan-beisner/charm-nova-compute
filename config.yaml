@@ -164,9 +164,8 @@ options:
     default: "nova"
     type: string
     description: |
-      RBD pool to use with Nova RBD image backend. Only required when
-      libvirt_image_backend is rbd. IMPORTANT: pool must exist before adding
-      ceph-relation.
+      RBD pool to use with Nova RBD image backend. Required when
+      libvirt_image_backend is rbd.
   ceph-osd-replication-count:
     default: 3
     type: int
