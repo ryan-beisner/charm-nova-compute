@@ -18,7 +18,12 @@ from charmhelpers.contrib.openstack.utils import (
     get_os_version_codename
 )
 from charmhelpers.contrib.network.ovs import add_bridge
-from charmhelpers.contrib.network.ip import get_address_in_network
+
+from charmhelpers.contrib.network.ip import (
+    get_address_in_network,
+    get_ipv6_addr,
+    format_ipv6_addr,
+)
 
 # This is just a label and it must be consistent across
 # nova-compute nodes to support live migration.
@@ -110,6 +115,9 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
 
         if config('instances-path') is not None:
             ctxt['instances_path'] = config('instances-path')
+
+        if config('disk-cachemodes'):
+            ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
         return ctxt
 
@@ -416,4 +424,18 @@ class NeutronComputeContext(context.NeutronContext):
         if config('disable-neutron-security-groups') is not None:
             ctxt['disable_neutron_security_groups'] = \
                 config('disable-neutron-security-groups')
+        return ctxt
+
+
+class HostIPContext(context.OSContextGenerator):
+    def __call__(self):
+        ctxt = {}
+        if config('prefer-ipv6'):
+            host_ip = get_ipv6_addr()[0]
+        else:
+            host_ip = get_host_ip(unit_get('private-address'))
+
+        if host_ip:
+            ctxt['host_ip'] = format_ipv6_addr(host_ip) or host_ip
+
         return ctxt
