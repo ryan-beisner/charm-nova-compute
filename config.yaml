@@ -154,6 +154,29 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  libvirt-image-backend:
+    default:
+    type: string
+    description:
+      Tell Nova which libvirt image backend to use. Supported backends are rbd and lvm.
+      If no backend is specified, the Nova default is used (probably qcow2).
+  rbd-pool:
+    default: "nova"
+    type: string
+    description: |
+      RBD pool to use with Nova RBD image backend. Only required when
+      libvirt_image_backend is rbd. IMPORTANT: pool must exist before adding
+      ceph-relation.
+  ceph-osd-replication-count:
+    default: 3
+    type: int
+    description: |
+      This value dictates the number of replicas ceph must make of any
+      object it stores withing the nova rbd pool. Of course, this only
+      applies if using Ceph as a backend store. Note that once the nova
+      rbd pool has been created, changing this value will not have any
+      effect (although it can be changed in ceph by manually configuring
+      your ceph cluster).
   sysctl:
     type: string
     default:

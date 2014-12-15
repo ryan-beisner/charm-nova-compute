@@ -23,8 +23,7 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_ids,
     relation_get,
-    DEBUG,
-    service_name,
+    DEBUG
 )
 
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
@@ -43,6 +42,8 @@ from nova_compute_context import (
     NovaComputeCephContext,
     NeutronComputeContext,
     InstanceConsoleContext,
+    CEPH_CONF,
+    ceph_config_file,
     HostIPContext,
 )
 
@@ -95,8 +96,6 @@ BASE_RESOURCE_MAP = {
     },
 }
 
-CEPH_CONF = '/etc/ceph/ceph.conf'
-CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
 CEPH_SECRET = '/etc/ceph/secret.xml'
 
 CEPH_RESOURCES = {
@@ -150,10 +149,6 @@ LIBVIRT_URIS = {
 }
 
 
-def ceph_config_file():
-    return CHARM_CEPH_CONF.format(service_name())
-
-
 def resource_map():
     '''
     Dynamically generate a map of resources that will be managed for a single
@@ -198,21 +193,9 @@ def resource_map():
         resource_map[NOVA_CONF]['contexts'].append(NeutronComputeContext())
 
     if relation_ids('ceph'):
-        # Add charm ceph configuration to resources and
-        # ensure directory actually exists
-        mkdir(os.path.dirname(ceph_config_file()))
-        mkdir(os.path.dirname(CEPH_CONF))
-        # Install ceph config as an alternative for co-location with
-        # ceph and ceph-osd charms - nova-compute ceph.conf will be
-        # lower priority that both of these but thats OK
-        if not os.path.exists(ceph_config_file()):
-            # touch file for pre-templated generation
-            open(ceph_config_file(), 'w').close()
-        install_alternative(os.path.basename(CEPH_CONF),
-                            CEPH_CONF, ceph_config_file())
         CEPH_RESOURCES[ceph_config_file()] = {
             'contexts': [NovaComputeCephContext()],
-            'services': [],
+            'services': ['nova-compute']
         }
         resource_map.update(CEPH_RESOURCES)
 
@@ -242,6 +225,20 @@ def register_configs():
     release = os_release('nova-common')
     configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
                                           openstack_release=release)
+
+    if relation_ids('ceph'):
+        # Add charm ceph configuration to resources and
+        # ensure directory actually exists
+        mkdir(os.path.dirname(ceph_config_file()))
+        mkdir(os.path.dirname(CEPH_CONF))
+        # Install ceph config as an alternative for co-location with
+        # ceph and ceph-osd charms - nova-compute ceph.conf will be
+        # lower priority that both of these but thats OK
+        if not os.path.exists(ceph_config_file()):
+            # touch file for pre-templated generation
+            open(ceph_config_file(), 'w').close()
+        install_alternative(os.path.basename(CEPH_CONF),
+                            CEPH_CONF, ceph_config_file())
 
     for cfg, d in resource_map().iteritems():
         configs.register(cfg, d['contexts'])

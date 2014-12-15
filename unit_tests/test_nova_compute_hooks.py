@@ -1,19 +1,15 @@
-from mock import call, patch, MagicMock
+from mock import (
+    call,
+    patch,
+    MagicMock
+)
 
 from test_utils import CharmTestCase
 
-import nova_compute_utils as utils
+with patch("nova_compute_utils.restart_map"):
+    with patch("nova_compute_utils.register_configs"):
+        import nova_compute_hooks as hooks
 
-_reg = utils.register_configs
-_map = utils.restart_map
-
-utils.register_configs = MagicMock()
-utils.restart_map = MagicMock()
-
-import nova_compute_hooks as hooks
-
-utils.register_configs = _reg
-utils.restart_map = _map
 
 TO_PATCH = [
     # charmhelpers.core.hookenv
@@ -59,17 +55,14 @@ TO_PATCH = [
 ]
 
 
-def fake_filter(packages):
-    return packages
-
-
 class NovaComputeRelationsTests(CharmTestCase):
 
     def setUp(self):
         super(NovaComputeRelationsTests, self).setUp(hooks,
                                                      TO_PATCH)
         self.config.side_effect = self.test_config.get
-        self.filter_installed_packages.side_effect = fake_filter
+        self.filter_installed_packages.side_effect = \
+            MagicMock(side_effect=lambda pkgs: pkgs)
         self.gethostname.return_value = 'testserver'
 
     def test_install_hook(self):
@@ -368,7 +361,7 @@ class NovaComputeRelationsTests(CharmTestCase):
             'Could not create ceph keyring: peer not ready?'
         )
 
-    @patch.object(utils, 'service_name')
+    @patch('nova_compute_context.service_name')
     @patch.object(hooks, 'CONFIGS')
     def test_ceph_changed_with_key_and_relation_data(self, configs,
                                                      service_name):
