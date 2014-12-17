@@ -54,6 +54,7 @@ TEMPLATES = 'templates/'
 BASE_PACKAGES = [
     'nova-compute',
     'genisoimage',  # was missing as a package dependency until raring.
+    'python-six',
 ]
 
 NOVA_CONF_DIR = "/etc/nova"
