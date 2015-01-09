@@ -9,5 +9,6 @@ include:
         - apache
         - cluster
     - contrib.network
+    - contrib.python.packages
     - payload.execd
     - contrib.charmsupport

@@ -1,19 +1,15 @@
-from mock import call, patch, MagicMock
+from mock import (
+    call,
+    patch,
+    MagicMock
+)
 
 from test_utils import CharmTestCase
 
-import nova_compute_utils as utils
+with patch("nova_compute_utils.restart_map"):
+    with patch("nova_compute_utils.register_configs"):
+        import nova_compute_hooks as hooks
 
-_reg = utils.register_configs
-_map = utils.restart_map
-
-utils.register_configs = MagicMock()
-utils.restart_map = MagicMock()
-
-import nova_compute_hooks as hooks
-
-utils.register_configs = _reg
-utils.restart_map = _map
 
 TO_PATCH = [
     # charmhelpers.core.hookenv
@@ -54,12 +50,9 @@ TO_PATCH = [
     'ensure_ceph_keyring',
     'execd_preinstall',
     # socket
-    'gethostname'
+    'gethostname',
+    'create_sysctl',
 ]
-
-
-def fake_filter(packages):
-    return packages
 
 
 class NovaComputeRelationsTests(CharmTestCase):
@@ -68,7 +61,8 @@ class NovaComputeRelationsTests(CharmTestCase):
         super(NovaComputeRelationsTests, self).setUp(hooks,
                                                      TO_PATCH)
         self.config.side_effect = self.test_config.get
-        self.filter_installed_packages.side_effect = fake_filter
+        self.filter_installed_packages.side_effect = \
+            MagicMock(side_effect=lambda pkgs: pkgs)
         self.gethostname.return_value = 'testserver'
 
     def test_install_hook(self):
@@ -140,6 +134,12 @@ class NovaComputeRelationsTests(CharmTestCase):
         hooks.config_changed()
         self.assertFalse(self.do_openstack_upgrade.called)
         self.assertFalse(compute_joined.called)
+
+    @patch.object(hooks, 'compute_joined')
+    def test_config_changed_with_sysctl(self, compute_joined):
+        self.test_config.set('sysctl', '{ kernel.max_pid : "1337" }')
+        hooks.config_changed()
+        self.create_sysctl.assert_called()
 
     def test_amqp_joined(self):
         hooks.amqp_joined()
@@ -329,6 +329,15 @@ class NovaComputeRelationsTests(CharmTestCase):
             call(user='nova', prefix='nova'),
         ])
 
+    def test_compute_changed_nonstandard_authorized_keys_path(self):
+        self.migration_enabled.return_value = False
+        self.test_config.set('enable-resize', True)
+        hooks.compute_changed()
+        self.import_authorized_keys.assert_called_with(
+            user='nova',
+            prefix='nova',
+        )
+
     def test_ceph_joined(self):
         hooks.ceph_joined()
         self.apt_install.assert_called_with(['ceph-common'], fatal=True)
@@ -352,7 +361,7 @@ class NovaComputeRelationsTests(CharmTestCase):
             'Could not create ceph keyring: peer not ready?'
         )
 
-    @patch.object(utils, 'service_name')
+    @patch('nova_compute_context.service_name')
     @patch.object(hooks, 'CONFIGS')
     def test_ceph_changed_with_key_and_relation_data(self, configs,
                                                      service_name):

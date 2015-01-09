@@ -1,9 +1,6 @@
-
 from charmhelpers.contrib.openstack import context
-
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
-
 from charmhelpers.core.hookenv import (
     config,
     log,
@@ -14,16 +11,32 @@ from charmhelpers.core.hookenv import (
     unit_get,
     ERROR,
 )
-
-from charmhelpers.contrib.openstack.utils import get_host_ip, os_release
+from charmhelpers.contrib.openstack.utils import (
+    get_host_ip,
+    os_release,
+    get_os_version_package,
+    get_os_version_codename
+)
 from charmhelpers.contrib.network.ovs import add_bridge
-from charmhelpers.contrib.network.ip import get_address_in_network
+
+from charmhelpers.contrib.network.ip import (
+    get_address_in_network,
+    get_ipv6_addr,
+    format_ipv6_addr,
+)
 
 # This is just a label and it must be consistent across
 # nova-compute nodes to support live migration.
 CEPH_SECRET_UUID = '514c9fca-8cbe-11e2-9c52-3bc8c7819472'
 
 OVS_BRIDGE = 'br-int'
+
+CEPH_CONF = '/etc/ceph/ceph.conf'
+CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
+
+
+def ceph_config_file():
+    return CHARM_CEPH_CONF.format(service_name())
 
 
 def _save_flag_file(path, data):
@@ -103,6 +116,9 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('instances-path') is not None:
             ctxt['instances_path'] = config('instances-path')
 
+        if config('disk-cachemodes'):
+            ctxt['disk_cachemodes'] = config('disk-cachemodes')
+
         return ctxt
 
 
@@ -111,6 +127,17 @@ class NovaComputeVirtContext(context.OSContextGenerator):
 
     def __call__(self):
         return {}
+
+
+def assert_libvirt_imagebackend_allowed():
+    os_rel = "Juno"
+    os_ver = get_os_version_package('nova-compute')
+    if float(os_ver) < float(get_os_version_codename(os_rel.lower())):
+        msg = ("Libvirt RBD imagebackend only supported for openstack >= %s" %
+               os_rel)
+        raise Exception(msg)
+
+    return True
 
 
 class NovaComputeCephContext(context.CephContext):
@@ -126,7 +153,14 @@ class NovaComputeCephContext(context.CephContext):
         ctxt['service_name'] = svc
         ctxt['rbd_user'] = svc
         ctxt['rbd_secret_uuid'] = CEPH_SECRET_UUID
-        ctxt['rbd_pool'] = 'nova'
+        ctxt['rbd_pool'] = config('rbd-pool')
+
+        if (config('libvirt-image-backend') == 'rbd' and
+                assert_libvirt_imagebackend_allowed()):
+            ctxt['libvirt_images_type'] = 'rbd'
+            ctxt['libvirt_rbd_images_ceph_conf'] = ceph_config_file()
+        elif config('libvirt-image-backend') == 'lvm':
+            ctxt['libvirt_images_type'] = 'lvm'
 
         return ctxt
 
@@ -390,4 +424,18 @@ class NeutronComputeContext(context.NeutronContext):
         if config('disable-neutron-security-groups') is not None:
             ctxt['disable_neutron_security_groups'] = \
                 config('disable-neutron-security-groups')
+        return ctxt
+
+
+class HostIPContext(context.OSContextGenerator):
+    def __call__(self):
+        ctxt = {}
+        if config('prefer-ipv6'):
+            host_ip = get_ipv6_addr()[0]
+        else:
+            host_ip = get_host_ip(unit_get('private-address'))
+
+        if host_ip:
+            ctxt['host_ip'] = format_ipv6_addr(host_ip) or host_ip
+
         return ctxt
