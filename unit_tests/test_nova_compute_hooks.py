@@ -46,6 +46,7 @@ TO_PATCH = [
     'register_configs',
     'disable_shell',
     'enable_shell',
+    'update_nrpe_config',
     # misc_utils
     'ensure_ceph_keyring',
     'execd_preinstall',
