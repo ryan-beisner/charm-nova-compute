@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import sys
 import os
 
@@ -8,6 +7,7 @@ from charmhelpers.core.hookenv import (
     config,
     is_relation_made,
     log,
+    INFO,
     ERROR,
     relation_ids,
     relation_get,
@@ -33,7 +33,11 @@ from charmhelpers.contrib.openstack.utils import (
     openstack_upgrade_available,
 )
 
-from charmhelpers.contrib.storage.linux.ceph import ensure_ceph_keyring
+from charmhelpers.contrib.storage.linux.ceph import (
+    ensure_ceph_keyring,
+    CephBrokerRq,
+    CephBrokerRsp,
+)
 from charmhelpers.payload.execd import execd_preinstall
 from nova_compute_utils import (
     create_libvirt_secret,
@@ -61,9 +65,13 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 
+from nova_compute_context import (
+    CEPH_SECRET_UUID,
+    assert_libvirt_imagebackend_allowed
+)
 from charmhelpers.contrib.charmsupport.nrpe import NRPE
+from charmhelpers.core.sysctl import create as create_sysctl
 
-from nova_compute_context import CEPH_SECRET_UUID
 from socket import gethostname
 
 hooks = Hooks()
@@ -88,14 +96,20 @@ def config_changed():
     if openstack_upgrade_available('nova-common'):
         CONFIGS = do_openstack_upgrade()
 
+    sysctl_dict = config('sysctl')
+    if sysctl_dict:
+        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-nova-compute.conf')
+
     if migration_enabled() and config('migration-auth-type') == 'ssh':
         # Check-in with nova-c-c and register new ssh key, if it has just been
         # generated.
         initialize_ssh_keys()
+        import_authorized_keys()
 
     if config('enable-resize') is True:
         enable_shell(user='nova')
         initialize_ssh_keys(user='nova')
+        import_authorized_keys(user='nova', prefix='nova')
     else:
         disable_shell(user='nova')
 
@@ -231,10 +245,12 @@ def ceph_changed():
     if 'ceph' not in CONFIGS.complete_contexts():
         log('ceph relation incomplete. Peer not ready?')
         return
-    svc = service_name()
-    if not ensure_ceph_keyring(service=svc):
+
+    if not ensure_ceph_keyring(service=service_name(), user='nova',
+                               group='nova'):
         log('Could not create ceph keyring: peer not ready?')
         return
+
     CONFIGS.write(ceph_config_file())
     CONFIGS.write(CEPH_SECRET)
     CONFIGS.write(NOVA_CONF)
@@ -245,6 +261,28 @@ def ceph_changed():
         create_libvirt_secret(secret_file=CEPH_SECRET,
                               secret_uuid=CEPH_SECRET_UUID,
                               key=relation_get('key'))
+
+    if (config('libvirt-image-backend') == 'rbd' and
+            assert_libvirt_imagebackend_allowed()):
+        settings = relation_get()
+        if settings and 'broker_rsp' in settings:
+            rsp = CephBrokerRsp(settings['broker_rsp'])
+            # Non-zero return code implies failure
+            if rsp.exit_code:
+                log("Ceph broker request failed (rc=%s, msg=%s)" %
+                    (rsp.exit_code, rsp.exit_msg), level=ERROR)
+                return
+
+            log("Ceph broker request succeeded (rc=%s, msg=%s)" %
+                (rsp.exit_code, rsp.exit_msg), level=INFO)
+        else:
+            rq = CephBrokerRq()
+            replicas = config('ceph-osd-replication-count')
+            rq.add_op_create_pool(name=config('rbd-pool'),
+                                  replica_count=replicas)
+            for rid in relation_ids('ceph'):
+                relation_set(broker_req=rq.request)
+                log("Request(s) sent to Ceph broker (rid=%s)" % (rid))
 
 
 @hooks.hook('amqp-relation-broken',
