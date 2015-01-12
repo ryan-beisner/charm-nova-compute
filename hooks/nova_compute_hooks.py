@@ -48,6 +48,7 @@ from nova_compute_utils import (
     do_openstack_upgrade,
     public_ssh_key,
     restart_map,
+    services,
     register_configs,
     NOVA_CONF,
     QUANTUM_CONF, NEUTRON_CONF,
@@ -65,6 +66,7 @@ from nova_compute_context import (
     CEPH_SECRET_UUID,
     assert_libvirt_imagebackend_allowed
 )
+from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.core.sysctl import create as create_sysctl
 
 from socket import gethostname
@@ -113,6 +115,8 @@ def config_changed():
         fix_path_ownership(fp, user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
+
+    update_nrpe_config()
 
     CONFIGS.write_all()
 
@@ -292,12 +296,25 @@ def relation_broken():
 def upgrade_charm():
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
+    update_nrpe_config()
 
 
 @hooks.hook('nova-ceilometer-relation-changed')
 @restart_on_change(restart_map())
 def nova_ceilometer_relation_changed():
     CONFIGS.write_all()
+
+
+@hooks.hook('nrpe-external-master-relation-joined',
+            'nrpe-external-master-relation-changed')
+def update_nrpe_config():
+    # python-dbus is used by check_upstart_job
+    apt_install('python-dbus')
+    hostname = nrpe.get_nagios_hostname()
+    current_unit = nrpe.get_nagios_unit_name()
+    nrpe_setup = nrpe.NRPE(hostname=hostname)
+    nrpe.add_init_service_checks(nrpe_setup, services(), current_unit)
+    nrpe_setup.write()
 
 
 def main():
