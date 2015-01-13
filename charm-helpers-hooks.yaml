@@ -11,3 +11,4 @@ include:
     - contrib.network
     - contrib.python.packages
     - payload.execd
+    - contrib.charmsupport
