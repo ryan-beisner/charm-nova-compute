@@ -347,4 +347,3 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.add_source.assert_any_call('ppa:cory-benfield/project-calico')
         self.add_source.assert_any_call('ppa:cz.nic-labs/bird')
         self.assertEqual(self.add_source.call_count, 2)
-
