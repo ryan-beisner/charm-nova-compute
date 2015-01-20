@@ -56,6 +56,12 @@ options:
     default: "yes"
     type: string
     description: Whether to run nova-api and nova-network on the compute nodes.
+  disk-cachemodes:
+    default:
+    type: string
+    description: |
+      Specific cachemodes to use for different disk types e.g:
+      file=directsync,block=none
   enable-resize:
     default: False
     type: boolean
@@ -71,6 +77,15 @@ options:
     description: |
       TCP authentication scheme for libvirt live migration.  Available options
       include ssh.
+  authorized-keys-path:
+    default: '{homedir}/.ssh/authorized_keys'
+    type: string
+    description: |
+      Only used when migration-auth-type is set to ssh.
+      Full path to authorized_keys file, can be useful for systems with non default
+      AuthorizedKeysFile location. It will be formatted using the following variables:
+          homedir - user's home directory
+          username - username
   # needed if using flatmanager
   bridge-interface:
     default: br100
@@ -139,3 +154,31 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  libvirt-image-backend:
+    default:
+    type: string
+    description:
+      Tell Nova which libvirt image backend to use. Supported backends are rbd and lvm.
+      If no backend is specified, the Nova default is used (probably qcow2).
+  rbd-pool:
+    default: "nova"
+    type: string
+    description: |
+      RBD pool to use with Nova RBD image backend. Required when
+      libvirt_image_backend is rbd.
+  ceph-osd-replication-count:
+    default: 3
+    type: int
+    description: |
+      This value dictates the number of replicas ceph must make of any
+      object it stores withing the nova rbd pool. Of course, this only
+      applies if using Ceph as a backend store. Note that once the nova
+      rbd pool has been created, changing this value will not have any
+      effect (although it can be changed in ceph by manually configuring
+      your ceph cluster).
+  sysctl:
+    type: string
+    default:
+    description: |
+      YAML formatted associative array of sysctl values, e.g.:
+      '{ kernel.pid_max : 4194303 }'
