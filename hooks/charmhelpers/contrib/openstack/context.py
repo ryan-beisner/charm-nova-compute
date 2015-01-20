@@ -21,11 +21,15 @@ from charmhelpers.core.hookenv import (
     relation_set,
     unit_get,
     unit_private_ip,
+    charm_name,
     DEBUG,
     INFO,
     WARNING,
     ERROR,
 )
+
+from charmhelpers.core.sysctl import create as sysctl_create
+
 from charmhelpers.core.host import (
     mkdir,
     write_file,
@@ -487,6 +491,7 @@ class HAProxyContext(OSContextGenerator):
             ctxt['haproxy_client_timeout'] = config('haproxy-client-timeout')
 
         if config('prefer-ipv6'):
+            ctxt['ipv6'] = True
             ctxt['local_host'] = 'ip6-localhost'
             ctxt['haproxy_host'] = '::'
             ctxt['stat_port'] = ':::8888'
@@ -1015,3 +1020,14 @@ class NotificationDriverContext(OSContextGenerator):
             ctxt['notifications'] = "True"
 
         return ctxt
+
+
+class SysctlContext(OSContextGenerator):
+    """This context check if the 'sysctl' option exists on configuration
+    then creates a file with the loaded contents"""
+    def __call__(self):
+        sysctl_dict = config('sysctl')
+        if sysctl_dict:
+            sysctl_create(sysctl_dict,
+                          '/etc/sysctl.d/50-{0}.conf'.format(charm_name()))
+        return {'sysctl': sysctl_dict}

@@ -24,8 +24,7 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_ids,
     relation_get,
-    DEBUG,
-    service_name,
+    DEBUG
 )
 
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
@@ -44,6 +43,9 @@ from nova_compute_context import (
     NovaComputeCephContext,
     NeutronComputeContext,
     InstanceConsoleContext,
+    CEPH_CONF,
+    ceph_config_file,
+    HostIPContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
@@ -53,6 +55,7 @@ TEMPLATES = 'templates/'
 BASE_PACKAGES = [
     'nova-compute',
     'genisoimage',  # was missing as a package dependency until raring.
+    'python-six',
 ]
 
 NOVA_CONF_DIR = "/etc/nova"
@@ -90,12 +93,11 @@ BASE_RESOURCE_MAP = {
                          interface='nova-ceilometer',
                          service='nova',
                          config_file=NOVA_CONF),
-                     InstanceConsoleContext(), ],
+                     InstanceConsoleContext(),
+                     HostIPContext()],
     },
 }
 
-CEPH_CONF = '/etc/ceph/ceph.conf'
-CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
 CEPH_SECRET = '/etc/ceph/secret.xml'
 
 CEPH_RESOURCES = {
@@ -147,10 +149,6 @@ LIBVIRT_URIS = {
     'uml': 'uml:///system',
     'lxc': 'lxc:///',
 }
-
-
-def ceph_config_file():
-    return CHARM_CEPH_CONF.format(service_name())
 
 
 def additional_install_locations(plugin):
@@ -219,21 +217,9 @@ def resource_map():
         resource_map[NOVA_CONF]['contexts'].append(NeutronComputeContext())
 
     if relation_ids('ceph'):
-        # Add charm ceph configuration to resources and
-        # ensure directory actually exists
-        mkdir(os.path.dirname(ceph_config_file()))
-        mkdir(os.path.dirname(CEPH_CONF))
-        # Install ceph config as an alternative for co-location with
-        # ceph and ceph-osd charms - nova-compute ceph.conf will be
-        # lower priority that both of these but thats OK
-        if not os.path.exists(ceph_config_file()):
-            # touch file for pre-templated generation
-            open(ceph_config_file(), 'w').close()
-        install_alternative(os.path.basename(CEPH_CONF),
-                            CEPH_CONF, ceph_config_file())
         CEPH_RESOURCES[ceph_config_file()] = {
             'contexts': [NovaComputeCephContext()],
-            'services': [],
+            'services': ['nova-compute']
         }
         resource_map.update(CEPH_RESOURCES)
 
@@ -263,6 +249,20 @@ def register_configs():
     release = os_release('nova-common')
     configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
                                           openstack_release=release)
+
+    if relation_ids('ceph'):
+        # Add charm ceph configuration to resources and
+        # ensure directory actually exists
+        mkdir(os.path.dirname(ceph_config_file()))
+        mkdir(os.path.dirname(CEPH_CONF))
+        # Install ceph config as an alternative for co-location with
+        # ceph and ceph-osd charms - nova-compute ceph.conf will be
+        # lower priority that both of these but thats OK
+        if not os.path.exists(ceph_config_file()):
+            # touch file for pre-templated generation
+            open(ceph_config_file(), 'w').close()
+        install_alternative(os.path.basename(CEPH_CONF),
+                            CEPH_CONF, ceph_config_file())
 
     for cfg, d in resource_map().iteritems():
         configs.register(cfg, d['contexts'])
@@ -378,8 +378,9 @@ def initialize_ssh_keys(user='root'):
 
 
 def import_authorized_keys(user='root', prefix=None):
-    """Import SSH authorized_keys + known_hosts from a cloud-compute relation
-    and store in user's $HOME/.ssh.
+    """Import SSH authorized_keys + known_hosts from a cloud-compute relation.
+    Store known_hosts in user's $HOME/.ssh and authorized_keys in a path
+    specified using authorized-keys-path config option.
     """
     known_hosts = []
     authorized_keys = []
@@ -413,12 +414,17 @@ def import_authorized_keys(user='root', prefix=None):
     #      be allowed ?
     if not len(known_hosts) or not len(authorized_keys):
         return
-    dest = os.path.join(pwd.getpwnam(user).pw_dir, '.ssh')
-    log('Saving new known_hosts and authorized_keys file to: %s.' % dest)
-    with open(os.path.join(dest, 'known_hosts'), 'wb') as _hosts:
+    homedir = pwd.getpwnam(user).pw_dir
+    dest_auth_keys = config('authorized-keys-path').format(
+        homedir=homedir, username=user)
+    dest_known_hosts = os.path.join(homedir, '.ssh/known_hosts')
+    log('Saving new known_hosts file to %s and authorized_keys file to: %s.' %
+        (dest_known_hosts, dest_auth_keys))
+
+    with open(dest_known_hosts, 'wb') as _hosts:
         for index in range(0, int(known_hosts_index)):
             _hosts.write('{}\n'.format(known_hosts[index]))
-    with open(os.path.join(dest, 'authorized_keys'), 'wb') as _keys:
+    with open(dest_auth_keys, 'wb') as _keys:
         for index in range(0, int(authorized_keys_index)):
             _keys.write('{}\n'.format(authorized_keys[index]))
 

@@ -1,10 +1,18 @@
-from mock import patch, MagicMock, call
-
-from test_utils import CharmTestCase, patch_open
-
+import itertools
+import tempfile
 
 import nova_compute_utils as utils
-import itertools
+
+from mock import (
+    patch,
+    MagicMock,
+    call
+)
+from test_utils import (
+    CharmTestCase,
+    patch_open
+)
+
 
 TO_PATCH = [
     'config',
@@ -14,7 +22,6 @@ TO_PATCH = [
     'related_units',
     'relation_ids',
     'relation_get',
-    'service_name',
     'mkdir',
     'install_alternative',
     'add_source',
@@ -36,7 +43,6 @@ class NovaComputeUtilsTests(CharmTestCase):
     def setUp(self):
         super(NovaComputeUtilsTests, self).setUp(utils, TO_PATCH)
         self.config.side_effect = self.test_config.get
-        self.service_name.return_value = 'nova-compute'
 
     @patch.object(utils, 'network_manager')
     def test_determine_packages_nova_network(self, net_man):
@@ -196,7 +202,9 @@ class NovaComputeUtilsTests(CharmTestCase):
             self.assertFalse(_open.called)
 
     @patch('pwd.getpwnam')
-    def _test_import_authorized_keys_base(self, getpwnam, prefix=None):
+    def _test_import_authorized_keys_base(self, getpwnam, prefix=None,
+                                          auth_key_path='/home/foo/.ssh/'
+                                                        'authorized_keys'):
         getpwnam.return_value = self.fake_user('foo')
         self.relation_get.side_effect = [
             3,          # relation_get('known_hosts_max_index')
@@ -211,7 +219,7 @@ class NovaComputeUtilsTests(CharmTestCase):
 
         ex_open = [
             call('/home/foo/.ssh/known_hosts', 'wb'),
-            call('/home/foo/.ssh/authorized_keys', 'wb')
+            call(auth_key_path, 'wb')
         ]
         ex_write = [
             call('k_h_0\n'),
@@ -223,65 +231,38 @@ class NovaComputeUtilsTests(CharmTestCase):
         ]
 
         with patch_open() as (_open, _file):
-            utils.import_authorized_keys(user='foo')
+            utils.import_authorized_keys(user='foo', prefix=prefix)
             self.assertEquals(ex_open, _open.call_args_list)
             self.assertEquals(ex_write, _file.write.call_args_list)
+            authkey_root = 'authorized_keys_'
+            known_hosts_root = 'known_hosts_'
+            if prefix:
+                authkey_root = prefix + '_authorized_keys_'
+                known_hosts_root = prefix + '_known_hosts_'
             expected_relations = [
-                call('known_hosts_max_index'),
-                call('known_hosts_0'),
-                call('known_hosts_1'),
-                call('known_hosts_2'),
-                call('authorized_keys_max_index'),
-                call('authorized_keys_0'),
-                call('authorized_keys_1'),
-                call('authorized_keys_2')
+                call(known_hosts_root + 'max_index'),
+                call(known_hosts_root + '0'),
+                call(known_hosts_root + '1'),
+                call(known_hosts_root + '2'),
+                call(authkey_root + 'max_index'),
+                call(authkey_root + '0'),
+                call(authkey_root + '1'),
+                call(authkey_root + '2')
                 ]
             self.assertEquals(sorted(self.relation_get.call_args_list),
                               sorted(expected_relations))
 
-    @patch('pwd.getpwnam')
-    def test_import_authorized_keys_prefix(self, getpwnam):
-        getpwnam.return_value = self.fake_user('foo')
-        self.relation_get.side_effect = [
-            3,          # relation_get('bar_known_hosts_max_index')
-            'k_h_0',    # relation_get_('bar_known_hosts_0')
-            'k_h_1',    # relation_get_('bar_known_hosts_1')
-            'k_h_2',    # relation_get_('bar_known_hosts_2')
-            3,          # relation_get('bar_authorized_keys_max_index')
-            'auth_0',   # relation_get('bar_authorized_keys_0')
-            'auth_1',   # relation_get('bar_authorized_keys_1')
-            'auth_2',   # relation_get('bar_authorized_keys_2')
-        ]
+    def test_import_authorized_keys_noprefix(self):
+        self._test_import_authorized_keys_base()
 
-        ex_open = [
-            call('/home/foo/.ssh/known_hosts', 'wb'),
-            call('/home/foo/.ssh/authorized_keys', 'wb')
-        ]
-        ex_write = [
-            call('k_h_0\n'),
-            call('k_h_1\n'),
-            call('k_h_2\n'),
-            call('auth_0\n'),
-            call('auth_1\n'),
-            call('auth_2\n')
-        ]
+    def test_import_authorized_keys_prefix(self):
+        self._test_import_authorized_keys_base(prefix='bar')
 
-        with patch_open() as (_open, _file):
-            utils.import_authorized_keys(user='foo', prefix='bar')
-            self.assertEquals(ex_open, _open.call_args_list)
-            self.assertEquals(ex_write, _file.write.call_args_list)
-            expected_relations = [
-                call('bar_known_hosts_max_index'),
-                call('bar_known_hosts_0'),
-                call('bar_known_hosts_1'),
-                call('bar_known_hosts_2'),
-                call('bar_authorized_keys_max_index'),
-                call('bar_authorized_keys_0'),
-                call('bar_authorized_keys_1'),
-                call('bar_authorized_keys_2')
-                ]
-            self.assertEquals(sorted(self.relation_get.call_args_list),
-                              sorted(expected_relations))
+    def test_import_authorized_keys_authkeypath(self):
+        nonstandard_path = '/etc/ssh/user-authorized-keys/{username}'
+        self.test_config.set('authorized-keys-path', nonstandard_path)
+        self._test_import_authorized_keys_base(
+            auth_key_path='/etc/ssh/user-authorized-keys/foo')
 
     @patch('subprocess.check_call')
     def test_import_keystone_cert_missing_data(self, check_call):
@@ -300,10 +281,12 @@ class NovaComputeUtilsTests(CharmTestCase):
             _file.write.assert_called_with('foo_cert\n')
         check_call.assert_called_with(['update-ca-certificates'])
 
+    @patch.object(utils, 'ceph_config_file')
     @patch('charmhelpers.contrib.openstack.templating.OSConfigRenderer')
     @patch.object(utils, 'quantum_enabled')
     @patch.object(utils, 'resource_map')
-    def test_register_configs(self, resource_map, quantum, renderer):
+    def test_register_configs(self, resource_map, quantum, renderer,
+                              mock_ceph_config_file):
         quantum.return_value = False
         self.os_release.return_value = 'havana'
         fake_renderer = MagicMock()
@@ -322,14 +305,16 @@ class NovaComputeUtilsTests(CharmTestCase):
             },
         }
         resource_map.return_value = rsc_map
-        utils.register_configs()
-        renderer.assert_called_with(
-            openstack_release='havana', templates_dir='templates/')
-        ex_reg = [
-            call('/etc/nova/nova-compute.conf', [ctxt2]),
-            call('/etc/nova/nova.conf', [ctxt1])
-        ]
-        self.assertEquals(fake_renderer.register.call_args_list, ex_reg)
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            mock_ceph_config_file.return_value = tmpfile.name
+            utils.register_configs()
+            renderer.assert_called_with(
+                openstack_release='havana', templates_dir='templates/')
+            ex_reg = [
+                call('/etc/nova/nova-compute.conf', [ctxt2]),
+                call('/etc/nova/nova.conf', [ctxt1])
+            ]
+            self.assertEquals(fake_renderer.register.call_args_list, ex_reg)
 
     @patch.object(utils, 'check_call')
     def test_enable_shell(self, _check_call):
