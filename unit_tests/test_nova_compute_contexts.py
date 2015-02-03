@@ -173,21 +173,34 @@ class NovaComputeContextTests(CharmTestCase):
 
     def test_libvirt_bin_context_no_migration(self):
         self.test_config.set('enable-live-migration', False)
-        libvirt = context.NovaComputeLibvirtContext()
-        self.assertEquals({'libvirtd_opts': '-d', 'listen_tls': 0}, libvirt())
+        with patch('uuid.uuid4') as uid:
+            uid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
+            libvirt = context.NovaComputeLibvirtContext()()
+        self.assertEqual(
+            {'libvirtd_opts': '-d',
+             'listen_tls': 0,
+             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt)
 
     def test_libvirt_bin_context_migration_tcp_listen(self):
         self.test_config.set('enable-live-migration', True)
-        libvirt = context.NovaComputeLibvirtContext()
-        self.assertEquals(
-            {'libvirtd_opts': '-d -l', 'listen_tls': 0}, libvirt())
+        with patch('uuid.uuid4') as uid:
+            uid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
+            libvirt = context.NovaComputeLibvirtContext()()
+        self.assertEqual(
+            {'libvirtd_opts': '-d -l',
+             'listen_tls': 0,
+             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt)
 
     def test_libvirt_disk_cachemodes(self):
         self.test_config.set('disk-cachemodes', 'file=unsafe,block=none')
-        libvirt = context.NovaComputeLibvirtContext()
-        self.assertEquals(
-            {'libvirtd_opts': '-d', 'listen_tls': 0,
-             'disk_cachemodes': 'file=unsafe,block=none'}, libvirt())
+        with patch('uuid.uuid4') as uid:
+            uid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
+            libvirt = context.NovaComputeLibvirtContext()()
+        self.assertEqual(
+            {'libvirtd_opts': '-d',
+             'listen_tls': 0,
+             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7',
+             'disk_cachemodes': 'file=unsafe,block=none'}, libvirt)
 
     @patch.object(context.NeutronComputeContext, 'network_manager')
     @patch.object(context.NeutronComputeContext, 'plugin')
