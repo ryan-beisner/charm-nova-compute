@@ -182,3 +182,8 @@ options:
     description: |
       YAML formatted associative array of sysctl values, e.g.:
       '{ kernel.pid_max : 4194303 }'
+  phy-nic-mtu:
+    default: 1500
+    description: |
+      To improve network performance of VM, sometimes we should keep VM MTU as 1500
+      and use charm to modify MTU of tunnel nic more than 1500 (e.g. 1546 for GRE)

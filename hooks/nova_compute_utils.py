@@ -14,7 +14,7 @@ from charmhelpers.fetch import (
 from charmhelpers.core.host import (
     mkdir,
     service_restart,
-    lsb_release
+    lsb_release,
 )
 
 from charmhelpers.core.hookenv import (
