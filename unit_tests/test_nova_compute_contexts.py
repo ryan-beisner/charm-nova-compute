@@ -15,6 +15,7 @@ TO_PATCH = [
     'log',
     'os_release',
     '_save_flag_file',
+    'unit_get',
 ]
 
 QUANTUM_CONTEXT = {
@@ -181,6 +182,13 @@ class NovaComputeContextTests(CharmTestCase):
         self.assertEquals(
             {'libvirtd_opts': '-d -l', 'listen_tls': 0}, libvirt())
 
+    def test_libvirt_disk_cachemodes(self):
+        self.test_config.set('disk-cachemodes', 'file=unsafe,block=none')
+        libvirt = context.NovaComputeLibvirtContext()
+        self.assertEquals(
+            {'libvirtd_opts': '-d', 'listen_tls': 0,
+             'disk_cachemodes': 'file=unsafe,block=none'}, libvirt())
+
     @patch.object(context.NeutronComputeContext, 'network_manager')
     @patch.object(context.NeutronComputeContext, 'plugin')
     def test_disable_security_groups_true(self, plugin, nm):
@@ -196,3 +204,12 @@ class NovaComputeContextTests(CharmTestCase):
         with patch.object(qplugin, '_ensure_packages'):
             self.assertEquals({'disable_neutron_security_groups': False},
                               qplugin())
+
+    @patch('subprocess.call')
+    def test_host_IP_context(self, _call):
+        self.log = fake_log
+        self.unit_get.return_value = '172.24.0.79'
+        host_ip = context.HostIPContext()
+        self.assertEquals(
+            {'host_ip': '172.24.0.79'}, host_ip())
+        self.unit_get.assert_called_with('private-address')
