@@ -1,3 +1,5 @@
+import uuid
+
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -119,6 +121,7 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('disk-cachemodes'):
             ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
+        ctxt['host_uuid'] = '%s' % uuid.uuid4()
         return ctxt
 
 
