@@ -38,6 +38,7 @@ from charmhelpers.contrib.openstack.utils import (
 
 from nova_compute_context import (
     CloudComputeContext,
+    MetadataServiceContext,
     NovaComputeLibvirtContext,
     NovaComputeCephContext,
     NeutronComputeContext,
@@ -93,6 +94,7 @@ BASE_RESOURCE_MAP = {
                          service='nova',
                          config_file=NOVA_CONF),
                      InstanceConsoleContext(),
+                     MetadataServiceContext(),
                      HostIPContext()],
     },
 }
@@ -200,6 +202,8 @@ def resource_map():
         }
         resource_map.update(CEPH_RESOURCES)
 
+    if enable_nova_metadata():
+        resource_map[NOVA_CONF]['services'].append('nova-api-metadata')
     return resource_map
 
 
@@ -268,6 +272,8 @@ def determine_packages():
     except KeyError:
         log('Unsupported virt-type configured: %s' % virt_type)
         raise
+    if enable_nova_metadata():
+        packages.append('nova-api-metadata')
 
     return packages
 
@@ -479,3 +485,8 @@ def assert_charm_supports_ipv6():
     if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
+
+def enable_nova_metadata():
+    ctxt = MetadataServiceContext()()
+    return 'metadata_shared_secret' in ctxt
+         
