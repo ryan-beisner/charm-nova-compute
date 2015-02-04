@@ -317,6 +317,16 @@ def update_nrpe_config():
     nrpe_setup.write()
 
 
+@hooks.hook('neutron-plugin-relation-changed')
+@restart_on_change(restart_map())
+def neutron_plugin_changed():
+    settings = relation_get()
+    if 'metadata-shared-secret' in settings:
+        apt_update()
+        apt_install('nova-api-metadata', fatal=True)
+    CONFIGS.write(NOVA_CONF)
+
+
 def main():
     try:
         hooks.execute(sys.argv)
