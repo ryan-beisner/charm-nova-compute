@@ -332,3 +332,10 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.add_source.assert_any_call('ppa:cory-benfield/project-calico')
         self.add_source.assert_any_call('ppa:cz.nic-labs/bird')
         self.assertEqual(self.add_source.call_count, 2)
+
+    def test_addnl_install_calico_config(self):
+        self.test_config.set('calico-origin', 'ppa:mytest/ppa')
+        utils.additional_install_locations('Calico')
+        self.add_source.assert_any_call('ppa:mytest/ppa')
+        self.add_source.assert_any_call('ppa:cz.nic-labs/bird')
+        self.assertEqual(self.add_source.call_count, 2)
