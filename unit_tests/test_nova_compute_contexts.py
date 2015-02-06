@@ -64,6 +64,15 @@ class NovaComputeContextTests(CharmTestCase):
         self.config.side_effect = self.test_config.get
         self.log.side_effect = fake_log
 
+    def test_nova_compute_libvirt_init_context(self):
+        self.test_config.set('limit-nofile', '1024 1024')
+        ctxt = context.NovaComputeLibvirtInitContext()
+        result = ctxt()
+        expected = {
+            'limit_nofile': '1024 1024',
+        }
+        self.assertEquals(expected, result)
+
     def test_cloud_compute_context_no_relation(self):
         self.relation_ids.return_value = []
         cloud_compute = context.CloudComputeContext()

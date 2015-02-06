@@ -122,6 +122,21 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         return ctxt
 
 
+class NovaComputeLibvirtInitContext(context.OSContextGenerator):
+
+    '''
+    Determines various libvirt init override options
+    '''
+    interfaces = []
+
+    def __call__(self):
+        ctxt = {
+            'limit_nofile': config('limit-nofile'),
+        }
+
+        return ctxt
+
+
 class NovaComputeVirtContext(context.OSContextGenerator):
     interfaces = []
 
