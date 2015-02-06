@@ -178,7 +178,8 @@ class NovaComputeContextTests(CharmTestCase):
         plugin.return_value = None
         qplugin = context.NeutronComputeContext()
         with patch.object(qplugin, '_ensure_packages'):
-            self.assertEquals({}, qplugin())
+            self.assertEquals({
+                'disable_neutron_security_groups': False}, qplugin())
 
     def test_libvirt_bin_context_no_migration(self):
         self.test_config.set('enable-live-migration', False)
