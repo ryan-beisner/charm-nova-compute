@@ -55,7 +55,7 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
-    assert_charm_supports_ipv6,
+    assert_charm_supports_ipv6
 )
 
 from charmhelpers.contrib.network.ip import (
