@@ -439,3 +439,14 @@ class HostIPContext(context.OSContextGenerator):
             ctxt['host_ip'] = format_ipv6_addr(host_ip) or host_ip
 
         return ctxt
+
+
+class ExternalPortContext(context.NeutronPortContext):
+
+    def __call__(self):
+        port = self.resolve_port('ext-port')
+        if port:
+            return {"ext_port": port,
+                    "mtu": config('phy-nic-mtu')}
+        else:
+            return None

@@ -45,10 +45,12 @@ from nova_compute_context import (
     CEPH_CONF,
     ceph_config_file,
     HostIPContext,
+    ExternalPortContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
 
+EXT_PORT_CONF = '/etc/init/ext-port.conf'
 TEMPLATES = 'templates/'
 
 BASE_PACKAGES = [
@@ -115,6 +117,10 @@ QUANTUM_RESOURCES = {
         'contexts': [NeutronComputeContext(),
                      context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR),
                      context.SyslogContext()],
+    },
+    EXT_PORT_CONF: {
+        'hook_contexts': [ExternalPortContext()],
+        'services': []
     }
 }
 
@@ -127,6 +133,10 @@ NEUTRON_RESOURCES = {
         'contexts': [NeutronComputeContext(),
                      context.AMQPContext(ssl_dir=NEUTRON_CONF_DIR),
                      context.SyslogContext()],
+    },
+    EXT_PORT_CONF: {
+        'hook_contexts': [ExternalPortContext()],
+        'services': []
     }
 }
 
