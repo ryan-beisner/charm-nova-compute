@@ -60,7 +60,6 @@ from nova_compute_utils import (
 
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr,
-    configure_phy_nic_mtu
 )
 
 from nova_compute_context import (
@@ -82,7 +81,6 @@ def install():
     configure_installation_source(config('openstack-origin'))
     apt_update()
     apt_install(determine_packages(), fatal=True)
-    configure_phy_nic_mtu()
 
 
 @hooks.hook('config-changed')
@@ -121,8 +119,6 @@ def config_changed():
     update_nrpe_config()
 
     CONFIGS.write_all()
-
-    configure_phy_nic_mtu()
 
 
 @hooks.hook('amqp-relation-joined')
