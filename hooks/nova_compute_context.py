@@ -453,4 +453,3 @@ class ExternalPortContext(context.NeutronPortContext):
                 ctxt['ext_port_mtu'] = mtu
 
         return ctxt
-
