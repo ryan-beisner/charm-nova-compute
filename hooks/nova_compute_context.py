@@ -444,9 +444,13 @@ class HostIPContext(context.OSContextGenerator):
 class ExternalPortContext(context.NeutronPortContext):
 
     def __call__(self):
+        ctxt = {}
         port = self.resolve_port('ext-port')
         if port:
-            return {"ext_port": port,
-                    "mtu": config('phy-nic-mtu')}
-        else:
-            return None
+            ctxt = {"ext_port": port}
+            mtu = config('phy-nic-mtu')
+            if mtu:
+                ctxt['ext_port_mtu'] = mtu
+
+        return ctxt
+

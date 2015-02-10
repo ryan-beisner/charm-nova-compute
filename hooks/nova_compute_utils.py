@@ -119,8 +119,8 @@ QUANTUM_RESOURCES = {
                      context.SyslogContext()],
     },
     EXT_PORT_CONF: {
+        'services': [],
         'contexts': [ExternalPortContext()],
-        'services': []
     }
 }
 
@@ -135,8 +135,8 @@ NEUTRON_RESOURCES = {
                      context.SyslogContext()],
     },
     EXT_PORT_CONF: {
+        'services': [],
         'contexts': [ExternalPortContext()],
-        'services': []
     }
 }
 
