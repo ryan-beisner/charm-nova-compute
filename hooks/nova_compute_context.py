@@ -445,15 +445,15 @@ class HostIPContext(context.OSContextGenerator):
         return ctxt
 
 
-class ExternalPortContext(context.NeutronPortContext):
+class PhyNICMTUContext(context.NeutronPortContext):
 
     def __call__(self):
         ctxt = {}
-        port = self.resolve_port('ext-port')
+        port = config('phy-nics')
         if port:
-            ctxt = {"ext_port": port}
+            ctxt = {"devs": port.replace(' ', '\n')}
             mtu = config('phy-nic-mtu')
             if mtu:
-                ctxt['ext_port_mtu'] = mtu
+                ctxt['mtu'] = mtu
 
         return ctxt
