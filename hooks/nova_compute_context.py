@@ -338,6 +338,10 @@ class CloudComputeContext(context.OSContextGenerator):
             ctxt['network_manager'] = self.network_manager
             ctxt['network_manager_config'] = net_manager
 
+        net_dev_mtu = config('network-device-mtu')
+        if net_dev_mtu:
+            ctxt['network_device_mtu'] = net_dev_mtu
+
         vol_service = self.volume_context()
         if vol_service:
             ctxt['volume_service'] = vol_service
