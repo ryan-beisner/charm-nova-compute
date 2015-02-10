@@ -182,6 +182,8 @@ def resource_map():
     # depending on the plugin used.
     # NOTE(james-page): only required for ovs plugin right now
     if net_manager in ['neutron', 'quantum']:
+        # This stanza supports the legacy case of ovs supported within
+        # compute charm code (now moved to neutron-openvswitch subordinate)
         if not relation_ids('neutron-plugin') and plugin == 'ovs':
             if net_manager == 'quantum':
                 nm_rsc = QUANTUM_RESOURCES
