@@ -55,8 +55,8 @@ from nova_compute_utils import (
     QUANTUM_CONF, NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
-    configure_flex,
-    configure_flex_storage,
+    configure_lxd,
+    configure_lxd_storage,
     fix_path_ownership,
     assert_charm_supports_ipv6
 )
@@ -82,8 +82,8 @@ CONFIGS = register_configs()
 def install():
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
-    if config('virt-type').lower() == 'flex':
-        add_source("ppa:zulcss/flex-testing")
+    if config('virt-type').lower() == 'lxd':
+        add_source("ppa:zulcss/lxd-testing")
     apt_update()
     apt_install(determine_packages(), fatal=True)
 
@@ -119,9 +119,9 @@ def config_changed():
         fp = config('instances-path')
         fix_path_ownership(fp, user='nova')
 
-    if config('virt-type').lower() == 'flex':
-        configure_flex_storage()
-        configure_flex(user='nova')
+    if config('virt-type').lower() == 'lxd':
+        configure_lxd_storage()
+        configure_lxd(user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
 

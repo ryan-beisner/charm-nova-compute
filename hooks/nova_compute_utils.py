@@ -155,7 +155,7 @@ VIRT_TYPES = {
     'xen': ['nova-compute-xen'],
     'uml': ['nova-compute-uml'],
     'lxc': ['nova-compute-lxc'],
-    'flex': ['nova-compute-flex'],
+    'lxd': ['nova-compute-lxd'],
 }
 
 # Maps virt-type config to a libvirt URI.
@@ -174,7 +174,7 @@ def resource_map():
     hook execution.
     '''
     # TODO: Cache this on first call?
-    if config('virt-type').lower() != 'flex':
+    if config('virt-type').lower() != 'lxd':
         resource_map = deepcopy(LIBVIRT_RESOURCE_MAP)
     else:
         resource_map = deepcopy(BASE_RESOURCE_MAP)
@@ -480,31 +480,31 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
     check_call(cmd)
 
 
-def configure_flex(user='nova'):
-    ''' Configures flex '''
+def configure_lxd(user='nova'):
+    ''' Configures lxd '''
     config_data = config()
     configure_subuid(user='nova')
 
-    configure_flex_networking()
+    configure_lxd_networking()
 
     fix_path_ownership(config_data.get('instances-path',
                                        DEFAULT_INSTANCE_PATH), 
                         user='nova')
     service_restart('nova-compute')
 
-def configure_flex_storage():
+def configure_lxd_storage():
     ''' Configure the btrfs volume'''
     config_data = config()
-    flex_block_device = config('flex-block-device')
-    if not flex_block_device:
+    lxd_block_device = config('lxd-block-device')
+    if not lxd_block_device:
         log('btrfs device is not specified')
         return
 
     instances_path = config_data.get('instances-path',
                                      DEFAULT_INSTANCE_PATH)
 
-    if config('flex-overwrite-block-device') in ['True', 'true']:
-        umount(flex_block_device, persist=True)
+    if config('lxd-overwrite-block-device') in ['True', 'true']:
+        umount(lxd_block_device, persist=True)
 
     for dev in determine_block_devices():
             cmd = ['mkfs.btrfs', '-f', dev]
@@ -531,7 +531,7 @@ def find_block_devices():
     return [f for f in found if is_block_device(f)]
 
 def determine_block_devices():
-    block_device = config('flex-block-device')
+    block_device = config('lxd-block-device')
 
     if not block_device or block_device in ['None', 'none']:
         log('No storage deivces specified in config as block-device',
@@ -584,7 +584,7 @@ def ensure_block_device(block_device):
 
     return bdev
 
-def configure_flex_networking(user='nova'):
+def configure_lxd_networking(user='nova'):
     with open('/etc/lxc/lxc-usernet', 'wb') as out:
         out.write('nova veth br100 1000\n')
 
