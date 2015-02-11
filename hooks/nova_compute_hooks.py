@@ -59,7 +59,7 @@ from nova_compute_utils import (
 )
 
 from charmhelpers.contrib.network.ip import (
-    get_ipv6_addr,
+    get_ipv6_addr
 )
 
 from nova_compute_context import (
