@@ -425,9 +425,9 @@ class NeutronComputeContext(context.NeutronContext):
     def __call__(self):
         ctxt = super(NeutronComputeContext, self).__call__()
         # NOTE(jamespage) support override of neutron security via config
-        if config('disable-neutron-security-groups') is not None:
-            ctxt['disable_neutron_security_groups'] = \
-                config('disable-neutron-security-groups')
+        if config('disable-neutron-security-groups'):
+            ctxt['disable_neutron_security_groups'] = True
+
         return ctxt
 
 

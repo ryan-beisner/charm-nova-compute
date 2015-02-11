@@ -202,8 +202,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.test_config.set('disable-neutron-security-groups', False)
         qplugin = context.NeutronComputeContext()
         with patch.object(qplugin, '_ensure_packages'):
-            self.assertEquals({'disable_neutron_security_groups': False},
-                              qplugin())
+            self.assertEquals({}, qplugin())
 
     @patch('subprocess.call')
     def test_host_IP_context(self, _call):
