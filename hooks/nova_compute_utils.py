@@ -479,18 +479,21 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
            '--base64', key]
     check_call(cmd)
 
-
 def configure_lxd(user='nova'):
     ''' Configures lxd '''
     config_data = config()
     configure_subuid(user='nova')
 
+    configure_lxd_daemon(user='nova')
     configure_lxd_networking()
 
-    fix_path_ownership(config_data.get('instances-path',
-                                       DEFAULT_INSTANCE_PATH), 
-                        user='nova')
     service_restart('nova-compute')
+
+def configure_lxd_daemon(user):
+    check_output(['chown', '-R', user, '/var/lib/lxd'])
+    check_output(['sed', '-i', 's/--group lxd/--group nova/g',
+                 '/etc/init/lxd.conf'])
+    service_restart('lxd')
 
 def configure_lxd_storage():
     ''' Configure the btrfs volume'''
@@ -500,8 +503,7 @@ def configure_lxd_storage():
         log('btrfs device is not specified')
         return
 
-    instances_path = config_data.get('instances-path',
-                                     DEFAULT_INSTANCE_PATH)
+    instances_path = '/var/lib/lxd/lxc'
 
     if config('lxd-overwrite-block-device') in ['True', 'true']:
         umount(lxd_block_device, persist=True)
