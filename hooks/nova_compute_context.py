@@ -1,3 +1,5 @@
+import uuid
+
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -119,6 +121,7 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('disk-cachemodes'):
             ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
+        ctxt['host_uuid'] = '%s' % uuid.uuid4()
         return ctxt
 
 
@@ -434,9 +437,9 @@ class NeutronComputeContext(context.NeutronContext):
     def __call__(self):
         ctxt = super(NeutronComputeContext, self).__call__()
         # NOTE(jamespage) support override of neutron security via config
-        if config('disable-neutron-security-groups') is not None:
-            ctxt['disable_neutron_security_groups'] = \
-                config('disable-neutron-security-groups')
+        if config('disable-neutron-security-groups'):
+            ctxt['disable_neutron_security_groups'] = True
+
         return ctxt
 
 

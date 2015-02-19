@@ -171,22 +171,38 @@ class NovaComputeContextTests(CharmTestCase):
         with patch.object(qplugin, '_ensure_packages'):
             self.assertEquals({}, qplugin())
 
-    def test_libvirt_bin_context_no_migration(self):
+    @patch.object(context.uuid, 'uuid4')
+    def test_libvirt_bin_context_no_migration(self, mock_uuid):
         self.test_config.set('enable-live-migration', False)
+        mock_uuid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
         libvirt = context.NovaComputeLibvirtContext()
-        self.assertEquals({'libvirtd_opts': '-d', 'listen_tls': 0}, libvirt())
 
-    def test_libvirt_bin_context_migration_tcp_listen(self):
+        self.assertEqual(
+            {'libvirtd_opts': '-d',
+             'listen_tls': 0,
+             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
+
+    @patch.object(context.uuid, 'uuid4')
+    def test_libvirt_bin_context_migration_tcp_listen(self, mock_uuid):
         self.test_config.set('enable-live-migration', True)
+        mock_uuid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
         libvirt = context.NovaComputeLibvirtContext()
-        self.assertEquals(
-            {'libvirtd_opts': '-d -l', 'listen_tls': 0}, libvirt())
 
-    def test_libvirt_disk_cachemodes(self):
+        self.assertEqual(
+            {'libvirtd_opts': '-d -l',
+             'listen_tls': 0,
+             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
+
+    @patch.object(context.uuid, 'uuid4')
+    def test_libvirt_disk_cachemodes(self, mock_uuid):
         self.test_config.set('disk-cachemodes', 'file=unsafe,block=none')
+        mock_uuid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
         libvirt = context.NovaComputeLibvirtContext()
-        self.assertEquals(
-            {'libvirtd_opts': '-d', 'listen_tls': 0,
+
+        self.assertEqual(
+            {'libvirtd_opts': '-d',
+             'listen_tls': 0,
+             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7',
              'disk_cachemodes': 'file=unsafe,block=none'}, libvirt())
 
     @patch.object(context.NeutronComputeContext, 'network_manager')
@@ -202,8 +218,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.test_config.set('disable-neutron-security-groups', False)
         qplugin = context.NeutronComputeContext()
         with patch.object(qplugin, '_ensure_packages'):
-            self.assertEquals({'disable_neutron_security_groups': False},
-                              qplugin())
+            self.assertEquals({}, qplugin())
 
     @patch('subprocess.call')
     def test_host_IP_context(self, _call):
