@@ -23,7 +23,8 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_ids,
     relation_get,
-    DEBUG
+    DEBUG,
+    INFO,
 )
 
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
@@ -450,9 +451,15 @@ def import_keystone_ca_cert():
 def create_libvirt_secret(secret_file, secret_uuid, key):
     uri = LIBVIRT_URIS[config('virt-type')]
     if secret_uuid in check_output(['virsh', '-c', uri, 'secret-list']):
-        log('Libvirt secret already exists for uuid %s.' % secret_uuid,
-            level=DEBUG)
-        return
+        old_key = check_output(['virsh', '-c', uri, 'secret-get-value',
+                                secret_uuid])
+        if old_key == key:
+            log('Libvirt secret already exists for uuid %s.' % secret_uuid,
+                level=DEBUG)
+            return
+        else:
+            log('Libvirt secret changed for uuid %s.' % secret_uuid,
+                level=INFO)
     log('Defining new libvirt secret for uuid %s.' % secret_uuid)
     cmd = ['virsh', '-c', uri, 'secret-define', '--file', secret_file]
     check_call(cmd)
