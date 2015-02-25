@@ -169,8 +169,7 @@ class NovaComputeContextTests(CharmTestCase):
         plugin.return_value = None
         qplugin = context.NeutronComputeContext()
         with patch.object(qplugin, '_ensure_packages'):
-            self.assertEquals({
-                'disable_neutron_security_groups': False}, qplugin())
+            self.assertEquals({}, qplugin())
 
     @patch.object(context.uuid, 'uuid4')
     def test_libvirt_bin_context_no_migration(self, mock_uuid):
