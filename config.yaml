@@ -124,7 +124,7 @@ options:
       this allows you to differentiate between them.
   disable-neutron-security-groups:
     type: boolean
-    default: false
+    default: False
     description: |
       Disable neutron based security groups - setting this configuration option
       will override any settings configured via the nova-cloud-controller charm.
