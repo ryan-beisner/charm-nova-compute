@@ -1,6 +1,7 @@
 import itertools
 import tempfile
 
+import nova_compute_context as compute_context
 import nova_compute_utils as utils
 
 from mock import (
@@ -322,3 +323,55 @@ class NovaComputeUtilsTests(CharmTestCase):
         utils.disable_shell('dummy')
         _check_call.assert_called_with(['usermod', '-s', '/bin/false',
                                         'dummy'])
+
+    @patch.object(utils, 'check_call')
+    @patch.object(utils, 'check_output')
+    def test_create_libvirt_key(self, _check_output, _check_call):
+        key = 'AQCR2dRUaFQSOxAAC5fr79sLL3d7wVvpbbRFMg=='
+        self.test_config.set('virt-type', 'kvm')
+        utils.create_libvirt_secret(utils.CEPH_SECRET,
+                                    compute_context.CEPH_SECRET_UUID, key)
+        _check_output.assert_called_with(['virsh', '-c',
+                                          utils.LIBVIRT_URIS['kvm'],
+                                          'secret-list'])
+        _check_call.assert_called_with(['virsh', '-c',
+                                        utils.LIBVIRT_URIS['kvm'],
+                                        'secret-set-value', '--secret',
+                                        compute_context.CEPH_SECRET_UUID,
+                                        '--base64', key])
+
+    @patch.object(utils, 'check_call')
+    @patch.object(utils, 'check_output')
+    def test_create_libvirt_key_existing(self, _check_output, _check_call):
+        key = 'AQCR2dRUaFQSOxAAC5fr79sLL3d7wVvpbbRFMg=='
+        self.test_config.set('virt-type', 'kvm')
+        _check_output.side_effect = [compute_context.CEPH_SECRET_UUID, key]
+        utils.create_libvirt_secret(utils.CEPH_SECRET,
+                                    compute_context.CEPH_SECRET_UUID, key)
+        expected = [call(['virsh', '-c',
+                          utils.LIBVIRT_URIS['kvm'], 'secret-list']),
+                    call(['virsh', '-c',
+                          utils.LIBVIRT_URIS['kvm'], 'secret-get-value',
+                          compute_context.CEPH_SECRET_UUID])]
+        _check_output.assert_has_calls(expected)
+
+    @patch.object(utils, 'check_call')
+    @patch.object(utils, 'check_output')
+    def test_create_libvirt_key_stale(self, _check_output, _check_call):
+        key = 'AQCR2dRUaFQSOxAAC5fr79sLL3d7wVvpbbRFMg=='
+        old_key = 'CCCCCdRUaFQSOxAAC5fr79sLL3d7wVvpbbRFMg=='
+        self.test_config.set('virt-type', 'kvm')
+        _check_output.side_effect = [compute_context.CEPH_SECRET_UUID, old_key]
+        utils.create_libvirt_secret(utils.CEPH_SECRET,
+                                    compute_context.CEPH_SECRET_UUID, key)
+        expected = [call(['virsh', '-c',
+                          utils.LIBVIRT_URIS['kvm'], 'secret-list']),
+                    call(['virsh', '-c',
+                          utils.LIBVIRT_URIS['kvm'], 'secret-get-value',
+                          compute_context.CEPH_SECRET_UUID])]
+        _check_output.assert_has_calls(expected)
+        _check_call.assert_any_call(['virsh', '-c',
+                                     utils.LIBVIRT_URIS['kvm'],
+                                     'secret-set-value', '--secret',
+                                     compute_context.CEPH_SECRET_UUID,
+                                     '--base64', key])
