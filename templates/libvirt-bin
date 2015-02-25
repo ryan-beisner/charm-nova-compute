@@ -14,3 +14,5 @@ libvirtd_opts="{{ libvirtd_opts }}"
 
 # pass in location of kerberos keytab
 #export KRB5_KTNAME=/etc/libvirt/libvirt.keytab
+
+limit nofile 65535 65535
