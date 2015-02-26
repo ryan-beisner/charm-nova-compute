@@ -482,7 +482,7 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
 def configure_lxd(user='nova'):
     ''' Configures lxd '''
     config_data = config()
-    configure_subuid(user='nova')
+    configure_subuid(user='root')
 
     configure_lxd_daemon(user='nova')
     configure_lxd_networking()
@@ -490,9 +490,8 @@ def configure_lxd(user='nova'):
     service_restart('nova-compute')
 
 def configure_lxd_daemon(user):
-    check_output(['chown', '-R', user, '/var/lib/lxd'])
-    check_output(['sed', '-i', 's/--group lxd/--group nova/g',
-                 '/etc/init/lxd.conf'])
+    cmd = ['setfacl', '-R', '-m', 'u:nova:rwx', '/var/lib/lxd/lxc']
+    check_call(cmd)
     service_restart('lxd')
 
 def configure_lxd_storage():
@@ -588,7 +587,7 @@ def ensure_block_device(block_device):
 
 def configure_lxd_networking(user='nova'):
     with open('/etc/lxc/lxc-usernet', 'wb') as out:
-        out.write('nova veth br100 1000\n')
+        out.write('root veth br100 1000\n')
 
 
 def configure_subuid(user):
