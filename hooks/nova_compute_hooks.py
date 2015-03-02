@@ -21,6 +21,7 @@ from charmhelpers.core.host import (
 
 from charmhelpers.fetch import (
     apt_install,
+    apt_purge,
     apt_update,
     filter_installed_packages,
 )
@@ -331,6 +332,8 @@ def neutron_plugin_changed():
     if 'metadata-shared-secret' in settings:
         apt_update()
         apt_install('nova-api-metadata', fatal=True)
+    else:
+        apt_purge('nova-api-metadata', fatal=True)
     CONFIGS.write(NOVA_CONF)
 
 
