@@ -196,7 +196,7 @@ class SharedDBContext(OSContextGenerator):
                                         unit=local_unit())
             if set_hostname != access_hostname:
                 relation_set(relation_settings={hostname_key: access_hostname})
-                return ctxt  # Defer any further hook execution for now....
+                return None  # Defer any further hook execution for now....
 
         password_setting = 'password'
         if self.relation_prefix:
@@ -284,9 +284,25 @@ def db_ssl(rdata, ctxt, ssl_dir):
 class IdentityServiceContext(OSContextGenerator):
     interfaces = ['identity-service']
 
+    def __init__(self, service=None, service_user=None):
+        self.service = service
+        self.service_user = service_user
+
     def __call__(self):
         log('Generating template context for identity-service', level=DEBUG)
         ctxt = {}
+
+        if self.service and self.service_user:
+            # This is required for pki token signing if we don't want /tmp to
+            # be used.
+            cachedir = '/var/cache/%s' % (self.service)
+            if not os.path.isdir(cachedir):
+                log("Creating service cache dir %s" % (cachedir), level=DEBUG)
+                mkdir(path=cachedir, owner=self.service_user,
+                      group=self.service_user, perms=0o700)
+
+            ctxt['signing_dir'] = cachedir
+
         for rid in relation_ids('identity-service'):
             for unit in related_units(rid):
                 rdata = relation_get(rid=rid, unit=unit)
@@ -296,15 +312,16 @@ class IdentityServiceContext(OSContextGenerator):
                 auth_host = format_ipv6_addr(auth_host) or auth_host
                 svc_protocol = rdata.get('service_protocol') or 'http'
                 auth_protocol = rdata.get('auth_protocol') or 'http'
-                ctxt = {'service_port': rdata.get('service_port'),
-                        'service_host': serv_host,
-                        'auth_host': auth_host,
-                        'auth_port': rdata.get('auth_port'),
-                        'admin_tenant_name': rdata.get('service_tenant'),
-                        'admin_user': rdata.get('service_username'),
-                        'admin_password': rdata.get('service_password'),
-                        'service_protocol': svc_protocol,
-                        'auth_protocol': auth_protocol}
+                ctxt.update({'service_port': rdata.get('service_port'),
+                             'service_host': serv_host,
+                             'auth_host': auth_host,
+                             'auth_port': rdata.get('auth_port'),
+                             'admin_tenant_name': rdata.get('service_tenant'),
+                             'admin_user': rdata.get('service_username'),
+                             'admin_password': rdata.get('service_password'),
+                             'service_protocol': svc_protocol,
+                             'auth_protocol': auth_protocol})
+
                 if context_complete(ctxt):
                     # NOTE(jamespage) this is required for >= icehouse
                     # so a missing value just indicates keystone needs
@@ -839,37 +856,45 @@ class NeutronContext(OSContextGenerator):
 
 
 class NeutronPortContext(OSContextGenerator):
-    def resolve_port(self, config_key):
-        if not config(config_key):
+    NIC_PREFIXES = ['eth', 'bond']
+
+    def resolve_ports(self, ports):
+        """Resolve NICs not yet bound to bridge(s)
+
+        If hwaddress provided then returns resolved hwaddress otherwise NIC.
+        """
+        if not ports:
             return None
 
         hwaddr_to_nic = {}
         hwaddr_to_ip = {}
-        for nic in list_nics(['eth', 'bond']):
+        for nic in list_nics(self.NIC_PREFIXES):
             hwaddr = get_nic_hwaddr(nic)
             hwaddr_to_nic[hwaddr] = nic
-            addresses = get_ipv4_addr(nic, fatal=False) + \
-                get_ipv6_addr(iface=nic, fatal=False)
+            addresses = get_ipv4_addr(nic, fatal=False)
+            addresses += get_ipv6_addr(iface=nic, fatal=False)
             hwaddr_to_ip[hwaddr] = addresses
 
+        resolved = []
         mac_regex = re.compile(r'([0-9A-F]{2}[:-]){5}([0-9A-F]{2})', re.I)
-        for entry in config(config_key).split():
-            entry = entry.strip()
+        for entry in ports:
             if re.match(mac_regex, entry):
-                if entry in hwaddr_to_nic and len(hwaddr_to_ip[entry]) == 0:
+                # NIC is in known NICs and does NOT hace an IP address
+                if entry in hwaddr_to_nic and not hwaddr_to_ip[entry]:
                     # If the nic is part of a bridge then don't use it
                     if is_bridge_member(hwaddr_to_nic[entry]):
                         continue
+
                     # Entry is a MAC address for a valid interface that doesn't
                     # have an IP address assigned yet.
-                    return hwaddr_to_nic[entry]
+                    resolved.append(hwaddr_to_nic[entry])
             else:
                 # If the passed entry is not a MAC address, assume it's a valid
                 # interface, and that the user put it there on purpose (we can
                 # trust it to be the real external network).
-                return entry
+                resolved.append(entry)
 
-        return None
+        return resolved
 
 
 class OSConfigFlagContext(OSContextGenerator):
@@ -1060,6 +1085,8 @@ class ZeroMQContext(OSContextGenerator):
                     for unit in related_units(rid):
                         ctxt['zmq_nonce'] = relation_get('nonce', unit, rid)
                         ctxt['zmq_host'] = relation_get('host', unit, rid)
+                        ctxt['zmq_redis_address'] = relation_get(
+                            'zmq_redis_address', unit, rid)
 
         return ctxt
 
