@@ -17,6 +17,7 @@ from charmhelpers.core.hookenv import (
 )
 from charmhelpers.core.host import (
     restart_on_change,
+    service_restart,
 )
 
 from charmhelpers.fetch import (
@@ -235,6 +236,8 @@ def compute_changed():
 @restart_on_change(restart_map())
 def ceph_joined():
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
+    # Bug 1427660
+    service_restart('libvirt-bin')
 
 
 @hooks.hook('ceph-relation-changed')
