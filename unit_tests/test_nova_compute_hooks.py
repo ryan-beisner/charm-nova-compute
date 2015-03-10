@@ -53,7 +53,6 @@ TO_PATCH = [
     # socket
     'gethostname',
     'create_sysctl',
-    'additional_install_locations',
 ]
 
 
