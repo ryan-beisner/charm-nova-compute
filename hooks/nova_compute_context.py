@@ -1,5 +1,5 @@
 import uuid
-
+import platform
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -103,6 +103,9 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
             # /etc/libvirt/libvirtd.conf (
             'listen_tls': 0,
         }
+
+        # get the processor architecture to use in the nova.conf template
+        ctxt['arch'] = platform.machine()
 
         # enable tcp listening if configured for live migration.
         if config('enable-live-migration'):
