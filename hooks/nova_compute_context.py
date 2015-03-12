@@ -446,17 +446,3 @@ class HostIPContext(context.OSContextGenerator):
             ctxt['host_ip'] = format_ipv6_addr(host_ip) or host_ip
 
         return ctxt
-
-
-class PhyNICMTUContext(context.NeutronPortContext):
-
-    def __call__(self):
-        ctxt = {}
-        port = config('phy-nics')
-        if port:
-            ctxt = {"devs": port.replace(' ', '\\n')}
-            mtu = config('phy-nic-mtu')
-            if mtu:
-                ctxt['mtu'] = mtu
-
-        return ctxt

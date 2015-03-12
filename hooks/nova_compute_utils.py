@@ -46,12 +46,10 @@ from nova_compute_context import (
     CEPH_CONF,
     ceph_config_file,
     HostIPContext,
-    PhyNICMTUContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
 
-PHY_NIC_MTU_CONF = '/etc/init/os-charm-phy-nic-mtu.conf'
 TEMPLATES = 'templates/'
 
 BASE_PACKAGES = [
@@ -119,10 +117,6 @@ QUANTUM_RESOURCES = {
                      context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR),
                      context.SyslogContext()],
     },
-    PHY_NIC_MTU_CONF: {
-        'services': ['os-charm-phy-nic-mtu'],
-        'contexts': [PhyNICMTUContext()],
-    }
 }
 
 NEUTRON_CONF_DIR = "/etc/neutron"
@@ -135,10 +129,6 @@ NEUTRON_RESOURCES = {
                      context.AMQPContext(ssl_dir=NEUTRON_CONF_DIR),
                      context.SyslogContext()],
     },
-    PHY_NIC_MTU_CONF: {
-        'services': ['os-charm-phy-nic-mtu'],
-        'contexts': [PhyNICMTUContext()],
-    }
 }
 
 
