@@ -207,7 +207,7 @@ class NovaComputeContextTests(CharmTestCase):
             {'libvirtd_opts': '-d',
              'disk_cachemodes': 'file=unsafe,block=none',
              'arch': platform.machine(),
-             'listen_tls': 0, 
+             'listen_tls': 0,
              'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
 
     @patch.object(context.NeutronComputeContext, 'network_manager')
