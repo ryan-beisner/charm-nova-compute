@@ -1,3 +1,5 @@
+import platform
+
 from mock import patch
 from test_utils import CharmTestCase
 
@@ -179,6 +181,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
+             'arch': platform.machine(),
              'listen_tls': 0,
              'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
 
@@ -190,6 +193,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d -l',
+             'arch': platform.machine(),
              'listen_tls': 0,
              'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
 
@@ -201,9 +205,10 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
-             'listen_tls': 0,
-             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7',
-             'disk_cachemodes': 'file=unsafe,block=none'}, libvirt())
+             'disk_cachemodes': 'file=unsafe,block=none',
+             'arch': platform.machine(),
+             'listen_tls': 0, 
+             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
 
     @patch.object(context.NeutronComputeContext, 'network_manager')
     @patch.object(context.NeutronComputeContext, 'plugin')
