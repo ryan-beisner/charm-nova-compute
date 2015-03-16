@@ -164,7 +164,8 @@ options:
     type: int
     default:
     description: |
-      The MTU size for the interfaces managed by neutron.
+      The MTU size for the interfaces managed by neutron. If unset or set to
+      0, no value will be applied.
   # Storage configuration options
   libvirt-image-backend:
     default:
