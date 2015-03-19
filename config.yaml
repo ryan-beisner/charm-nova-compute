@@ -160,6 +160,13 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  network-device-mtu:
+    type: int
+    default:
+    description: |
+      The MTU size for the interfaces managed by neutron. If unset or set to
+      0, no value will be applied.
+  # Storage configuration options
   libvirt-image-backend:
     default:
     type: string
@@ -182,6 +189,7 @@ options:
       rbd pool has been created, changing this value will not have any
       effect (although it can be changed in ceph by manually configuring
       your ceph cluster).
+  # Other configuration options
   sysctl:
     type: string
     default:
