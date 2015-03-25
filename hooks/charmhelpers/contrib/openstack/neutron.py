@@ -16,6 +16,7 @@
 
 # Various utilies for dealing with Neutron and the renaming from Quantum.
 
+import six
 from subprocess import check_output
 
 from charmhelpers.core.hookenv import (
@@ -302,7 +303,7 @@ def parse_vlan_range_mappings(mappings):
         return {}
 
     mappings = {}
-    for p, r in _mappings.iteritems():
+    for p, r in six.iteritems(_mappings):
         mappings[p] = tuple(r.split(':'))
 
     return mappings
