@@ -1,3 +1,5 @@
+import uuid
+
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -119,6 +121,7 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('disk-cachemodes'):
             ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
+        ctxt['host_uuid'] = '%s' % uuid.uuid4()
         return ctxt
 
 
@@ -337,6 +340,10 @@ class CloudComputeContext(context.OSContextGenerator):
         if net_manager:
             ctxt['network_manager'] = self.network_manager
             ctxt['network_manager_config'] = net_manager
+
+        net_dev_mtu = config('network-device-mtu')
+        if net_dev_mtu:
+            ctxt['network_device_mtu'] = net_dev_mtu
 
         vol_service = self.volume_context()
         if vol_service:
