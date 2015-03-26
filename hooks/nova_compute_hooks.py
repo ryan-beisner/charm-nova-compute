@@ -35,6 +35,7 @@ from charmhelpers.contrib.storage.linux.ceph import (
     ensure_ceph_keyring,
     CephBrokerRq,
     CephBrokerRsp,
+    delete_keyring,
 )
 from charmhelpers.payload.execd import execd_preinstall
 from nova_compute_utils import (
@@ -292,8 +293,14 @@ def ceph_changed():
                 log("Request(s) sent to Ceph broker (rid=%s)" % (rid))
 
 
+@hooks.hook('ceph-relation-broken')
+def ceph_broken():
+    service = service_name()
+    delete_keyring(service=service)
+    CONFIGS.write_all()
+
+
 @hooks.hook('amqp-relation-broken',
-            'ceph-relation-broken',
             'image-service-relation-broken',
             'shared-db-relation-broken',
             'pgsql-db-relation-broken')
