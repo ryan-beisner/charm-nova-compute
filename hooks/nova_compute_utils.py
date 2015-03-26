@@ -491,10 +491,7 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
 def configure_lxd(user='nova'):
     ''' Configures lxd '''
     config_data = config()
-    configure_subuid(user='root')
-
-    configure_lxd_daemon(user='nova')
-    configure_lxd_networking()
+    configure_subuid(user='nova')
 
     service_restart('nova-compute')
 
@@ -502,102 +499,6 @@ def configure_lxd_daemon(user):
     cmd = ['setfacl', '-R', '-m', 'u:nova:rwx', '/var/lib/lxd/lxc']
     check_call(cmd)
     service_restart('lxd')
-
-def configure_lxd_storage():
-    ''' Configure the btrfs volume'''
-    config_data = config()
-    lxd_block_device = config('lxd-block-device')
-    if not lxd_block_device:
-        log('btrfs device is not specified')
-        return
-
-    instances_path = '/var/lib/lxd/lxc'
-
-    if config('lxd-overwrite-block-device') in ['True', 'true']:
-        umount(lxd_block_device, persist=True)
-
-    for dev in determine_block_devices():
-            cmd = ['mkfs.btrfs', '-f', dev]
-            check_call(cmd)
-            mount(dev,
-                  instances_path,
-                  options='user_subvol_rm_allowed',
-                  persist=True,
-                  filesystem='btrfs')
-
-def find_block_devices():
-    found = []
-    incl = ['sd[a-z]', 'vd[a-z]', 'cciss\/c[0-9]d[0-9]']
-    blacklist = ['sda', 'vda', 'cciss/c0d0']
-
-    with open('/proc/partitions') as proc:
-        print proc
-        partitions = [p.split() for p in proc.readlines()[2:]]
-    for partition in [p[3] for p in partitions if p]:
-        for inc in incl:
-            _re = re.compile(r'^(%s)$' % inc)
-            if _re.match(partition) and partition not in blacklist:
-                found.append(os.path.join('/dev', partition))
-    return [f for f in found if is_block_device(f)]
-
-def determine_block_devices():
-    block_device = config('lxd-block-device')
-
-    if not block_device or block_device in ['None', 'none']:
-        log('No storage deivces specified in config as block-device',
-            level=ERROR)
-        return None
-
-    if block_device == 'guess':
-        bdevs = find_block_devices()
-    else:
-        bdevs = block_device.split(' ')
-
-    # attempt to ensure block devices, but filter out missing devs
-    _none = ['None', 'none', None]
-    valid_bdevs = \
-        [x for x in map(ensure_block_device, bdevs) if x not in _none]
-    log('Valid ensured block devices: %s' % valid_bdevs)
-    return valid_bdevs
-
-def ensure_block_device(block_device):
-    '''
-    Confirm block_device, create as loopback if necessary.
-
-    :param block_device: str: Full path of block device to ensure.
-
-    :returns: str: Full path of block device to ensure.
-    '''
-    _none = ['None', 'none', None]
-    if (block_device in _none):
-        log('prepare_storage(): Missing required input: '
-            'block_device=%s.' % block_device, level=ERROR)
-        raise
-
-    if block_device.startswith('/dev/'):
-        bdev = block_device
-    elif block_device.startswith('/'):
-        _bd = block_device.split('|')
-        if len(_bd) == 2:
-            bdev, size = _bd
-        else:
-            bdev = block_device
-            size = DEFAULT_LOOPBACK_SIZE
-        bdev = ensure_loopback_device(bdev, size)
-    else:
-        bdev = '/dev/%s' % block_device
-
-    if not is_block_device(bdev):
-        log('Failed to locate valid block device at %s' % bdev, level=ERROR)
-        # ignore missing block devices
-        return
-
-    return bdev
-
-def configure_lxd_networking(user='nova'):
-    with open('/etc/lxc/lxc-usernet', 'wb') as out:
-        out.write('root veth br100 1000\n')
-
 
 def configure_subuid(user):
     cmd = ['usermod', '-v', '100000-200000', '-w', '100000-200000', user]
