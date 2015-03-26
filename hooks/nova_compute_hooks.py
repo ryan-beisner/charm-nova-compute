@@ -84,7 +84,7 @@ def install():
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
     if config('virt-type').lower() == 'lxd':
-        add_source("ppa:zulcss/lxd-testing-vivid")
+        add_source("ppa:zulcss/lxd-testing-vivid-3")
     apt_update()
     apt_install(determine_packages(), fatal=True)
 
