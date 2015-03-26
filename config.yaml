@@ -196,22 +196,3 @@ options:
     description: |
       YAML formatted associative array of sysctl values, e.g.:
       '{ kernel.pid_max : 4194303 }'
-  # Flex configuratoin options
-  lxd-block-device:
-    type: string
-    default: sdb
-    description: |
-      Deivce to be used to back LXD storage. May be an valid block
-      device or a path and size to a local file (/path/to/file.img|$sizeG),
-      which will be created and used as a loopback device (for testing only).
-      Multiple devices may not be specified as a space-seperated list of devices.
-      If set to "guess", the charm will attempt to format and mount all extra
-      block devices (this is currently experimentall and potentially danagerous).
-      .
-      This will be use to store the lxd containers instance
-  lxd-overwrite-block-device:
-    default: "false"
-    type: string
-    description: |
-      If true, charm will attempt to umount and overwrite existing and in-use
-      block-devices (WARNING).

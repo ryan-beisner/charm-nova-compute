@@ -85,7 +85,6 @@ def install():
     configure_installation_source(config('openstack-origin'))
     if config('virt-type').lower() == 'lxd':
         add_source("ppa:zulcss/lxd-testing-vivid")
-        apt_install('acl', fatal=True)
     apt_update()
     apt_install(determine_packages(), fatal=True)
 
@@ -122,7 +121,6 @@ def config_changed():
         fix_path_ownership(fp, user='nova')
 
     if config('virt-type').lower() == 'lxd':
-        configure_lxd_storage()
         configure_lxd(user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
