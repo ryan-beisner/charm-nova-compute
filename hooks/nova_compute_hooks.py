@@ -82,9 +82,6 @@ CONFIGS = register_configs()
 def install():
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
-    if config('virt-type').lower() == 'lxd':
-        add_source("ppa:zulcss/lxd-testing-vivid-3")
-        add_source("ppa:ppa:ubuntu-lxc/lxd-daily")
     apt_update()
     apt_install(determine_packages(), fatal=True)
 
