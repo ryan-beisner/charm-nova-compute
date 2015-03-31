@@ -393,6 +393,19 @@ class InstanceConsoleContext(context.OSContextGenerator):
         return ctxt
 
 
+class MetadataServiceContext(context.OSContextGenerator):
+
+    def __call__(self):
+        ctxt = {}
+        for rid in relation_ids('neutron-plugin'):
+            for unit in related_units(rid):
+                rdata = relation_get(rid=rid, unit=unit)
+                if 'metadata-shared-secret' in rdata:
+                    ctxt['metadata_shared_secret'] = \
+                        rdata['metadata-shared-secret']
+        return ctxt
+
+
 class NeutronComputeContext(context.NeutronContext):
     interfaces = []
 

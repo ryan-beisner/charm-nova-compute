@@ -378,3 +378,12 @@ class NovaComputeRelationsTests(CharmTestCase):
             call('/etc/nova/nova.conf'),
         ]
         self.assertEquals(ex, configs.write.call_args_list)
+
+    @patch.object(hooks, 'CONFIGS')
+    def test_neutron_plugin_changed(self, configs):
+        self.relation_get.return_value = {'metadata-shared-secret':
+                                          'sharedsecret'}
+        hooks.neutron_plugin_changed()
+        self.assertTrue(self.apt_update.called)
+        self.apt_install.assert_called_with('nova-api-metadata', fatal=True)
+        configs.write.assert_called_with('/etc/nova/nova.conf')
