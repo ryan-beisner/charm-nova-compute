@@ -23,8 +23,10 @@ TO_PATCH = [
     'related_units',
     'relation_ids',
     'relation_get',
+    'service_restart',
     'mkdir',
-    'install_alternative'
+    'install_alternative',
+    'add_user_to_group'
 ]
 
 OVS_PKGS = [
@@ -325,10 +327,10 @@ class NovaComputeUtilsTests(CharmTestCase):
                                         'dummy'])
 
     @patch.object(utils, 'check_call')
-    def test_configure_subuid(self, check_call):
+    def test_configure_subuid(self, _check_call):
         utils.configure_subuid('dummy')
-        _check_call.assert_called_with(['usermod', '-v', '100000-200000', 
-                                        '-w', '100000-200000', dummy])
+        _check_call.assert_called_with(['usermod', '-v', '100000-200000',
+                                        '-w', '100000-200000', 'dummy'])
 
     @patch.object(utils, 'check_call')
     @patch.object(utils, 'check_output')
@@ -381,3 +383,10 @@ class NovaComputeUtilsTests(CharmTestCase):
                                      'secret-set-value', '--secret',
                                      compute_context.CEPH_SECRET_UUID,
                                      '--base64', key])
+
+    @patch.object(utils, 'check_call')
+    @patch.object(utils, 'check_output')
+    def test_configure_lxd_daemon(self, _check_output, _check_call):
+        self.test_config.set('virt-type', 'lxd')
+        utils.configure_lxd_daemon('nova')
+        _check_output.assert_called_wth(['sudo', '-u', 'nova', 'lxc', 'list'])
