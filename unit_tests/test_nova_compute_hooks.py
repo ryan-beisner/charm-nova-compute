@@ -42,7 +42,7 @@ TO_PATCH = [
     'migration_enabled',
     'do_openstack_upgrade',
     'network_manager',
-    'neutron_plugin',
+    'manage_ovs',
     'public_ssh_key',
     'register_configs',
     'disable_shell',
@@ -164,7 +164,6 @@ class NovaComputeRelationsTests(CharmTestCase):
         configs.write = MagicMock()
         if quantum:
             self.network_manager.return_value = 'quantum'
-            self.neutron_plugin.return_value = 'ovs'
         hooks.amqp_changed()
 
     @patch.object(hooks, 'CONFIGS')
@@ -183,6 +182,7 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'CONFIGS')
     def test_amqp_changed_with_data_and_quantum_api(self, configs):
+        self.manage_ovs.return_value = False
         self.relation_ids.return_value = ['neutron-plugin:0']
         self._amqp_test(configs, quantum=True)
         self.assertEquals([call('/etc/nova/nova.conf')],

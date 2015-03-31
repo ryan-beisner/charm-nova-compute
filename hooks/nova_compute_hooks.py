@@ -47,7 +47,6 @@ from nova_compute_utils import (
     initialize_ssh_keys,
     migration_enabled,
     network_manager,
-    neutron_plugin,
     do_openstack_upgrade,
     public_ssh_key,
     restart_map,
@@ -58,7 +57,8 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
-    assert_charm_supports_ipv6
+    assert_charm_supports_ipv6,
+    manage_ovs,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -140,10 +140,10 @@ def amqp_changed():
         return
     CONFIGS.write(NOVA_CONF)
     # No need to write NEUTRON_CONF if neutron-plugin is managing it
-    if not relation_ids('neutron-plugin'):
-        if network_manager() == 'quantum' and neutron_plugin() == 'ovs':
+    if manage_ovs():
+        if network_manager() == 'quantum':
             CONFIGS.write(QUANTUM_CONF)
-        if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
+        if network_manager() == 'neutron':
             CONFIGS.write(NEUTRON_CONF)
 
 
