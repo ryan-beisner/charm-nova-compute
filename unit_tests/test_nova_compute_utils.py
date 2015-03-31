@@ -375,3 +375,40 @@ class NovaComputeUtilsTests(CharmTestCase):
                                      'secret-set-value', '--secret',
                                      compute_context.CEPH_SECRET_UUID,
                                      '--base64', key])
+
+    def test_neutron_plugin_legacy_mode_plugin(self):
+        self.relation_ids.return_value = ['neutron-plugin:0']
+        self.assertFalse(utils.neutron_plugin_legacy_mode())
+
+    def test_neutron_plugin_legacy_mode_legacy_off(self):
+        self.relation_ids.return_value = []
+        self.test_config.set('manage-neutron-plugin-legacy-mode', False)
+        self.assertFalse(utils.neutron_plugin_legacy_mode())
+
+    def test_neutron_plugin_legacy_mode_legacy_on(self):
+        self.relation_ids.return_value = []
+        self.test_config.set('manage-neutron-plugin-legacy-mode', True)
+        self.assertTrue(utils.neutron_plugin_legacy_mode())
+
+    @patch.object(utils, 'neutron_plugin_legacy_mode')
+    def test_manage_ovs_legacy_mode_legacy_off(self,
+                                               _neutron_plugin_legacy_mode):
+        _neutron_plugin_legacy_mode.return_value = False
+        self.assertFalse(utils.manage_ovs())
+
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'neutron_plugin_legacy_mode')
+    def test_manage_ovs_legacy_mode_legacy_on(self,
+                                              _neutron_plugin_legacy_mode,
+                                              _neutron_plugin):
+        _neutron_plugin_legacy_mode.return_value = True
+        _neutron_plugin.return_value = 'ovs'
+        self.assertTrue(utils.manage_ovs())
+
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'neutron_plugin_legacy_mode')
+    def test_manage_ovs_legacy_mode_not_ovs(self, _neutron_plugin_legacy_mode,
+                                            _neutron_plugin):
+        _neutron_plugin_legacy_mode.return_value = True
+        _neutron_plugin.return_value = 'bobvs'
+        self.assertFalse(utils.manage_ovs())
