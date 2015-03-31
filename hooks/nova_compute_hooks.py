@@ -21,6 +21,7 @@ from charmhelpers.core.host import (
 
 from charmhelpers.fetch import (
     apt_install,
+    apt_purge,
     apt_update,
     filter_installed_packages,
 )
@@ -322,6 +323,18 @@ def update_nrpe_config():
     nrpe_setup = nrpe.NRPE(hostname=hostname)
     nrpe.add_init_service_checks(nrpe_setup, services(), current_unit)
     nrpe_setup.write()
+
+
+@hooks.hook('neutron-plugin-relation-changed')
+@restart_on_change(restart_map())
+def neutron_plugin_changed():
+    settings = relation_get()
+    if 'metadata-shared-secret' in settings:
+        apt_update()
+        apt_install('nova-api-metadata', fatal=True)
+    else:
+        apt_purge('nova-api-metadata', fatal=True)
+    CONFIGS.write(NOVA_CONF)
 
 
 def main():
