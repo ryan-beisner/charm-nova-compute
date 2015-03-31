@@ -104,7 +104,6 @@ LIBVIRT_RESOURCE_MAP = {
 }
 LIBVIRT_RESOURCE_MAP.update(BASE_RESOURCE_MAP)
 
-CEPH_CONF = '/etc/ceph/ceph.conf'
 CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
 CEPH_SECRET = '/etc/ceph/secret.xml'
 
