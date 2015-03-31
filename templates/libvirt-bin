@@ -14,6 +14,3 @@ libvirtd_opts="{{ libvirtd_opts }}"
 
 # pass in location of kerberos keytab
 #export KRB5_KTNAME=/etc/libvirt/libvirt.keytab
-
-# Increase nofile limits to support use with ceph rbd volumes
-limit nofile 65535 65535
