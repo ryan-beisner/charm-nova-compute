@@ -1,3 +1,5 @@
+import platform
+
 from mock import patch
 from test_utils import CharmTestCase
 
@@ -179,6 +181,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
+             'arch': platform.machine(),
              'listen_tls': 0,
              'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
 
@@ -190,6 +193,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d -l',
+             'arch': platform.machine(),
              'listen_tls': 0,
              'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
 
@@ -201,9 +205,10 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
+             'disk_cachemodes': 'file=unsafe,block=none',
+             'arch': platform.machine(),
              'listen_tls': 0,
-             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7',
-             'disk_cachemodes': 'file=unsafe,block=none'}, libvirt())
+             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
 
     @patch.object(context.NeutronComputeContext, 'network_manager')
     @patch.object(context.NeutronComputeContext, 'plugin')
@@ -228,3 +233,11 @@ class NovaComputeContextTests(CharmTestCase):
         self.assertEquals(
             {'host_ip': '172.24.0.79'}, host_ip())
         self.unit_get.assert_called_with('private-address')
+
+    def test_metadata_service_ctxt(self):
+        self.relation_ids.return_value = 'neutron-plugin:0'
+        self.related_units.return_value = 'neutron-openvswitch/0'
+        self.test_relation.set({'metadata-shared-secret': 'shared_secret'})
+        metadatactxt = context.MetadataServiceContext()
+        self.assertEqual(metadatactxt(), {'metadata_shared_secret':
+                                          'shared_secret'})
