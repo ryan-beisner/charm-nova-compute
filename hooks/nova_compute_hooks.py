@@ -20,7 +20,6 @@ from charmhelpers.core.host import (
 )
 
 from charmhelpers.fetch import (
-    add_source,
     apt_install,
     apt_update,
     filter_installed_packages,

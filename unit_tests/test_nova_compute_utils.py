@@ -325,6 +325,12 @@ class NovaComputeUtilsTests(CharmTestCase):
                                         'dummy'])
 
     @patch.object(utils, 'check_call')
+    def test_configure_subuid(self, check_call):
+        utils.configure_subuid('dummy')
+        _check_call.assert_called_with(['usermod', '-v', '100000-200000', 
+                                        '-w', '100000-200000', dummy])
+
+    @patch.object(utils, 'check_call')
     @patch.object(utils, 'check_output')
     def test_create_libvirt_key(self, _check_output, _check_call):
         key = 'AQCR2dRUaFQSOxAAC5fr79sLL3d7wVvpbbRFMg=='

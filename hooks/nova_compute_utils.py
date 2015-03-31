@@ -15,17 +15,7 @@ from charmhelpers.core.host import (
     add_user_to_group,
     mkdir,
     service_restart,
-    mount, umount,
     lsb_release
-)
-
-from charmhelpers.contrib.storage.linux.utils import (
-    is_device_mounted,
-    is_block_device,
-)
-
-from charmhelpers.contrib.storage.linux.loopback import (
-    ensure_loopback_device,
 )
 
 from charmhelpers.core.hookenv import (
@@ -489,19 +479,21 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
            '--base64', key]
     check_call(cmd)
 
+
 def configure_lxd(user='nova'):
     ''' Configures lxd '''
-    config_data = config()
     configure_subuid(user='nova')
     configure_lxd_daemon(user='nova')
 
     service_restart('nova-compute')
+
 
 def configure_lxd_daemon(user):
     add_user_to_group('nova', 'lxd')
     service_restart('lxd')
     cmd = ['sudo', '-u', user, 'lxc', 'list']
     check_call(cmd)
+
 
 def configure_subuid(user):
     cmd = ['usermod', '-v', '100000-200000', '-w', '100000-200000', user]
