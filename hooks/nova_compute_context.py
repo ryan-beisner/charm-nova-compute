@@ -128,6 +128,16 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         return ctxt
 
 
+class NovaComputeLibvirtOverrideContext(context.OSContextGenerator):
+    """Provides overrides to the libvirt-bin service"""
+    interfaces = []
+
+    def __call__(self):
+        ctxt = {}
+        ctxt['overrides'] = "limit nofile 65535 65535"
+        return ctxt
+
+
 class NovaComputeVirtContext(context.OSContextGenerator):
     interfaces = []
 
