@@ -177,7 +177,7 @@ def resource_map():
     if net_manager in ['neutron', 'quantum']:
         # This stanza supports the legacy case of ovs supported within
         # compute charm code (now moved to neutron-openvswitch subordinate)
-        if not relation_ids('neutron-plugin') and plugin == 'ovs':
+        if manage_ovs():
             if net_manager == 'quantum':
                 nm_rsc = QUANTUM_RESOURCES
             if net_manager == 'neutron':
@@ -260,7 +260,8 @@ def determine_packages():
     if (net_manager in ['flatmanager', 'flatdhcpmanager'] and
             config('multi-host').lower() == 'yes'):
         packages.extend(['nova-api', 'nova-network'])
-    elif net_manager in ['quantum', 'neutron']:
+    elif (net_manager in ['quantum', 'neutron']
+            and neutron_plugin_legacy_mode()):
         plugin = neutron_plugin()
         pkg_lists = neutron_plugin_attribute(plugin, 'packages', net_manager)
         for pkg_list in pkg_lists:
@@ -499,3 +500,16 @@ def assert_charm_supports_ipv6():
 def enable_nova_metadata():
     ctxt = MetadataServiceContext()()
     return 'metadata_shared_secret' in ctxt
+
+
+def neutron_plugin_legacy_mode():
+    # If a charm is attatched to the neutron-plugin relation then its managing
+    # neutron
+    if relation_ids('neutron-plugin'):
+        return False
+    else:
+        return config('manage-neutron-plugin-legacy-mode')
+
+
+def manage_ovs():
+    return neutron_plugin_legacy_mode() and neutron_plugin() == 'ovs'

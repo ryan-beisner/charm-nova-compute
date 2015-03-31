@@ -69,11 +69,30 @@ class NovaComputeUtilsTests(CharmTestCase):
         ex = utils.BASE_PACKAGES + OVS_PKGS_FLAT + ['nova-compute-kvm']
         self.assertEquals(ex, result)
 
+    @patch.object(utils, 'neutron_plugin_legacy_mode')
     @patch.object(utils, 'enable_nova_metadata')
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
-    def test_determine_packages_quantum_ceph(self, net_man, n_plugin, en_meta):
+    def test_determine_packages_quantum_legacy_off(self, net_man, n_plugin,
+                                                   en_meta, leg_mode):
         en_meta.return_value = False
+        leg_mode.return_value = False
+        self.neutron_plugin_attribute.return_value = OVS_PKGS
+        net_man.return_value = 'quantum'
+        n_plugin.return_value = 'ovs'
+        self.relation_ids.return_value = []
+        result = utils.determine_packages()
+        ex = utils.BASE_PACKAGES + ['nova-compute-kvm']
+        self.assertEquals(ex, result)
+
+    @patch.object(utils, 'neutron_plugin_legacy_mode')
+    @patch.object(utils, 'enable_nova_metadata')
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'network_manager')
+    def test_determine_packages_quantum_ceph(self, net_man, n_plugin, en_meta,
+                                             leg_mode):
+        en_meta.return_value = False
+        leg_mode.return_value = True
         self.neutron_plugin_attribute.return_value = OVS_PKGS
         net_man.return_value = 'quantum'
         n_plugin.return_value = 'ovs'
@@ -419,3 +438,40 @@ class NovaComputeUtilsTests(CharmTestCase):
             DummyContext(return_value={'metadata_shared_secret':
                                        'sharedsecret'})
         self.assertEqual(utils.enable_nova_metadata(), True)
+
+    def test_neutron_plugin_legacy_mode_plugin(self):
+        self.relation_ids.return_value = ['neutron-plugin:0']
+        self.assertFalse(utils.neutron_plugin_legacy_mode())
+
+    def test_neutron_plugin_legacy_mode_legacy_off(self):
+        self.relation_ids.return_value = []
+        self.test_config.set('manage-neutron-plugin-legacy-mode', False)
+        self.assertFalse(utils.neutron_plugin_legacy_mode())
+
+    def test_neutron_plugin_legacy_mode_legacy_on(self):
+        self.relation_ids.return_value = []
+        self.test_config.set('manage-neutron-plugin-legacy-mode', True)
+        self.assertTrue(utils.neutron_plugin_legacy_mode())
+
+    @patch.object(utils, 'neutron_plugin_legacy_mode')
+    def test_manage_ovs_legacy_mode_legacy_off(self,
+                                               _neutron_plugin_legacy_mode):
+        _neutron_plugin_legacy_mode.return_value = False
+        self.assertFalse(utils.manage_ovs())
+
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'neutron_plugin_legacy_mode')
+    def test_manage_ovs_legacy_mode_legacy_on(self,
+                                              _neutron_plugin_legacy_mode,
+                                              _neutron_plugin):
+        _neutron_plugin_legacy_mode.return_value = True
+        _neutron_plugin.return_value = 'ovs'
+        self.assertTrue(utils.manage_ovs())
+
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'neutron_plugin_legacy_mode')
+    def test_manage_ovs_legacy_mode_not_ovs(self, _neutron_plugin_legacy_mode,
+                                            _neutron_plugin):
+        _neutron_plugin_legacy_mode.return_value = True
+        _neutron_plugin.return_value = 'bobvs'
+        self.assertFalse(utils.manage_ovs())
