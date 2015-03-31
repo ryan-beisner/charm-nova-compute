@@ -41,6 +41,7 @@ from nova_compute_context import (
     CloudComputeContext,
     MetadataServiceContext,
     NovaComputeLibvirtContext,
+    NovaComputeLibvirtOverrideContext,
     NovaComputeCephContext,
     NeutronComputeContext,
     InstanceConsoleContext,
@@ -63,6 +64,7 @@ NOVA_CONF_DIR = "/etc/nova"
 QEMU_CONF = '/etc/libvirt/qemu.conf'
 LIBVIRTD_CONF = '/etc/libvirt/libvirtd.conf'
 LIBVIRT_BIN = '/etc/default/libvirt-bin'
+LIBVIRT_BIN_OVERRIDES = '/etc/init/libvirt-bin.override'
 NOVA_CONF = '%s/nova.conf' % NOVA_CONF_DIR
 
 BASE_RESOURCE_MAP = {
@@ -77,6 +79,10 @@ BASE_RESOURCE_MAP = {
     LIBVIRT_BIN: {
         'services': ['libvirt-bin'],
         'contexts': [NovaComputeLibvirtContext()],
+    },
+    LIBVIRT_BIN_OVERRIDES: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtOverrideContext()],
     },
     NOVA_CONF: {
         'services': ['nova-compute'],

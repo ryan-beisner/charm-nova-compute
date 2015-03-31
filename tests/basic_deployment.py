@@ -409,7 +409,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                 found = True
                 if instance.status != 'ACTIVE':
                     msg = "cirros instance is not active"
-                    amulet.raise_status(amulet.FAIL, msg=message)
+                    amulet.raise_status(amulet.FAIL, msg=msg)
 
         if not found:
             message = "nova cirros instance does not exist"
