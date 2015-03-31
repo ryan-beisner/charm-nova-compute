@@ -17,10 +17,12 @@ from charmhelpers.core.hookenv import (
 )
 from charmhelpers.core.host import (
     restart_on_change,
+    service_restart,
 )
 
 from charmhelpers.fetch import (
     apt_install,
+    apt_purge,
     apt_update,
     filter_installed_packages,
 )
@@ -45,7 +47,6 @@ from nova_compute_utils import (
     initialize_ssh_keys,
     migration_enabled,
     network_manager,
-    neutron_plugin,
     do_openstack_upgrade,
     public_ssh_key,
     restart_map,
@@ -57,7 +58,8 @@ from nova_compute_utils import (
     enable_shell, disable_shell,
     configure_lxd,
     fix_path_ownership,
-    assert_charm_supports_ipv6
+    assert_charm_supports_ipv6,
+    manage_ovs,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -142,10 +144,10 @@ def amqp_changed():
         return
     CONFIGS.write(NOVA_CONF)
     # No need to write NEUTRON_CONF if neutron-plugin is managing it
-    if not relation_ids('neutron-plugin'):
-        if network_manager() == 'quantum' and neutron_plugin() == 'ovs':
+    if manage_ovs():
+        if network_manager() == 'quantum':
             CONFIGS.write(QUANTUM_CONF)
-        if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
+        if network_manager() == 'neutron':
             CONFIGS.write(NEUTRON_CONF)
 
 
@@ -239,6 +241,8 @@ def compute_changed():
 @restart_on_change(restart_map())
 def ceph_joined():
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
+    # Bug 1427660
+    service_restart('libvirt-bin')
 
 
 @hooks.hook('ceph-relation-changed')
@@ -326,6 +330,18 @@ def update_nrpe_config():
     nrpe_setup = nrpe.NRPE(hostname=hostname)
     nrpe.add_init_service_checks(nrpe_setup, services(), current_unit)
     nrpe_setup.write()
+
+
+@hooks.hook('neutron-plugin-relation-changed')
+@restart_on_change(restart_map())
+def neutron_plugin_changed():
+    settings = relation_get()
+    if 'metadata-shared-secret' in settings:
+        apt_update()
+        apt_install('nova-api-metadata', fatal=True)
+    else:
+        apt_purge('nova-api-metadata', fatal=True)
+    CONFIGS.write(NOVA_CONF)
 
 
 def main():

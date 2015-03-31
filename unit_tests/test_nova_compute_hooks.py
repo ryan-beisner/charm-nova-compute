@@ -27,6 +27,7 @@ TO_PATCH = [
     'apt_update',
     'filter_installed_packages',
     'restart_on_change',
+    'service_restart',
     # charmhelpers.contrib.openstack.utils
     'configure_installation_source',
     'openstack_upgrade_available',
@@ -41,7 +42,7 @@ TO_PATCH = [
     'migration_enabled',
     'do_openstack_upgrade',
     'network_manager',
-    'neutron_plugin',
+    'manage_ovs',
     'public_ssh_key',
     'register_configs',
     'disable_shell',
@@ -163,7 +164,6 @@ class NovaComputeRelationsTests(CharmTestCase):
         configs.write = MagicMock()
         if quantum:
             self.network_manager.return_value = 'quantum'
-            self.neutron_plugin.return_value = 'ovs'
         hooks.amqp_changed()
 
     @patch.object(hooks, 'CONFIGS')
@@ -182,6 +182,7 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'CONFIGS')
     def test_amqp_changed_with_data_and_quantum_api(self, configs):
+        self.manage_ovs.return_value = False
         self.relation_ids.return_value = ['neutron-plugin:0']
         self._amqp_test(configs, quantum=True)
         self.assertEquals([call('/etc/nova/nova.conf')],
@@ -342,6 +343,7 @@ class NovaComputeRelationsTests(CharmTestCase):
     def test_ceph_joined(self):
         hooks.ceph_joined()
         self.apt_install.assert_called_with(['ceph-common'], fatal=True)
+        self.service_restart.assert_called_with('libvirt-bin')
 
     @patch.object(hooks, 'CONFIGS')
     def test_ceph_changed_missing_relation_data(self, configs):
@@ -378,3 +380,12 @@ class NovaComputeRelationsTests(CharmTestCase):
             call('/etc/nova/nova.conf'),
         ]
         self.assertEquals(ex, configs.write.call_args_list)
+
+    @patch.object(hooks, 'CONFIGS')
+    def test_neutron_plugin_changed(self, configs):
+        self.relation_get.return_value = {'metadata-shared-secret':
+                                          'sharedsecret'}
+        hooks.neutron_plugin_changed()
+        self.assertTrue(self.apt_update.called)
+        self.apt_install.assert_called_with('nova-api-metadata', fatal=True)
+        configs.write.assert_called_with('/etc/nova/nova.conf')
