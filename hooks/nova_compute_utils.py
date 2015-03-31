@@ -40,7 +40,9 @@ from charmhelpers.contrib.openstack.utils import (
 
 from nova_compute_context import (
     CloudComputeContext,
+    MetadataServiceContext,
     NovaComputeLibvirtContext,
+    NovaComputeLibvirtOverrideContext,
     NovaComputeCephContext,
     NeutronComputeContext,
     InstanceConsoleContext,
@@ -64,9 +66,27 @@ NOVA_CONF_DIR = "/etc/nova"
 QEMU_CONF = '/etc/libvirt/qemu.conf'
 LIBVIRTD_CONF = '/etc/libvirt/libvirtd.conf'
 LIBVIRT_BIN = '/etc/default/libvirt-bin'
+LIBVIRT_BIN_OVERRIDES = '/etc/init/libvirt-bin.override'
 NOVA_CONF = '%s/nova.conf' % NOVA_CONF_DIR
 
 BASE_RESOURCE_MAP = {
+    QEMU_CONF: {
+        'services': ['libvirt-bin'],
+        'contexts': [],
+    },
+    LIBVIRTD_CONF: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtContext()],
+    },
+    LIBVIRT_BIN: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtContext()],
+    },
+    LIBVIRT_BIN_OVERRIDES: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtOverrideContext()],
+    },
+
     NOVA_CONF: {
         'services': ['nova-compute'],
         'contexts': [context.AMQPContext(ssl_dir=NOVA_CONF_DIR),
@@ -84,6 +104,7 @@ BASE_RESOURCE_MAP = {
                          service='nova',
                          config_file=NOVA_CONF),
                      InstanceConsoleContext(),
+                     MetadataServiceContext(),
                      HostIPContext()],
     },
 }
@@ -186,7 +207,7 @@ def resource_map():
     if net_manager in ['neutron', 'quantum']:
         # This stanza supports the legacy case of ovs supported within
         # compute charm code (now moved to neutron-openvswitch subordinate)
-        if not relation_ids('neutron-plugin') and plugin == 'ovs':
+        if manage_ovs():
             if net_manager == 'quantum':
                 nm_rsc = QUANTUM_RESOURCES
             if net_manager == 'neutron':
@@ -214,6 +235,8 @@ def resource_map():
         }
         resource_map.update(CEPH_RESOURCES)
 
+    if enable_nova_metadata():
+        resource_map[NOVA_CONF]['services'].append('nova-api-metadata')
     return resource_map
 
 
@@ -267,7 +290,8 @@ def determine_packages():
     if (net_manager in ['flatmanager', 'flatdhcpmanager'] and
             config('multi-host').lower() == 'yes'):
         packages.extend(['nova-api', 'nova-network'])
-    elif net_manager in ['quantum', 'neutron']:
+    elif (net_manager in ['quantum', 'neutron']
+            and neutron_plugin_legacy_mode()):
         plugin = neutron_plugin()
         pkg_lists = neutron_plugin_attribute(plugin, 'packages', net_manager)
         for pkg_list in pkg_lists:
@@ -282,6 +306,8 @@ def determine_packages():
     except KeyError:
         log('Unsupported virt-type configured: %s' % virt_type)
         raise
+    if enable_nova_metadata():
+        packages.append('nova-api-metadata')
 
     return packages
 
@@ -519,3 +545,21 @@ def assert_charm_supports_ipv6():
     if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
+
+
+def enable_nova_metadata():
+    ctxt = MetadataServiceContext()()
+    return 'metadata_shared_secret' in ctxt
+
+
+def neutron_plugin_legacy_mode():
+    # If a charm is attatched to the neutron-plugin relation then its managing
+    # neutron
+    if relation_ids('neutron-plugin'):
+        return False
+    else:
+        return config('manage-neutron-plugin-legacy-mode')
+
+
+def manage_ovs():
+    return neutron_plugin_legacy_mode() and neutron_plugin() == 'ovs'

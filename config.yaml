@@ -196,3 +196,11 @@ options:
     description: |
       YAML formatted associative array of sysctl values, e.g.:
       '{ kernel.pid_max : 4194303 }'
+  manage-neutron-plugin-legacy-mode:
+    type: boolean
+    default: True
+    description: |
+      If True nova-compute will install neutron packages for the plugin
+      stipulated by nova-cloud-controller. The option is only available for
+      backward compatibility for deployments which do not use the neutron-api
+      charm. Please do not enable this on new deployments.
