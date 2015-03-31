@@ -27,6 +27,7 @@ TO_PATCH = [
     'apt_update',
     'filter_installed_packages',
     'restart_on_change',
+    'service_restart',
     # charmhelpers.contrib.openstack.utils
     'configure_installation_source',
     'openstack_upgrade_available',
@@ -342,6 +343,7 @@ class NovaComputeRelationsTests(CharmTestCase):
     def test_ceph_joined(self):
         hooks.ceph_joined()
         self.apt_install.assert_called_with(['ceph-common'], fatal=True)
+        self.service_restart.assert_called_with('libvirt-bin')
 
     @patch.object(hooks, 'CONFIGS')
     def test_ceph_changed_missing_relation_data(self, configs):
