@@ -24,7 +24,8 @@ TO_PATCH = [
     'relation_ids',
     'relation_get',
     'mkdir',
-    'install_alternative'
+    'install_alternative',
+    'MetadataServiceContext',
 ]
 
 OVS_PKGS = [
@@ -41,8 +42,10 @@ class NovaComputeUtilsTests(CharmTestCase):
         super(NovaComputeUtilsTests, self).setUp(utils, TO_PATCH)
         self.config.side_effect = self.test_config.get
 
+    @patch.object(utils, 'enable_nova_metadata')
     @patch.object(utils, 'network_manager')
-    def test_determine_packages_nova_network(self, net_man):
+    def test_determine_packages_nova_network(self, net_man, en_meta):
+        en_meta.return_value = False
         net_man.return_value = 'flatdhcpmanager'
         self.relation_ids.return_value = []
         result = utils.determine_packages()
@@ -53,9 +56,11 @@ class NovaComputeUtilsTests(CharmTestCase):
         ]
         self.assertEquals(ex, result)
 
+    @patch.object(utils, 'enable_nova_metadata')
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
-    def test_determine_packages_quantum(self, net_man, n_plugin):
+    def test_determine_packages_quantum(self, net_man, n_plugin, en_meta):
+        en_meta.return_value = False
         self.neutron_plugin_attribute.return_value = OVS_PKGS
         net_man.return_value = 'quantum'
         n_plugin.return_value = 'ovs'
@@ -64,9 +69,11 @@ class NovaComputeUtilsTests(CharmTestCase):
         ex = utils.BASE_PACKAGES + OVS_PKGS_FLAT + ['nova-compute-kvm']
         self.assertEquals(ex, result)
 
+    @patch.object(utils, 'enable_nova_metadata')
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
-    def test_determine_packages_quantum_ceph(self, net_man, n_plugin):
+    def test_determine_packages_quantum_ceph(self, net_man, n_plugin, en_meta):
+        en_meta.return_value = False
         self.neutron_plugin_attribute.return_value = OVS_PKGS
         net_man.return_value = 'quantum'
         n_plugin.return_value = 'ovs'
@@ -75,6 +82,18 @@ class NovaComputeUtilsTests(CharmTestCase):
         ex = (utils.BASE_PACKAGES + OVS_PKGS_FLAT +
               ['ceph-common', 'nova-compute-kvm'])
         self.assertEquals(ex, result)
+
+    @patch.object(utils, 'enable_nova_metadata')
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'network_manager')
+    def test_determine_packages_metadata(self, net_man, n_plugin, en_meta):
+        en_meta.return_value = True
+        self.neutron_plugin_attribute.return_value = OVS_PKGS
+        net_man.return_value = 'bob'
+        n_plugin.return_value = 'ovs'
+        self.relation_ids.return_value = []
+        result = utils.determine_packages()
+        self.assertTrue('nova-api-metadata' in result)
 
     @patch.object(utils, 'network_manager')
     def test_resource_map_nova_network_no_multihost(self, net_man):
@@ -171,6 +190,17 @@ class NovaComputeUtilsTests(CharmTestCase):
         _plugin.return_value = 'ovs'
         result = utils.resource_map()
         self.assertTrue('/etc/neutron/neutron.conf' not in result)
+
+    @patch.object(utils, 'enable_nova_metadata')
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'network_manager')
+    def test_resource_map_metadata(self, net_man, _plugin, _metadata):
+        _metadata.return_value = True
+        net_man.return_value = 'bob'
+        _plugin.return_value = 'ovs'
+        self.relation_ids.return_value = []
+        result = utils.resource_map()['/etc/nova/nova.conf']['services']
+        self.assertTrue('nova-api-metadata' in result)
 
     def fake_user(self, username='foo'):
         user = MagicMock()
@@ -375,6 +405,20 @@ class NovaComputeUtilsTests(CharmTestCase):
                                      'secret-set-value', '--secret',
                                      compute_context.CEPH_SECRET_UUID,
                                      '--base64', key])
+
+    def test_enable_nova_metadata(self):
+        class DummyContext():
+
+            def __init__(self, return_value):
+                self.return_value = return_value
+
+            def __call__(self):
+                return self.return_value
+
+        self.MetadataServiceContext.return_value = \
+            DummyContext(return_value={'metadata_shared_secret':
+                                       'sharedsecret'})
+        self.assertEqual(utils.enable_nova_metadata(), True)
 
     def test_neutron_plugin_legacy_mode_plugin(self):
         self.relation_ids.return_value = ['neutron-plugin:0']
