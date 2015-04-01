@@ -30,6 +30,7 @@ from charmhelpers.fetch import (
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available,
+    os_requires_version,
 )
 
 from charmhelpers.contrib.storage.linux.ceph import (
@@ -57,6 +58,7 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
+    get_topics,
     assert_charm_supports_ipv6,
     manage_ovs,
 )
@@ -118,6 +120,8 @@ def config_changed():
         fix_path_ownership(fp, user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
+    for rid in relation_ids('zeromq-configuration'):
+        zeromq_configuration_relation_joined(rid)
 
     update_nrpe_config()
 
@@ -314,6 +318,20 @@ def upgrade_charm():
 @restart_on_change(restart_map())
 def nova_ceilometer_relation_changed():
     CONFIGS.write_all()
+
+
+@hooks.hook('zeromq-configuration-relation-joined')
+@os_requires_version('kilo', 'nova-common')
+def zeromq_configuration_relation_joined(relid=None):
+    relation_set(relation_id=relid,
+                 topics=" ".join(get_topics()),
+                 users="nova")
+
+
+@hooks.hook('zeromq-configuration-relation-changed')
+@restart_on_change(restart_map())
+def zeromq_configuration_relation_changed():
+    CONFIGS.write(NOVA_CONF)
 
 
 @hooks.hook('nrpe-external-master-relation-joined',
