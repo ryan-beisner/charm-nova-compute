@@ -85,6 +85,7 @@ class NovaComputeRelationsTests(CharmTestCase):
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_with_migration(self, compute_joined):
         self.migration_enabled.return_value = True
+        _zmq_joined = self.patch('zeromq_configuration_relation_joined')
         self.test_config.set('migration-auth-type', 'ssh')
         self.relation_ids.return_value = [
             'cloud-compute:0',
@@ -97,10 +98,12 @@ class NovaComputeRelationsTests(CharmTestCase):
         ]
         self.assertEquals(ex, compute_joined.call_args_list)
         self.assertTrue(self.initialize_ssh_keys.called)
+        self.assertTrue(_zmq_joined.called)
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_with_resize(self, compute_joined):
         self.test_config.set('enable-resize', True)
+        _zmq_joined = self.patch('zeromq_configuration_relation_joined')
         self.relation_ids.return_value = [
             'cloud-compute:0',
             'cloud-compute:1'
@@ -113,10 +116,12 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.assertEquals(ex, compute_joined.call_args_list)
         self.initialize_ssh_keys.assert_called_with(user='nova')
         self.enable_shell.assert_called_with(user='nova')
+        self.assertTrue(_zmq_joined.called)
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_without_resize(self, compute_joined):
         self.test_config.set('enable-resize', False)
+        _zmq_joined = self.patch('zeromq_configuration_relation_joined')
         self.relation_ids.return_value = [
             'cloud-compute:0',
             'cloud-compute:1'
@@ -128,6 +133,7 @@ class NovaComputeRelationsTests(CharmTestCase):
         ]
         self.assertEquals(ex, compute_joined.call_args_list)
         self.disable_shell.assert_called_with(user='nova')
+        self.assertTrue(_zmq_joined.called)
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_no_upgrade_no_migration(self, compute_joined):

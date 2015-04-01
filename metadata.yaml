@@ -30,6 +30,6 @@ requires:
   neutron-plugin:
     interface: neutron-plugin
     scope: container
-peers:
-  compute-peer:
-    interface: nova
+  zeromq-configuration:
+    interface: zeromq-configuration
+    scope: container
