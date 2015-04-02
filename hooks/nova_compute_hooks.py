@@ -57,6 +57,7 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     configure_lxd,
+    configure_lxd_storage,
     fix_path_ownership,
     assert_charm_supports_ipv6,
     manage_ovs,
@@ -119,6 +120,7 @@ def config_changed():
         fix_path_ownership(fp, user='nova')
 
     if config('virt-type').lower() == 'lxd':
+        configure_lxd_storage()
         configure_lxd(user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]

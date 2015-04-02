@@ -439,7 +439,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.test_config.set('virt-type', 'lxd')
         utils.configure_lxd_daemon('nova')
         _check_output.assert_called_wth(['sudo', '-u', 'nova', 'lxc', 'list'])
-    
+
     def test_enable_nova_metadata(self):
         class DummyContext():
 
