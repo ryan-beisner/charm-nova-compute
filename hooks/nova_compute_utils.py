@@ -1,4 +1,5 @@
 import os
+import re
 import pwd
 
 from base64 import b64decode
@@ -15,8 +16,18 @@ from charmhelpers.core.host import (
     add_user_to_group,
     mkdir,
     service_restart,
+    mount, umount,
     lsb_release
 )
+
+from charmhelpers.contrib.storage.linux.utils import (
+    is_block_device,
+)
+
+from charmhelpers.contrib.storage.linux.loopback import (
+    ensure_loopback_device,
+)
+
 
 from charmhelpers.core.hookenv import (
     config,
@@ -26,6 +37,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     DEBUG,
     INFO,
+    ERROR
 )
 
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
@@ -61,6 +73,7 @@ BASE_PACKAGES = [
     'python-six',
 ]
 
+DEFAULT_LOOPBACK_SIZE = '5G'
 DEFAULT_INSTANCE_PATH = '/var/lib/nova/instances'
 NOVA_CONF_DIR = "/etc/nova"
 QEMU_CONF = '/etc/libvirt/qemu.conf'
@@ -512,10 +525,11 @@ def configure_lxd(user='nova'):
 
     service_restart('nova-compute')
 
+
 def configure_lxd_storage():
     ''' Configure the LXD root directory '''
     config_data = config()
-    lxd_block_device = config('lxd-block-device')
+    lxd_block_device = config_data('lxd-block-device')
     if not lxd_block_device:
         log('block device is not specified')
         return
@@ -532,11 +546,12 @@ def configure_lxd_storage():
               persist=True,
               filesystem='ext4')
 
+
 def find_block_devices():
     found = []
     incl = ['sd[a-z]', 'vd[a-z]', 'cciss\/c[0-9]d[0-9]']
     blacklist = ['sda', 'vda', 'cciss/c0d0']
-    
+
     with open('/proc/partitions') as proc:
         print proc
         partitions = [p.split() for p in proc.readlines()[2:]]
@@ -567,6 +582,7 @@ def determine_block_devices():
         [x for x in map(ensure_block_device, bdevs) if x not in _none]
     log('Valid ensured block devices: %s' % valid_bdevs)
     return valid_bdevs
+
 
 def ensure_block_device(block_device):
     '''
@@ -599,7 +615,7 @@ def ensure_block_device(block_device):
         log('Failed to locate valid block device at %s' % bdev, level=ERROR)
         # ignore missing block devices
         return
-                            
+
     return bdev
 
 
