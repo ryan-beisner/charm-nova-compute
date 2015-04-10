@@ -160,6 +160,13 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  network-device-mtu:
+    type: int
+    default:
+    description: |
+      The MTU size for the interfaces managed by neutron. If unset or set to
+      0, no value will be applied.
+  # Storage configuration options
   libvirt-image-backend:
     default:
     type: string
@@ -182,9 +189,18 @@ options:
       rbd pool has been created, changing this value will not have any
       effect (although it can be changed in ceph by manually configuring
       your ceph cluster).
+  # Other configuration options
   sysctl:
     type: string
     default:
     description: |
       YAML formatted associative array of sysctl values, e.g.:
       '{ kernel.pid_max : 4194303 }'
+  manage-neutron-plugin-legacy-mode:
+    type: boolean
+    default: True
+    description: |
+      If True nova-compute will install neutron packages for the plugin
+      stipulated by nova-cloud-controller. The option is only available for
+      backward compatibility for deployments which do not use the neutron-api
+      charm. Please do not enable this on new deployments.
