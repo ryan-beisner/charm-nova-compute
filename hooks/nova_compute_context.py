@@ -1,5 +1,5 @@
 import uuid
-
+import platform
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -104,6 +104,9 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
             'listen_tls': 0,
         }
 
+        # get the processor architecture to use in the nova.conf template
+        ctxt['arch'] = platform.machine()
+
         # enable tcp listening if configured for live migration.
         if config('enable-live-migration'):
             ctxt['libvirtd_opts'] += ' -l'
@@ -122,6 +125,16 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
             ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
         ctxt['host_uuid'] = '%s' % uuid.uuid4()
+        return ctxt
+
+
+class NovaComputeLibvirtOverrideContext(context.OSContextGenerator):
+    """Provides overrides to the libvirt-bin service"""
+    interfaces = []
+
+    def __call__(self):
+        ctxt = {}
+        ctxt['overrides'] = "limit nofile 65535 65535"
         return ctxt
 
 
@@ -341,6 +354,10 @@ class CloudComputeContext(context.OSContextGenerator):
             ctxt['network_manager'] = self.network_manager
             ctxt['network_manager_config'] = net_manager
 
+        net_dev_mtu = config('network-device-mtu')
+        if net_dev_mtu:
+            ctxt['network_device_mtu'] = net_dev_mtu
+
         vol_service = self.volume_context()
         if vol_service:
             ctxt['volume_service'] = vol_service
@@ -383,6 +400,19 @@ class InstanceConsoleContext(context.OSContextGenerator):
                     ctxt = dict(ctxt, **self.get_console_info(proto, **rel))
                 break
         ctxt['console_listen_addr'] = get_host_ip(unit_get('private-address'))
+        return ctxt
+
+
+class MetadataServiceContext(context.OSContextGenerator):
+
+    def __call__(self):
+        ctxt = {}
+        for rid in relation_ids('neutron-plugin'):
+            for unit in related_units(rid):
+                rdata = relation_get(rid=rid, unit=unit)
+                if 'metadata-shared-secret' in rdata:
+                    ctxt['metadata_shared_secret'] = \
+                        rdata['metadata-shared-secret']
         return ctxt
 
 

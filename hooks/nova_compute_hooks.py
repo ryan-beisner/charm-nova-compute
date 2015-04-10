@@ -17,10 +17,12 @@ from charmhelpers.core.hookenv import (
 )
 from charmhelpers.core.host import (
     restart_on_change,
+    service_restart,
 )
 
 from charmhelpers.fetch import (
     apt_install,
+    apt_purge,
     apt_update,
     filter_installed_packages,
 )
@@ -28,6 +30,7 @@ from charmhelpers.fetch import (
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available,
+    os_requires_version,
 )
 
 from charmhelpers.contrib.storage.linux.ceph import (
@@ -45,7 +48,6 @@ from nova_compute_utils import (
     initialize_ssh_keys,
     migration_enabled,
     network_manager,
-    neutron_plugin,
     do_openstack_upgrade,
     public_ssh_key,
     restart_map,
@@ -56,7 +58,9 @@ from nova_compute_utils import (
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     fix_path_ownership,
-    assert_charm_supports_ipv6
+    get_topics,
+    assert_charm_supports_ipv6,
+    manage_ovs,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -116,6 +120,8 @@ def config_changed():
         fix_path_ownership(fp, user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
+    for rid in relation_ids('zeromq-configuration'):
+        zeromq_configuration_relation_joined(rid)
 
     update_nrpe_config()
 
@@ -138,10 +144,10 @@ def amqp_changed():
         return
     CONFIGS.write(NOVA_CONF)
     # No need to write NEUTRON_CONF if neutron-plugin is managing it
-    if not relation_ids('neutron-plugin'):
-        if network_manager() == 'quantum' and neutron_plugin() == 'ovs':
+    if manage_ovs():
+        if network_manager() == 'quantum':
             CONFIGS.write(QUANTUM_CONF)
-        if network_manager() == 'neutron' and neutron_plugin() == 'ovs':
+        if network_manager() == 'neutron':
             CONFIGS.write(NEUTRON_CONF)
 
 
@@ -235,6 +241,8 @@ def compute_changed():
 @restart_on_change(restart_map())
 def ceph_joined():
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
+    # Bug 1427660
+    service_restart('libvirt-bin')
 
 
 @hooks.hook('ceph-relation-changed')
@@ -312,6 +320,20 @@ def nova_ceilometer_relation_changed():
     CONFIGS.write_all()
 
 
+@hooks.hook('zeromq-configuration-relation-joined')
+@os_requires_version('kilo', 'nova-common')
+def zeromq_configuration_relation_joined(relid=None):
+    relation_set(relation_id=relid,
+                 topics=" ".join(get_topics()),
+                 users="nova")
+
+
+@hooks.hook('zeromq-configuration-relation-changed')
+@restart_on_change(restart_map())
+def zeromq_configuration_relation_changed():
+    CONFIGS.write(NOVA_CONF)
+
+
 @hooks.hook('nrpe-external-master-relation-joined',
             'nrpe-external-master-relation-changed')
 def update_nrpe_config():
@@ -322,6 +344,18 @@ def update_nrpe_config():
     nrpe_setup = nrpe.NRPE(hostname=hostname)
     nrpe.add_init_service_checks(nrpe_setup, services(), current_unit)
     nrpe_setup.write()
+
+
+@hooks.hook('neutron-plugin-relation-changed')
+@restart_on_change(restart_map())
+def neutron_plugin_changed():
+    settings = relation_get()
+    if 'metadata-shared-secret' in settings:
+        apt_update()
+        apt_install('nova-api-metadata', fatal=True)
+    else:
+        apt_purge('nova-api-metadata', fatal=True)
+    CONFIGS.write(NOVA_CONF)
 
 
 def main():
