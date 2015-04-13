@@ -104,7 +104,8 @@ BASE_RESOURCE_MAP = {
                      context.ZeroMQContext(),
                      context.NotificationDriverContext(),
                      MetadataServiceContext(),
-                     HostIPContext()],
+                     HostIPContext(),
+                     context.LogLevelContext()],
     },
 }
 
