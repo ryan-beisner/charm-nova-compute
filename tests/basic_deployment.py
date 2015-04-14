@@ -14,13 +14,13 @@ from charmhelpers.contrib.openstack.amulet.utils import (
 )
 
 # Use DEBUG to turn on debug logging
-u = OpenStackAmuletUtils(ERROR)
+u = OpenStackAmuletUtils(DEBUG)
 
 
 class NovaBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic nova compute deployment."""
 
-    def __init__(self, series=None, openstack=None, source=None, stable=True):
+    def __init__(self, series=None, openstack=None, source=None, stable=False):
         """Deploy the entire test environment."""
         super(NovaBasicDeployment, self).__init__(series, openstack, source, stable)
         self._add_services()
@@ -362,7 +362,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                     'lock_path': '/var/lock/nova',
                     'force_dhcp_release': 'True',
                     'libvirt_use_virtio_for_bridges': 'True',
-                    'verbose': 'True',
+                    'verbose': 'False',
                     'use_syslog': 'False',
                     'ec2_private_dns_show_ip': 'True',
                     'api_paste_config': '/etc/nova/api-paste.ini',
@@ -377,8 +377,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                     'glance_api_servers': glance_relation['glance-api-server'],
                     'flat_interface': 'eth1',
                     'network_manager': 'nova.network.manager.FlatDHCPManager',
-                    'volume_api_class': 'nova.volume.cinder.API',
-                    'verbose': 'True'}
+                    'volume_api_class': 'nova.volume.cinder.API'}
 
         ret = u.validate_config_data(unit, conf, 'DEFAULT', expected)
         if ret:
