@@ -20,7 +20,7 @@ u = OpenStackAmuletUtils(DEBUG)
 class NovaBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic nova compute deployment."""
 
-    def __init__(self, series=None, openstack=None, source=None, stable=True):
+    def __init__(self, series=None, openstack=None, source=None, stable=False):
         """Deploy the entire test environment."""
         super(NovaBasicDeployment, self).__init__(series, openstack, source, stable)
         self._add_services()
