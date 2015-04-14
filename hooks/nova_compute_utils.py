@@ -57,6 +57,7 @@ TEMPLATES = 'templates/'
 BASE_PACKAGES = [
     'nova-compute',
     'genisoimage',  # was missing as a package dependency until raring.
+    'librbd1', # bug 1440953
     'python-six',
 ]
 
