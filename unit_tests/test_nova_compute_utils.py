@@ -596,7 +596,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         service_name = 'nova-compute'
         nova_user = 'nova'
         start_dir = '/var/lib/nova'
-        nova_conf = 'etc/nova/nova.conf'
+        nova_conf = '/etc/nova/nova.conf'
         nova_api_metadata_context = {
             'service_description': 'Nova Metadata API server',
             'service_name': service_name,
