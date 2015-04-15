@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
 import amulet
+import os
 import time
+import yaml
 
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
@@ -14,15 +16,17 @@ from charmhelpers.contrib.openstack.amulet.utils import (
 )
 
 # Use DEBUG to turn on debug logging
-u = OpenStackAmuletUtils(ERROR)
+u = OpenStackAmuletUtils(DEBUG)
 
 
 class NovaBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic nova compute deployment."""
 
-    def __init__(self, series=None, openstack=None, source=None, stable=True):
+    def __init__(self, series=None, openstack=None, source=None, git=False,
+                 stable=True):
         """Deploy the entire test environment."""
         super(NovaBasicDeployment, self).__init__(series, openstack, source, stable)
+        self.git = git
         self._add_services()
         self._add_relations()
         self._configure_services()
@@ -65,6 +69,24 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         """Configure all of the services."""
         nova_config = {'config-flags': 'auto_assign_floating_ip=False',
                        'enable-live-migration': 'False'}
+        if self.git:
+            branch = 'stable/' + self._get_openstack_release_string()
+            amulet_http_proxy = os.environ.get('AMULET_HTTP_PROXY')
+            openstack_origin_git = {
+                'repositories': [
+                    {'name': 'requirements',
+                     'repository': 'git://git.openstack.org/openstack/requirements',
+                     'branch': branch},
+                    {'name': 'nova',
+                     'repository': 'git://git.openstack.org/openstack/nova',
+                     'branch': branch},
+                ],
+                'directory': '/mnt/openstack-git',
+                'http_proxy': amulet_http_proxy,
+                'https_proxy': amulet_http_proxy,
+            }
+            nova_config['openstack-origin-git'] = yaml.dump(openstack_origin_git)
+
         keystone_config = {'admin-password': 'openstack',
                            'admin-token': 'ubuntutesting'}
         configs = {'nova-compute': nova_config, 'keystone': keystone_config}
@@ -362,7 +384,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                     'lock_path': '/var/lock/nova',
                     'force_dhcp_release': 'True',
                     'libvirt_use_virtio_for_bridges': 'True',
-                    'verbose': 'True',
+                    'verbose': 'False',
                     'use_syslog': 'False',
                     'ec2_private_dns_show_ip': 'True',
                     'api_paste_config': '/etc/nova/api-paste.ini',
@@ -377,8 +399,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                     'glance_api_servers': glance_relation['glance-api-server'],
                     'flat_interface': 'eth1',
                     'network_manager': 'nova.network.manager.FlatDHCPManager',
-                    'volume_api_class': 'nova.volume.cinder.API',
-                    'verbose': 'True'}
+                    'volume_api_class': 'nova.volume.cinder.API'}
 
         ret = u.validate_config_data(unit, conf, 'DEFAULT', expected)
         if ret:
