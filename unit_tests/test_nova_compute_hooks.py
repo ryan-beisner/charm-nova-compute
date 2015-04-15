@@ -3,6 +3,7 @@ from mock import (
     patch,
     MagicMock
 )
+import yaml
 
 from test_utils import CharmTestCase
 
@@ -48,6 +49,8 @@ TO_PATCH = [
     'disable_shell',
     'enable_shell',
     'update_nrpe_config',
+    'git_install',
+    'git_install_requested',
     # misc_utils
     'ensure_ceph_keyring',
     'execd_preinstall',
@@ -77,13 +80,40 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.apt_install.assert_called_with(['foo', 'bar'], fatal=True)
         self.execd_preinstall.assert_called()
 
+    def test_install_hook_git(self):
+        self.git_install_requested.return_value = True
+        self.determine_packages.return_value = ['foo', 'bar']
+        repo = 'cloud:trusty-juno'
+        openstack_origin_git = {
+            'repositories': [
+                {'name': 'requirements',
+                 'repository': 'git://git.openstack.org/openstack/requirements',  # noqa
+                 'branch': 'stable/juno'},
+                {'name': 'nova',
+                 'repository': 'git://git.openstack.org/openstack/nova',
+                 'branch': 'stable/juno'}
+            ],
+            'directory': '/mnt/openstack-git',
+        }
+        projects_yaml = yaml.dump(openstack_origin_git)
+        self.test_config.set('openstack-origin', repo)
+        self.test_config.set('openstack-origin-git', projects_yaml)
+        hooks.install()
+        self.configure_installation_source.assert_called_with(repo)
+        self.assertTrue(self.apt_update.called)
+        self.apt_install.assert_called_with(['foo', 'bar'], fatal=True)
+        self.git_install.assert_called_with(projects_yaml)
+        self.execd_preinstall.assert_called()
+
     def test_config_changed_with_upgrade(self):
+        self.git_install_requested.return_value = False
         self.openstack_upgrade_available.return_value = True
         hooks.config_changed()
         self.assertTrue(self.do_openstack_upgrade.called)
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_with_migration(self, compute_joined):
+        self.git_install_requested.return_value = False
         self.migration_enabled.return_value = True
         _zmq_joined = self.patch('zeromq_configuration_relation_joined')
         self.test_config.set('migration-auth-type', 'ssh')
@@ -102,6 +132,7 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_with_resize(self, compute_joined):
+        self.git_install_requested.return_value = False
         self.test_config.set('enable-resize', True)
         _zmq_joined = self.patch('zeromq_configuration_relation_joined')
         self.relation_ids.return_value = [
@@ -120,6 +151,7 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_without_resize(self, compute_joined):
+        self.git_install_requested.return_value = False
         self.test_config.set('enable-resize', False)
         _zmq_joined = self.patch('zeromq_configuration_relation_joined')
         self.relation_ids.return_value = [
@@ -137,6 +169,7 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_no_upgrade_no_migration(self, compute_joined):
+        self.git_install_requested.return_value = False
         self.openstack_upgrade_available.return_value = False
         self.migration_enabled.return_value = False
         hooks.config_changed()
@@ -145,9 +178,33 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_with_sysctl(self, compute_joined):
+        self.git_install_requested.return_value = False
         self.test_config.set('sysctl', '{ kernel.max_pid : "1337" }')
         hooks.config_changed()
         self.create_sysctl.assert_called()
+
+    @patch.object(hooks, 'config_value_changed')
+    def test_config_changed_git(self, config_val_changed):
+        self.git_install_requested.return_value = True
+        repo = 'cloud:trusty-juno'
+        openstack_origin_git = {
+            'repositories': [
+                {'name': 'requirements',
+                 'repository':
+                 'git://git.openstack.org/openstack/requirements',
+                 'branch': 'stable/juno'},
+                {'name': 'nova',
+                 'repository': 'git://git.openstack.org/openstack/nova',
+                 'branch': 'stable/juno'}
+            ],
+            'directory': '/mnt/openstack-git',
+        }
+        projects_yaml = yaml.dump(openstack_origin_git)
+        self.test_config.set('openstack-origin', repo)
+        self.test_config.set('openstack-origin-git', projects_yaml)
+        hooks.config_changed()
+        self.git_install.assert_called_with(projects_yaml)
+        self.assertFalse(self.do_openstack_upgrade.called)
 
     def test_amqp_joined(self):
         hooks.amqp_joined()

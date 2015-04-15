@@ -1,4 +1,5 @@
 import os
+import shutil
 import pwd
 
 from base64 import b64decode
@@ -8,16 +9,21 @@ from subprocess import check_call, check_output
 from charmhelpers.fetch import (
     apt_update,
     apt_upgrade,
-    apt_install
+    apt_install,
 )
 
 from charmhelpers.core.host import (
+    adduser,
+    add_group,
+    add_user_to_group,
     mkdir,
     service_restart,
-    lsb_release
+    lsb_release,
+    write_file,
 )
 
 from charmhelpers.core.hookenv import (
+    charm_dir,
     config,
     log,
     related_units,
@@ -27,6 +33,7 @@ from charmhelpers.core.hookenv import (
     INFO,
 )
 
+from charmhelpers.core.templating import render
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from charmhelpers.contrib.openstack import templating, context
 from charmhelpers.contrib.openstack.alternatives import install_alternative
@@ -34,6 +41,9 @@ from charmhelpers.contrib.openstack.alternatives import install_alternative
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     get_os_codename_install_source,
+    git_install_requested,
+    git_clone_and_install,
+    git_src_dir,
     os_release
 )
 
@@ -57,7 +67,59 @@ TEMPLATES = 'templates/'
 BASE_PACKAGES = [
     'nova-compute',
     'genisoimage',  # was missing as a package dependency until raring.
+    'librbd1',  # bug 1440953
     'python-six',
+]
+
+BASE_GIT_PACKAGES = [
+    'libvirt-bin',
+    'libxml2-dev',
+    'libxslt1-dev',
+    'python-dev',
+    'python-pip',
+    'python-setuptools',
+    'zlib1g-dev',
+]
+
+LATE_GIT_PACKAGES = [
+    'bridge-utils',
+    'dnsmasq-base',
+    'dnsmasq-utils',
+    'ebtables',
+    'genisoimage',
+    'iptables',
+    'iputils-arping',
+    'kpartx',
+    'kvm',
+    'netcat',
+    'open-iscsi',
+    'parted',
+    'python-libvirt',
+    'qemu',
+    'qemu-system',
+    'qemu-utils',
+    'vlan',
+    'xen-system-amd64',
+]
+
+# ubuntu packages that should not be installed when deploying from git
+GIT_PACKAGE_BLACKLIST = [
+    'neutron-plugin-openvswitch',
+    'neutron-plugin-openvswitch-agent',
+    'neutron-server',
+    'nova-api',
+    'nova-api-metadata',
+    'nova-compute',
+    'nova-compute-kvm',
+    'nova-compute-lxc',
+    'nova-compute-qemu',
+    'nova-compute-uml',
+    'nova-compute-xen',
+    'nova-network',
+    'python-six',
+    'quantum-plugin-openvswitch',
+    'quantum-plugin-openvswitch-agent',
+    'quantum-server',
 ]
 
 NOVA_CONF_DIR = "/etc/nova"
@@ -104,7 +166,8 @@ BASE_RESOURCE_MAP = {
                      context.ZeroMQContext(),
                      context.NotificationDriverContext(),
                      MetadataServiceContext(),
-                     HostIPContext()],
+                     HostIPContext(),
+                     context.LogLevelContext()],
     },
 }
 
@@ -286,6 +349,14 @@ def determine_packages():
         raise
     if enable_nova_metadata():
         packages.append('nova-api-metadata')
+
+    if git_install_requested():
+        packages = list(set(packages))
+        packages.extend(BASE_GIT_PACKAGES)
+        # don't include packages that will be installed from git
+        for p in GIT_PACKAGE_BLACKLIST:
+            if p in packages:
+                packages.remove(p)
 
     return packages
 
@@ -525,3 +596,123 @@ def neutron_plugin_legacy_mode():
 
 def manage_ovs():
     return neutron_plugin_legacy_mode() and neutron_plugin() == 'ovs'
+
+
+def git_install(projects_yaml):
+    """Perform setup, and install git repos specified in yaml parameter."""
+    if git_install_requested():
+        git_pre_install()
+        git_clone_and_install(projects_yaml, core_project='nova')
+        git_post_install(projects_yaml)
+
+
+def git_pre_install():
+    """Perform pre-install setup."""
+    dirs = [
+        '/var/lib/nova',
+        '/var/lib/nova/buckets',
+        '/var/lib/nova/CA',
+        '/var/lib/nova/CA/INTER',
+        '/var/lib/nova/CA/newcerts',
+        '/var/lib/nova/CA/private',
+        '/var/lib/nova/CA/reqs',
+        '/var/lib/nova/images',
+        '/var/lib/nova/instances',
+        '/var/lib/nova/keys',
+        '/var/lib/nova/networks',
+        '/var/lib/nova/tmp',
+        '/var/log/nova',
+    ]
+
+    logs = [
+        '/var/log/nova/nova-api.log',
+        '/var/log/nova/nova-compute.log',
+        '/var/log/nova/nova-manage.log',
+        '/var/log/nova/nova-network.log',
+    ]
+
+    adduser('nova', shell='/bin/bash', system_user=True)
+    check_call(['usermod', '--home', '/var/lib/nova', 'nova'])
+    add_group('nova', system_group=True)
+    add_user_to_group('nova', 'nova')
+    add_user_to_group('nova', 'libvirtd')
+
+    for d in dirs:
+        mkdir(d, owner='nova', group='nova', perms=0755, force=False)
+
+    for l in logs:
+        write_file(l, '', owner='nova', group='nova', perms=0644)
+
+
+def git_post_install(projects_yaml):
+    """Perform post-install setup."""
+    src_etc = os.path.join(git_src_dir(projects_yaml, 'nova'), 'etc/nova')
+    configs = [
+        {'src': src_etc,
+         'dest': '/etc/nova'},
+    ]
+
+    for c in configs:
+        if os.path.exists(c['dest']):
+            shutil.rmtree(c['dest'])
+        shutil.copytree(c['src'], c['dest'])
+
+    virt_type = VIRT_TYPES[config('virt-type')][0]
+    nova_compute_conf = 'git/{}.conf'.format(virt_type)
+    render(nova_compute_conf, '/etc/nova/nova-compute.conf', {}, perms=0o644)
+    render('git/nova_sudoers', '/etc/sudoers.d/nova_sudoers', {}, perms=0o440)
+
+    service_name = 'nova-compute'
+    nova_user = 'nova'
+    start_dir = '/var/lib/nova'
+    nova_conf = 'etc/nova/nova.conf'
+    nova_api_metadata_context = {
+        'service_description': 'Nova Metadata API server',
+        'service_name': service_name,
+        'user_name': nova_user,
+        'start_dir': start_dir,
+        'process_name': 'nova-api-metadata',
+        'executable_name': '/usr/local/bin/nova-api-metadata',
+        'config_files': [nova_conf],
+    }
+    nova_api_context = {
+        'service_description': 'Nova API server',
+        'service_name': service_name,
+        'user_name': nova_user,
+        'start_dir': start_dir,
+        'process_name': 'nova-api',
+        'executable_name': '/usr/local/bin/nova-api',
+        'config_files': [nova_conf],
+    }
+    nova_compute_context = {
+        'service_description': 'Nova compute worker',
+        'service_name': service_name,
+        'user_name': nova_user,
+        'process_name': 'nova-compute',
+        'executable_name': '/usr/local/bin/nova-compute',
+        'config_files': [nova_conf, '/etc/nova/nova-compute.conf'],
+    }
+    nova_network_context = {
+        'service_description': 'Nova network worker',
+        'service_name': service_name,
+        'user_name': nova_user,
+        'start_dir': start_dir,
+        'process_name': 'nova-network',
+        'executable_name': '/usr/local/bin/nova-network',
+        'config_files': [nova_conf],
+    }
+
+    # NOTE(coreycb): Needs systemd support
+    templates_dir = 'hooks/charmhelpers/contrib/openstack/templates'
+    templates_dir = os.path.join(charm_dir(), templates_dir)
+    render('git.upstart', '/etc/init/nova-api-metadata.conf',
+           nova_api_metadata_context, perms=0o644, templates_dir=templates_dir)
+    render('git.upstart', '/etc/init/nova-api.conf',
+           nova_api_context, perms=0o644, templates_dir=templates_dir)
+    render('git/upstart/nova-compute.upstart', '/etc/init/nova-compute.conf',
+           nova_compute_context, perms=0o644)
+    render('git.upstart', '/etc/init/nova-network.conf',
+           nova_network_context, perms=0o644, templates_dir=templates_dir)
+
+    apt_update()
+    apt_install(LATE_GIT_PACKAGES, fatal=True)
