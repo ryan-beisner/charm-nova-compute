@@ -28,7 +28,9 @@ from charmhelpers.fetch import (
 )
 
 from charmhelpers.contrib.openstack.utils import (
+    config_value_changed,
     configure_installation_source,
+    git_install_requested,
     openstack_upgrade_available,
     os_requires_version,
 )
@@ -43,6 +45,7 @@ from charmhelpers.payload.execd import execd_preinstall
 from nova_compute_utils import (
     create_libvirt_secret,
     determine_packages,
+    git_install,
     import_authorized_keys,
     import_keystone_ca_cert,
     initialize_ssh_keys,
@@ -84,8 +87,11 @@ CONFIGS = register_configs()
 def install():
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
+
     apt_update()
     apt_install(determine_packages(), fatal=True)
+
+    git_install(config('openstack-origin-git'))
 
 
 @hooks.hook('config-changed')
@@ -95,8 +101,12 @@ def config_changed():
         assert_charm_supports_ipv6()
 
     global CONFIGS
-    if openstack_upgrade_available('nova-common'):
-        CONFIGS = do_openstack_upgrade()
+    if git_install_requested():
+        if config_value_changed('openstack-origin-git'):
+            git_install(config('openstack-origin-git'))
+    else:
+        if openstack_upgrade_available('nova-common'):
+            CONFIGS = do_openstack_upgrade()
 
     sysctl_dict = config('sysctl')
     if sysctl_dict:

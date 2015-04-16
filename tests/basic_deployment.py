@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
 import amulet
+import os
 import time
+import yaml
 
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
@@ -20,9 +22,11 @@ u = OpenStackAmuletUtils(DEBUG)
 class NovaBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic nova compute deployment."""
 
-    def __init__(self, series=None, openstack=None, source=None, stable=False):
+    def __init__(self, series=None, openstack=None, source=None, git=False,
+                 stable=True):
         """Deploy the entire test environment."""
         super(NovaBasicDeployment, self).__init__(series, openstack, source, stable)
+        self.git = git
         self._add_services()
         self._add_relations()
         self._configure_services()
@@ -65,6 +69,24 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         """Configure all of the services."""
         nova_config = {'config-flags': 'auto_assign_floating_ip=False',
                        'enable-live-migration': 'False'}
+        if self.git:
+            branch = 'stable/' + self._get_openstack_release_string()
+            amulet_http_proxy = os.environ.get('AMULET_HTTP_PROXY')
+            openstack_origin_git = {
+                'repositories': [
+                    {'name': 'requirements',
+                     'repository': 'git://git.openstack.org/openstack/requirements',
+                     'branch': branch},
+                    {'name': 'nova',
+                     'repository': 'git://git.openstack.org/openstack/nova',
+                     'branch': branch},
+                ],
+                'directory': '/mnt/openstack-git',
+                'http_proxy': amulet_http_proxy,
+                'https_proxy': amulet_http_proxy,
+            }
+            nova_config['openstack-origin-git'] = yaml.dump(openstack_origin_git)
+
         keystone_config = {'admin-password': 'openstack',
                            'admin-token': 'ubuntutesting'}
         configs = {'nova-compute': nova_config, 'keystone': keystone_config}
