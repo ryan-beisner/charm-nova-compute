@@ -467,7 +467,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         _check_output.assert_called_wth(['sudo', '-u', 'nova', 'lxc', 'list'])
 
     @patch.object(utils, 'configure_lxd_daemon')
-    @patch.object(utils,'configure_subuid')
+    @patch.object(utils, 'configure_subuid')
     def test_configure_lxd_vivid(self, _configure_subuid,
                                  _configure_lxd_daemon):
         self.lsb_release.return_value = {
@@ -478,7 +478,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         _configure_lxd_daemon.assert_called_with(user='nova')
 
     @patch.object(utils, 'configure_lxd_daemon')
-    @patch.object(utils,'configure_subuid')
+    @patch.object(utils, 'configure_subuid')
     def test_configure_lxd_pre_vivid(self, _configure_subuid,
                                      _configure_lxd_daemon):
         self.lsb_release.return_value = {
