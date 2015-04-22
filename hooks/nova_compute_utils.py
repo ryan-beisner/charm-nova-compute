@@ -4,7 +4,7 @@ import pwd
 
 from base64 import b64decode
 from copy import deepcopy
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, CalledProcessError
 
 from charmhelpers.fetch import (
     apt_update,
@@ -34,6 +34,7 @@ from charmhelpers.core.hookenv import (
 )
 
 from charmhelpers.core.templating import render
+from charmhelpers.core.decorators import retry_on_exception
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from charmhelpers.contrib.openstack import templating, context
 from charmhelpers.contrib.openstack.alternatives import install_alternative
@@ -565,7 +566,11 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
 
 
 def configure_lxd(user='nova'):
-    ''' Configures lxd '''
+    ''' Configure lxd use for nova user '''
+    if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
+        raise Exception("LXD is not supported for Ubuntu "
+                        "versions less than 15.04 (vivid)")
+
     configure_subuid(user='nova')
     configure_lxd_daemon(user='nova')
 
@@ -573,8 +578,14 @@ def configure_lxd(user='nova'):
 
 
 def configure_lxd_daemon(user):
-    add_user_to_group('nova', 'lxd')
+    add_user_to_group(user, 'lxd')
     service_restart('lxd')
+    # NOTE(jamespage): Call list function to initialize cert
+    lxc_list(user)
+
+
+@retry_on_exception(5, base_delay=2, exc_type=CalledProcessError)
+def lxc_list(user):
     cmd = ['sudo', '-u', user, 'lxc', 'list']
     check_call(cmd)
 

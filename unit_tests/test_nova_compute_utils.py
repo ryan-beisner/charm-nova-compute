@@ -28,6 +28,7 @@ TO_PATCH = [
     'install_alternative',
     'add_user_to_group',
     'MetadataServiceContext',
+    'lsb_release',
 ]
 
 OVS_PKGS = [
@@ -464,6 +465,29 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.add_user_to_group.assert_called_with('nova', 'lxd')
         self.service_restart.assert_called_with('lxd')
         _check_output.assert_called_wth(['sudo', '-u', 'nova', 'lxc', 'list'])
+
+    @patch.object(utils, 'configure_lxd_daemon')
+    @patch.object(utils,'configure_subuid')
+    def test_configure_lxd_vivid(self, _configure_subuid,
+                                 _configure_lxd_daemon):
+        self.lsb_release.return_value = {
+            'DISTRIB_CODENAME': 'vivid'
+        }
+        utils.configure_lxd('nova')
+        _configure_subuid.assert_called_with(user='nova')
+        _configure_lxd_daemon.assert_called_with(user='nova')
+
+    @patch.object(utils, 'configure_lxd_daemon')
+    @patch.object(utils,'configure_subuid')
+    def test_configure_lxd_pre_vivid(self, _configure_subuid,
+                                     _configure_lxd_daemon):
+        self.lsb_release.return_value = {
+            'DISTRIB_CODENAME': 'trusty'
+        }
+        with self.assertRaises(Exception):
+            utils.configure_lxd('nova')
+        self.assertFalse(_configure_subuid.called)
+        self.assertFalse(_configure_lxd_daemon.called)
 
     def test_enable_nova_metadata(self):
         class DummyContext():
