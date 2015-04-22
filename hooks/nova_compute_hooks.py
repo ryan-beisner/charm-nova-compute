@@ -60,6 +60,7 @@ from nova_compute_utils import (
     QUANTUM_CONF, NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
+    configure_lxd,
     fix_path_ownership,
     get_topics,
     assert_charm_supports_ipv6,
@@ -128,6 +129,9 @@ def config_changed():
     if config('instances-path') is not None:
         fp = config('instances-path')
         fix_path_ownership(fp, user='nova')
+
+    if config('virt-type').lower() == 'lxd':
+        configure_lxd(user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
     for rid in relation_ids('zeromq-configuration'):
