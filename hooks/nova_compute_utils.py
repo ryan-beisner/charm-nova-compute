@@ -177,7 +177,6 @@ LIBVIRT_RESOURCE_MAP = {
 }
 LIBVIRT_RESOURCE_MAP.update(BASE_RESOURCE_MAP)
 
-CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
 CEPH_SECRET = '/etc/ceph/secret.xml'
 
 CEPH_RESOURCES = {
@@ -238,10 +237,10 @@ def resource_map():
     hook execution.
     '''
     # TODO: Cache this on first call?
-    if config('virt-type').lower() != 'lxd':
-        resource_map = deepcopy(LIBVIRT_RESOURCE_MAP)
-    else:
+    if config('virt-type').lower() == 'lxd':
         resource_map = deepcopy(BASE_RESOURCE_MAP)
+    else:
+        resource_map = deepcopy(LIBVIRT_RESOURCE_MAP)
     net_manager = network_manager()
     plugin = neutron_plugin()
 
