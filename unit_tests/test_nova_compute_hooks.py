@@ -206,6 +206,24 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.git_install.assert_called_with(projects_yaml)
         self.assertFalse(self.do_openstack_upgrade.called)
 
+    @patch.object(hooks, 'compute_joined')
+    def test_config_changed_no_nrpe(self, compute_joined):
+        self.git_install_requested.return_value = False
+        self.openstack_upgrade_available.return_value = False
+        self.migration_enabled.return_value = False
+        self.is_relation_made.return_value = False
+        hooks.config_changed()
+        self.assertFalse(self.update_nrpe_config.called)
+
+    @patch.object(hooks, 'compute_joined')
+    def test_config_changed_nrpe(self, compute_joined):
+        self.git_install_requested.return_value = False
+        self.openstack_upgrade_available.return_value = False
+        self.migration_enabled.return_value = False
+        self.is_relation_made.return_value = True
+        hooks.config_changed()
+        self.update_nrpe_config.assert_called_once()
+
     def test_amqp_joined(self):
         hooks.amqp_joined()
         self.relation_set.assert_called_with(
