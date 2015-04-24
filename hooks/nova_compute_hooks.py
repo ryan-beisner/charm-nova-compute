@@ -137,7 +137,8 @@ def config_changed():
     for rid in relation_ids('zeromq-configuration'):
         zeromq_configuration_relation_joined(rid)
 
-    update_nrpe_config()
+    if is_relation_made("nrpe-external-master"):
+        update_nrpe_config()
 
     CONFIGS.write_all()
 
@@ -325,7 +326,9 @@ def relation_broken():
 def upgrade_charm():
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
-    update_nrpe_config()
+
+    if is_relation_made('nrpe-external-master'):
+        update_nrpe_config()
 
 
 @hooks.hook('nova-ceilometer-relation-changed')
