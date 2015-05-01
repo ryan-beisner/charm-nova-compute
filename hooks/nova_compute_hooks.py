@@ -296,6 +296,10 @@ def ceph_changed():
 
             log("Ceph broker request succeeded (rc=%s, msg=%s)" %
                 (rsp.exit_code, rsp.exit_msg), level=INFO)
+            # Ensure that nova-compute is restarted since only now can we
+            # guarantee that ceph resources are ready.
+            if config('libvirt-image-backend') == 'rbd':
+                service_restart('nova-compute')
         else:
             rq = CephBrokerRq()
             replicas = config('ceph-osd-replication-count')
