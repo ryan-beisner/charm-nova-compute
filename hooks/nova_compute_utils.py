@@ -4,7 +4,7 @@ import pwd
 
 from base64 import b64decode
 from copy import deepcopy
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, CalledProcessError
 
 from charmhelpers.fetch import (
     apt_update,
@@ -34,6 +34,7 @@ from charmhelpers.core.hookenv import (
 )
 
 from charmhelpers.core.templating import render
+from charmhelpers.core.decorators import retry_on_exception
 from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from charmhelpers.contrib.openstack import templating, context
 from charmhelpers.contrib.openstack.alternatives import install_alternative
@@ -122,6 +123,7 @@ GIT_PACKAGE_BLACKLIST = [
     'quantum-server',
 ]
 
+DEFAULT_INSTANCE_PATH = '/var/lib/nova/instances'
 NOVA_CONF_DIR = "/etc/nova"
 QEMU_CONF = '/etc/libvirt/qemu.conf'
 LIBVIRTD_CONF = '/etc/libvirt/libvirtd.conf'
@@ -130,22 +132,6 @@ LIBVIRT_BIN_OVERRIDES = '/etc/init/libvirt-bin.override'
 NOVA_CONF = '%s/nova.conf' % NOVA_CONF_DIR
 
 BASE_RESOURCE_MAP = {
-    QEMU_CONF: {
-        'services': ['libvirt-bin'],
-        'contexts': [],
-    },
-    LIBVIRTD_CONF: {
-        'services': ['libvirt-bin'],
-        'contexts': [NovaComputeLibvirtContext()],
-    },
-    LIBVIRT_BIN: {
-        'services': ['libvirt-bin'],
-        'contexts': [NovaComputeLibvirtContext()],
-    },
-    LIBVIRT_BIN_OVERRIDES: {
-        'services': ['libvirt-bin'],
-        'contexts': [NovaComputeLibvirtOverrideContext()],
-    },
     NOVA_CONF: {
         'services': ['nova-compute'],
         'contexts': [context.AMQPContext(ssl_dir=NOVA_CONF_DIR),
@@ -170,6 +156,26 @@ BASE_RESOURCE_MAP = {
                      context.LogLevelContext()],
     },
 }
+
+LIBVIRT_RESOURCE_MAP = {
+    QEMU_CONF: {
+        'services': ['libvirt-bin'],
+        'contexts': [],
+    },
+    LIBVIRTD_CONF: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtContext()],
+    },
+    LIBVIRT_BIN: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtContext()],
+    },
+    LIBVIRT_BIN_OVERRIDES: {
+        'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtOverrideContext()],
+    },
+}
+LIBVIRT_RESOURCE_MAP.update(BASE_RESOURCE_MAP)
 
 CEPH_SECRET = '/etc/ceph/secret.xml'
 
@@ -212,6 +218,7 @@ VIRT_TYPES = {
     'xen': ['nova-compute-xen'],
     'uml': ['nova-compute-uml'],
     'lxc': ['nova-compute-lxc'],
+    'lxd': ['nova-compute-lxd'],
 }
 
 # Maps virt-type config to a libvirt URI.
@@ -230,7 +237,10 @@ def resource_map():
     hook execution.
     '''
     # TODO: Cache this on first call?
-    resource_map = deepcopy(BASE_RESOURCE_MAP)
+    if config('virt-type').lower() == 'lxd':
+        resource_map = deepcopy(BASE_RESOURCE_MAP)
+    else:
+        resource_map = deepcopy(LIBVIRT_RESOURCE_MAP)
     net_manager = network_manager()
     plugin = neutron_plugin()
 
@@ -551,6 +561,36 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
     check_call(cmd)
     cmd = ['virsh', '-c', uri, 'secret-set-value', '--secret', secret_uuid,
            '--base64', key]
+    check_call(cmd)
+
+
+def configure_lxd(user='nova'):
+    ''' Configure lxd use for nova user '''
+    if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
+        raise Exception("LXD is not supported for Ubuntu "
+                        "versions less than 15.04 (vivid)")
+
+    configure_subuid(user='nova')
+    configure_lxd_daemon(user='nova')
+
+    service_restart('nova-compute')
+
+
+def configure_lxd_daemon(user):
+    add_user_to_group(user, 'lxd')
+    service_restart('lxd')
+    # NOTE(jamespage): Call list function to initialize cert
+    lxc_list(user)
+
+
+@retry_on_exception(5, base_delay=2, exc_type=CalledProcessError)
+def lxc_list(user):
+    cmd = ['sudo', '-u', user, 'lxc', 'list']
+    check_call(cmd)
+
+
+def configure_subuid(user):
+    cmd = ['usermod', '-v', '100000-200000', '-w', '100000-200000', user]
     check_call(cmd)
 
 
