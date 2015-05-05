@@ -665,6 +665,7 @@ def git_post_install(projects_yaml):
     service_name = 'nova-compute'
     nova_user = 'nova'
     start_dir = '/var/lib/nova'
+    bin_dir = os.path.join(charm_dir(), 'venv/bin')
     nova_conf = '/etc/nova/nova.conf'
     nova_api_metadata_context = {
         'service_description': 'Nova Metadata API server',
@@ -672,7 +673,7 @@ def git_post_install(projects_yaml):
         'user_name': nova_user,
         'start_dir': start_dir,
         'process_name': 'nova-api-metadata',
-        'executable_name': '/usr/local/bin/nova-api-metadata',
+        'executable_name': os.path.join(bin_dir, 'nova-api-metadata'),
         'config_files': [nova_conf],
     }
     nova_api_context = {
@@ -681,7 +682,7 @@ def git_post_install(projects_yaml):
         'user_name': nova_user,
         'start_dir': start_dir,
         'process_name': 'nova-api',
-        'executable_name': '/usr/local/bin/nova-api',
+        'executable_name': os.path.join(bin_dir, 'nova-api'),
         'config_files': [nova_conf],
     }
     nova_compute_context = {
@@ -689,7 +690,7 @@ def git_post_install(projects_yaml):
         'service_name': service_name,
         'user_name': nova_user,
         'process_name': 'nova-compute',
-        'executable_name': '/usr/local/bin/nova-compute',
+        'executable_name': os.path.join(bin_dir, 'nova-compute'),
         'config_files': [nova_conf, '/etc/nova/nova-compute.conf'],
     }
     nova_network_context = {
@@ -698,7 +699,7 @@ def git_post_install(projects_yaml):
         'user_name': nova_user,
         'start_dir': start_dir,
         'process_name': 'nova-network',
-        'executable_name': '/usr/local/bin/nova-network',
+        'executable_name': os.path.join(bin_dir, 'nova-network'),
         'config_files': [nova_conf],
     }
 
