@@ -75,7 +75,7 @@ options:
   virt-type:
     default: kvm
     type: string
-    description: "Virtualization flavor. Supported: kvm, xen, uml, lxc. qemu"
+    description: "Virtualization flavor. Supported: kvm, xen, uml, lxc, qemu, lxd"
   multi-host:
     default: "yes"
     type: string

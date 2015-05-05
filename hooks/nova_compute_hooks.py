@@ -60,6 +60,7 @@ from nova_compute_utils import (
     QUANTUM_CONF, NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
+    configure_lxd,
     fix_path_ownership,
     get_topics,
     assert_charm_supports_ipv6,
@@ -129,11 +130,15 @@ def config_changed():
         fp = config('instances-path')
         fix_path_ownership(fp, user='nova')
 
+    if config('virt-type').lower() == 'lxd':
+        configure_lxd(user='nova')
+
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
     for rid in relation_ids('zeromq-configuration'):
         zeromq_configuration_relation_joined(rid)
 
-    update_nrpe_config()
+    if is_relation_made("nrpe-external-master"):
+        update_nrpe_config()
 
     CONFIGS.write_all()
 
@@ -291,6 +296,10 @@ def ceph_changed():
 
             log("Ceph broker request succeeded (rc=%s, msg=%s)" %
                 (rsp.exit_code, rsp.exit_msg), level=INFO)
+            # Ensure that nova-compute is restarted since only now can we
+            # guarantee that ceph resources are ready.
+            if config('libvirt-image-backend') == 'rbd':
+                service_restart('nova-compute')
         else:
             rq = CephBrokerRq()
             replicas = config('ceph-osd-replication-count')
@@ -321,7 +330,9 @@ def relation_broken():
 def upgrade_charm():
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
-    update_nrpe_config()
+
+    if is_relation_made('nrpe-external-master'):
+        update_nrpe_config()
 
 
 @hooks.hook('nova-ceilometer-relation-changed')
