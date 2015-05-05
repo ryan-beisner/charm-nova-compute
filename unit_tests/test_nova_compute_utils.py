@@ -603,7 +603,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'user_name': nova_user,
             'start_dir': start_dir,
             'process_name': 'nova-api-metadata',
-            'executable_name': '/usr/local/bin/nova-api-metadata',
+            'executable_name': 'joined-string',
             'config_files': [nova_conf],
         }
         nova_api_context = {
@@ -612,7 +612,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'user_name': nova_user,
             'start_dir': start_dir,
             'process_name': 'nova-api',
-            'executable_name': '/usr/local/bin/nova-api',
+            'executable_name': 'joined-string',
             'config_files': [nova_conf],
         }
         nova_compute_context = {
@@ -620,7 +620,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'service_name': service_name,
             'user_name': nova_user,
             'process_name': 'nova-compute',
-            'executable_name': '/usr/local/bin/nova-compute',
+            'executable_name': 'joined-string',
             'config_files': [nova_conf, '/etc/nova/nova-compute.conf'],
         }
         nova_network_context = {
@@ -629,7 +629,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'user_name': nova_user,
             'start_dir': start_dir,
             'process_name': 'nova-network',
-            'executable_name': '/usr/local/bin/nova-network',
+            'executable_name': 'joined-string',
             'config_files': [nova_conf],
         }
         expected = [
