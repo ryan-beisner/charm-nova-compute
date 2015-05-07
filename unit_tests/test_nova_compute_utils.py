@@ -619,12 +619,13 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'render')
     @patch('os.path.join')
     @patch('os.path.exists')
+    @patch('os.symlink')
     @patch('shutil.copytree')
     @patch('shutil.rmtree')
     @patch.object(utils, 'apt_install')
     @patch.object(utils, 'apt_update')
     def test_git_post_install(self, apt_update, apt_install, rmtree, copytree,
-                              exists, join, render, service_restart,
+                              symlink, exists, join, render, service_restart,
                               git_src_dir):
         projects_yaml = openstack_origin_git
         join.return_value = 'joined-string'
@@ -633,6 +634,10 @@ class NovaComputeUtilsTests(CharmTestCase):
             call('joined-string', '/etc/nova'),
         ]
         copytree.assert_has_calls(expected)
+        expected = [
+            call('joined-string', '/usr/local/bin/nova-rootwrap'),
+        ]
+        symlink.assert_has_calls(expected, any_order=True)
 
         service_name = 'nova-compute'
         nova_user = 'nova'
