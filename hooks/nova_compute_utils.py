@@ -700,6 +700,17 @@ def git_post_install(projects_yaml):
             shutil.rmtree(c['dest'])
         shutil.copytree(c['src'], c['dest'])
 
+    symlinks = [
+        {'src': os.path.join(git_pip_venv_dir(projects_yaml),
+                             'bin/nova-rootwrap'),
+         'link': '/usr/local/bin/nova-rootwrap'},
+    ]
+
+    for s in symlinks:
+        if os.path.lexists(s['link']):
+            os.remove(s['link'])
+        os.symlink(s['src'], s['link'])
+
     virt_type = VIRT_TYPES[config('virt-type')][0]
     nova_compute_conf = 'git/{}.conf'.format(virt_type)
     render(nova_compute_conf, '/etc/nova/nova-compute.conf', {}, perms=0o644)
