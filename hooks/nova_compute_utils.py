@@ -46,7 +46,12 @@ from charmhelpers.contrib.openstack.utils import (
     git_clone_and_install,
     git_src_dir,
     git_pip_venv_dir,
+    git_yaml_value,
     os_release
+)
+
+from charmhelpers.contrib.python.packages import (
+    pip_install,
 )
 
 from nova_compute_context import (
@@ -79,6 +84,7 @@ BASE_GIT_PACKAGES = [
     'libvirt-bin',
     'libxml2-dev',
     'libxslt1-dev',
+    'libvirt-dev',
     'python-dev',
     'python-pip',
     'python-setuptools',
@@ -689,6 +695,14 @@ def git_pre_install():
 
 def git_post_install(projects_yaml):
     """Perform post-install setup."""
+    http_proxy = git_yaml_value(projects_yaml, 'http_proxy')
+    if http_proxy:
+        pip_install('libvirt-python', proxy=http_proxy,
+                    venv=git_pip_venv_dir(projects_yaml))
+    else:
+        pip_install('libvirt-python',
+                    venv=git_pip_venv_dir(projects_yaml))
+
     src_etc = os.path.join(git_src_dir(projects_yaml, 'nova'), 'etc/nova')
     configs = [
         {'src': src_etc,
