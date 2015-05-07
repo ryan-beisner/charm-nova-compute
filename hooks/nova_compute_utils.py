@@ -45,11 +45,8 @@ from charmhelpers.contrib.openstack.utils import (
     git_install_requested,
     git_clone_and_install,
     git_src_dir,
+    git_pip_venv_dir,
     os_release
-)
-
-from charmhelpers.contrib.python.packages import (
-    pip_get_virtualenv_path,
 )
 
 from nova_compute_context import (
@@ -711,7 +708,7 @@ def git_post_install(projects_yaml):
     service_name = 'nova-compute'
     nova_user = 'nova'
     start_dir = '/var/lib/nova'
-    bin_dir = os.path.join(pip_get_virtualenv_path(), 'bin')
+    bin_dir = os.path.join(git_pip_venv_dir(), 'bin')
     nova_conf = '/etc/nova/nova.conf'
     nova_api_metadata_context = {
         'service_description': 'Nova Metadata API server',
