@@ -708,7 +708,7 @@ def git_post_install(projects_yaml):
     service_name = 'nova-compute'
     nova_user = 'nova'
     start_dir = '/var/lib/nova'
-    bin_dir = os.path.join(git_pip_venv_dir(), 'bin')
+    bin_dir = os.path.join(git_pip_venv_dir(projects_yaml), 'bin')
     nova_conf = '/etc/nova/nova.conf'
     nova_api_metadata_context = {
         'service_description': 'Nova Metadata API server',
