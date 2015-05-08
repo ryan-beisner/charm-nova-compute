@@ -20,6 +20,7 @@ TO_PATCH = [
     'os_release',
     'log',
     'neutron_plugin_attribute',
+    'pip_install',
     'related_units',
     'relation_ids',
     'relation_get',
