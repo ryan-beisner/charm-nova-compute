@@ -85,6 +85,7 @@ BASE_GIT_PACKAGES = [
     'libxml2-dev',
     'libxslt1-dev',
     'libvirt-dev',
+    'libyaml-dev',
     'python-dev',
     'python-pip',
     'python-setuptools',
