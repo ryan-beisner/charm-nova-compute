@@ -20,6 +20,7 @@ TO_PATCH = [
     'os_release',
     'log',
     'neutron_plugin_attribute',
+    'pip_install',
     'related_units',
     'relation_ids',
     'relation_get',
@@ -617,22 +618,30 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'git_src_dir')
     @patch.object(utils, 'service_restart')
     @patch.object(utils, 'render')
+    @patch.object(utils, 'git_pip_venv_dir')
     @patch('os.path.join')
     @patch('os.path.exists')
+    @patch('os.symlink')
     @patch('shutil.copytree')
     @patch('shutil.rmtree')
+    @patch('subprocess.check_call')
     @patch.object(utils, 'apt_install')
     @patch.object(utils, 'apt_update')
-    def test_git_post_install(self, apt_update, apt_install, rmtree, copytree,
-                              exists, join, render, service_restart,
-                              git_src_dir):
+    def test_git_post_install(self, apt_update, apt_install, check_call,
+                              rmtree, copytree, symlink, exists, join, venv,
+                              render, service_restart, git_src_dir):
         projects_yaml = openstack_origin_git
         join.return_value = 'joined-string'
+        venv.return_value = '/mnt/openstack-git/venv'
         utils.git_post_install(projects_yaml)
         expected = [
             call('joined-string', '/etc/nova'),
         ]
         copytree.assert_has_calls(expected)
+        expected = [
+            call('joined-string', '/usr/local/bin/nova-rootwrap'),
+        ]
+        symlink.assert_has_calls(expected, any_order=True)
 
         service_name = 'nova-compute'
         nova_user = 'nova'
@@ -644,7 +653,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'user_name': nova_user,
             'start_dir': start_dir,
             'process_name': 'nova-api-metadata',
-            'executable_name': '/usr/local/bin/nova-api-metadata',
+            'executable_name': 'joined-string',
             'config_files': [nova_conf],
         }
         nova_api_context = {
@@ -653,7 +662,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'user_name': nova_user,
             'start_dir': start_dir,
             'process_name': 'nova-api',
-            'executable_name': '/usr/local/bin/nova-api',
+            'executable_name': 'joined-string',
             'config_files': [nova_conf],
         }
         nova_compute_context = {
@@ -661,7 +670,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'service_name': service_name,
             'user_name': nova_user,
             'process_name': 'nova-compute',
-            'executable_name': '/usr/local/bin/nova-compute',
+            'executable_name': 'joined-string',
             'config_files': [nova_conf, '/etc/nova/nova-compute.conf'],
         }
         nova_network_context = {
@@ -670,7 +679,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'user_name': nova_user,
             'start_dir': start_dir,
             'process_name': 'nova-network',
-            'executable_name': '/usr/local/bin/nova-network',
+            'executable_name': 'joined-string',
             'config_files': [nova_conf],
         }
         expected = [
