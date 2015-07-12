@@ -70,21 +70,16 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         nova_config = {'config-flags': 'auto_assign_floating_ip=False',
                        'enable-live-migration': 'False'}
         if self.git:
-            release = self._get_openstack_release_string()
-            reqs_branch = 'stable/' + release
-            if self._get_openstack_release() == self.trusty_icehouse:
-                nova_branch = release + '-eol'
-            else:
-                nova_branch = 'stable/' + release
+            branch = 'stable/' + self._get_openstack_release_string()
             amulet_http_proxy = os.environ.get('AMULET_HTTP_PROXY')
             openstack_origin_git = {
                 'repositories': [
                     {'name': 'requirements',
                      'repository': 'git://github.com/openstack/requirements',
-                     'branch': reqs_branch},
+                     'branch': branch},
                     {'name': 'nova',
-                     'repository': 'git://github.com/openstack/nova',
-                     'branch': nova_branch},
+                     'repository': 'git://github.com/coreycb/nova',
+                     'branch': branch},
                 ],
                 'directory': '/mnt/openstack-git',
                 'http_proxy': amulet_http_proxy,
