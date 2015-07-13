@@ -91,7 +91,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                     {'name': 'nova',
                      'repository': nova_repo,
                      'branch': nova_branch},
-                ], 
+                ],
                 'directory': '/mnt/openstack-git',
                 'http_proxy': amulet_http_proxy,
                 'https_proxy': amulet_http_proxy,
