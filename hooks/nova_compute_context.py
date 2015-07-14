@@ -178,6 +178,17 @@ class NovaComputeCephContext(context.CephContext):
         elif config('libvirt-image-backend') == 'lvm':
             ctxt['libvirt_images_type'] = 'lvm'
 
+        rbd_cache = config('rbd-client-cache') or ""
+        if rbd_cache.lower() == "enabled":
+            # We use write-though only to be safe for migration
+            ctxt['rbd_client_cache_settings'] = \
+                {'rbd cache': 'true',
+                 'rbd cache size': '64 MiB',
+                 'rbd cache max dirty': '0 MiB',
+                 'rbd cache writethrough until flush': 'true'}
+        elif rbd_cache.lower() == "disabled":
+            ctxt['rbd_client_cache_settings'] = {'rbd cache': 'false'}
+
         return ctxt
 
 
