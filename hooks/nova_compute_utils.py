@@ -423,15 +423,17 @@ def network_manager():
     Obtain the network manager advertised by nova-c-c, renaming to Quantum
     if required
     '''
-    manager = _network_config().get('network_manager')
-    if manager:
-        manager = manager.lower()
-        if manager not in ['quantum', 'neutron']:
-            return manager
-        if os_release('nova-common') in ['folsom', 'grizzly']:
-            return 'quantum'
-        else:
-            return 'neutron'
+    manager = None
+    if neutron_plugin_legacy_mode():
+        manager = _network_config().get('network_manager')
+        if manager:
+            manager = manager.lower()
+            if manager not in ['quantum', 'neutron']:
+                return manager
+            if os_release('nova-common') in ['folsom', 'grizzly']:
+                return 'quantum'
+            else:
+                return 'neutron'
     return manager
 
 
