@@ -192,7 +192,7 @@ class NovaComputeCephContext(context.CephContext):
 
             asok_path = '/var/run/ceph/'
             if not os.path.isdir(asok_path):
-                os.makedir(asok_path)
+                os.mkdir(asok_path)
 
         elif rbd_cache.lower() == "disabled":
             ctxt['rbd_client_cache_settings'] = {'rbd cache': 'false'}
