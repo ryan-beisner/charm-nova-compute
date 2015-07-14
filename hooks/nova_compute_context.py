@@ -1,5 +1,7 @@
 import uuid
+import os
 import platform
+
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -187,6 +189,11 @@ class NovaComputeCephContext(context.CephContext):
                  'rbd cache max dirty': '0 MiB',
                  'rbd cache writethrough until flush': 'true',
                  'admin socket': '/var/run/ceph/rbd-client-$pid.asok'}
+
+            asok_path = '/var/run/ceph/'
+            if not os.path.isdir(asok_path):
+                os.makedir(asok_path)
+
         elif rbd_cache.lower() == "disabled":
             ctxt['rbd_client_cache_settings'] = {'rbd cache': 'false'}
 
