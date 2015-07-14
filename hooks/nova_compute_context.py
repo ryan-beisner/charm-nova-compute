@@ -185,7 +185,8 @@ class NovaComputeCephContext(context.CephContext):
                 {'rbd cache': 'true',
                  'rbd cache size': '64 MiB',
                  'rbd cache max dirty': '0 MiB',
-                 'rbd cache writethrough until flush': 'true'}
+                 'rbd cache writethrough until flush': 'true',
+                 'admin socket': '/var/run/ceph/rbd-client-$pid.asok'}
         elif rbd_cache.lower() == "disabled":
             ctxt['rbd_client_cache_settings'] = {'rbd cache': 'false'}
 
