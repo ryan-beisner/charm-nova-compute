@@ -891,8 +891,6 @@ class NeutronContext(OSContextGenerator):
         return ctxt
 
     def __call__(self):
-        self._ensure_packages()
-
         if self.network_manager not in ['quantum', 'neutron']:
             return {}
 
