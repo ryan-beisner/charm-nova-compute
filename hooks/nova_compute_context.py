@@ -444,7 +444,9 @@ class NeutronComputeContext(context.NeutronContext):
         if not ovs_ctxt:
             return {}
 
-        self._ensure_bridge()
+        if config('manage-neutron-plugin-legacy-mode'):
+            self._ensure_packages()
+            self._ensure_bridge()
 
         ovs_ctxt['local_ip'] = \
             get_address_in_network(config('os-data-network'),

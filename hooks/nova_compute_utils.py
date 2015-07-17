@@ -158,6 +158,10 @@ BASE_RESOURCE_MAP = {
                          interface='nova-ceilometer',
                          service='nova',
                          config_file=NOVA_CONF),
+                     context.SubordinateConfigContext(
+                         interface='neutron-plugin',
+                         service='nova-compute',
+                         config_file=NOVA_CONF),
                      InstanceConsoleContext(),
                      context.ZeroMQContext(),
                      context.NotificationDriverContext(),
