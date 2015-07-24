@@ -4,7 +4,13 @@ import pwd
 
 from base64 import b64decode
 from copy import deepcopy
-from subprocess import check_call, check_output, CalledProcessError
+from subprocess import (
+    PIPE,
+    Popen,
+    check_call,
+    check_output,
+    CalledProcessError
+)
 
 from charmhelpers.fetch import (
     apt_update,
@@ -123,6 +129,7 @@ GIT_PACKAGE_BLACKLIST = [
     'nova-compute',
     'nova-compute-kvm',
     'nova-compute-lxc',
+    'nova-compute-lxd',
     'nova-compute-qemu',
     'nova-compute-uml',
     'nova-compute-xen',
@@ -578,19 +585,21 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
     check_call(cmd)
 
 
-def configure_lxd(user='nova'):
+def configure_lxd(settings, user='nova'):
     ''' Configure lxd use for nova user '''
-    if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
-        raise Exception("LXD is not supported for Ubuntu "
-                        "versions less than 15.04 (vivid)")
+    if not git_install_requested():
+        if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
+            raise Exception("LXD is not supported for Ubuntu "
+                            "versions less than 15.04 (vivid)")
 
     configure_subuid(user='nova')
-    configure_lxd_daemon(user='nova')
+    configure_lxd_daemon(settings, user='nova')
+    configure_lxd_host(settings, user='nova')
 
     service_restart('nova-compute')
 
 
-def configure_lxd_daemon(user):
+def configure_lxd_daemon(settings, user):
     add_user_to_group(user, 'lxd')
     service_restart('lxd')
     # NOTE(jamespage): Call list function to initialize cert
@@ -601,6 +610,18 @@ def configure_lxd_daemon(user):
 def lxc_list(user):
     cmd = ['sudo', '-u', user, 'lxc', 'list']
     check_call(cmd)
+
+
+@retry_on_exception(5, base_delay=2, exc_type=CalledProcessError)
+def configure_lxd_host(settings, user):
+    cmd = ['sudo', '-u', user, 'lxc', 'config', 'set',
+           'core.trust_password', settings['lxd_password']]
+    check_call(cmd)
+
+    p = Popen(['sudo', '-u', user, 'lxc', 'remote', 'add',
+               settings['lxd_hostname'], '%s:8443' % settings['lxd_address'],
+               '--accept-certificate'], stdin=PIPE)
+    p.communicate(input='%s\n' % settings['lxd_password'])
 
 
 def configure_subuid(user):

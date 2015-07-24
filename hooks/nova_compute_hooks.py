@@ -130,9 +130,6 @@ def config_changed():
         fp = config('instances-path')
         fix_path_ownership(fp, user='nova')
 
-    if config('virt-type').lower() == 'lxd':
-        configure_lxd(user='nova')
-
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
     for rid in relation_ids('zeromq-configuration'):
         zeromq_configuration_relation_joined(rid)
@@ -377,6 +374,13 @@ def neutron_plugin_changed():
     else:
         apt_purge('nova-api-metadata', fatal=True)
     CONFIGS.write(NOVA_CONF)
+
+
+@hooks.hook('lxd-relation-joined')
+@restart_on_change(restart_map())
+def lxd_joined():
+    settings = relation_get()
+    configure_lxd(settings, user='nova')
 
 
 def main():
