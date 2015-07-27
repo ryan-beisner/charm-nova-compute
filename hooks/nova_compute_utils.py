@@ -45,7 +45,13 @@ from charmhelpers.contrib.openstack.utils import (
     git_install_requested,
     git_clone_and_install,
     git_src_dir,
+    git_pip_venv_dir,
+    git_yaml_value,
     os_release
+)
+
+from charmhelpers.contrib.python.packages import (
+    pip_install,
 )
 
 from nova_compute_context import (
@@ -73,9 +79,13 @@ BASE_PACKAGES = [
 ]
 
 BASE_GIT_PACKAGES = [
+    'libffi-dev',
+    'libssl-dev',
     'libvirt-bin',
     'libxml2-dev',
     'libxslt1-dev',
+    'libvirt-dev',
+    'libyaml-dev',
     'python-dev',
     'python-pip',
     'python-setuptools',
@@ -147,6 +157,10 @@ BASE_RESOURCE_MAP = {
                      context.SubordinateConfigContext(
                          interface='nova-ceilometer',
                          service='nova',
+                         config_file=NOVA_CONF),
+                     context.SubordinateConfigContext(
+                         interface='neutron-plugin',
+                         service='nova-compute',
                          config_file=NOVA_CONF),
                      InstanceConsoleContext(),
                      context.ZeroMQContext(),
@@ -686,6 +700,14 @@ def git_pre_install():
 
 def git_post_install(projects_yaml):
     """Perform post-install setup."""
+    http_proxy = git_yaml_value(projects_yaml, 'http_proxy')
+    if http_proxy:
+        pip_install('libvirt-python', proxy=http_proxy,
+                    venv=git_pip_venv_dir(projects_yaml))
+    else:
+        pip_install('libvirt-python',
+                    venv=git_pip_venv_dir(projects_yaml))
+
     src_etc = os.path.join(git_src_dir(projects_yaml, 'nova'), 'etc/nova')
     configs = [
         {'src': src_etc,
@@ -697,6 +719,18 @@ def git_post_install(projects_yaml):
             shutil.rmtree(c['dest'])
         shutil.copytree(c['src'], c['dest'])
 
+    # NOTE(coreycb): Need to find better solution than bin symlinks.
+    symlinks = [
+        {'src': os.path.join(git_pip_venv_dir(projects_yaml),
+                             'bin/nova-rootwrap'),
+         'link': '/usr/local/bin/nova-rootwrap'},
+    ]
+
+    for s in symlinks:
+        if os.path.lexists(s['link']):
+            os.remove(s['link'])
+        os.symlink(s['src'], s['link'])
+
     virt_type = VIRT_TYPES[config('virt-type')][0]
     nova_compute_conf = 'git/{}.conf'.format(virt_type)
     render(nova_compute_conf, '/etc/nova/nova-compute.conf', {}, perms=0o644)
@@ -705,6 +739,7 @@ def git_post_install(projects_yaml):
     service_name = 'nova-compute'
     nova_user = 'nova'
     start_dir = '/var/lib/nova'
+    bin_dir = os.path.join(git_pip_venv_dir(projects_yaml), 'bin')
     nova_conf = '/etc/nova/nova.conf'
     nova_api_metadata_context = {
         'service_description': 'Nova Metadata API server',
@@ -712,7 +747,7 @@ def git_post_install(projects_yaml):
         'user_name': nova_user,
         'start_dir': start_dir,
         'process_name': 'nova-api-metadata',
-        'executable_name': '/usr/local/bin/nova-api-metadata',
+        'executable_name': os.path.join(bin_dir, 'nova-api-metadata'),
         'config_files': [nova_conf],
     }
     nova_api_context = {
@@ -721,7 +756,7 @@ def git_post_install(projects_yaml):
         'user_name': nova_user,
         'start_dir': start_dir,
         'process_name': 'nova-api',
-        'executable_name': '/usr/local/bin/nova-api',
+        'executable_name': os.path.join(bin_dir, 'nova-api'),
         'config_files': [nova_conf],
     }
     nova_compute_context = {
@@ -729,7 +764,7 @@ def git_post_install(projects_yaml):
         'service_name': service_name,
         'user_name': nova_user,
         'process_name': 'nova-compute',
-        'executable_name': '/usr/local/bin/nova-compute',
+        'executable_name': os.path.join(bin_dir, 'nova-compute'),
         'config_files': [nova_conf, '/etc/nova/nova-compute.conf'],
     }
     nova_network_context = {
@@ -738,7 +773,7 @@ def git_post_install(projects_yaml):
         'user_name': nova_user,
         'start_dir': start_dir,
         'process_name': 'nova-network',
-        'executable_name': '/usr/local/bin/nova-network',
+        'executable_name': os.path.join(bin_dir, 'nova-network'),
         'config_files': [nova_conf],
     }
 
