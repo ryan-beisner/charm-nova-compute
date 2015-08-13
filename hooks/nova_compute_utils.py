@@ -812,7 +812,7 @@ def install_hugepages():
             hugepages = int((mem.total * hugepage_multiplier) / hugepage_size)
         else:
             hugepages = int(hugepage_config)
-        mnt_point = '/mnt/huge'
+        mnt_point = '/run/hugepages/kvm'
         hugepage_support(
             'nova',
             mnt_point=mnt_point,
