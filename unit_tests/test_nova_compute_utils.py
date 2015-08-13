@@ -30,9 +30,10 @@ TO_PATCH = [
     'add_user_to_group',
     'MetadataServiceContext',
     'lsb_release',
-    # subprocess
-    'call',
-    'check_call',
+    'charm_dir',
+    'hugepage_support',
+    'rsync',
+    'fstab_mount',
 ]
 
 OVS_PKGS = [
@@ -57,6 +58,7 @@ class NovaComputeUtilsTests(CharmTestCase):
     def setUp(self):
         super(NovaComputeUtilsTests, self).setUp(utils, TO_PATCH)
         self.config.side_effect = self.test_config.get
+        self.charm_dir.return_value = 'mycharm'
 
     @patch.object(utils, 'enable_nova_metadata')
     @patch.object(utils, 'network_manager')
@@ -714,14 +716,15 @@ class NovaComputeUtilsTests(CharmTestCase):
 
 
     @patch('psutil.virtual_memory')
-    def test_install_hugepages(self, _virt_mem):
+    @patch('subprocess.check_call')
+    @patch('subprocess.call')
+    def test_install_hugepages(self, _call, _check_call, _virt_mem):
         class mem(object):
             def __init__(self):
                 self.total = 10000000
-        self.user_exists.return_value = True
         self.test_config.set('hugepages', '10%')
         _virt_mem.side_effect = mem
-        self.call.return_value = 1
+        _call.return_value = 1
         utils.install_hugepages()
         self.hugepage_support.assert_called_with(
             'nova',
@@ -734,12 +737,13 @@ class NovaComputeUtilsTests(CharmTestCase):
             call('/etc/init.d/qemu-hugefsdir'),
             call(['update-rc.d', 'qemu-hugefsdir', 'defaults']),
         ]
-        self.check_call.assert_has_calls(check_call_calls)
+        _check_call.assert_has_calls(check_call_calls)
         self.fstab_mount.assert_called_with('/mnt/huge')
 
     @patch('psutil.virtual_memory')
-    def test_install_hugepages_explicit_size(self, _virt_mem):
-        self.user_exists.return_value = True
+    @patch('subprocess.check_call')
+    @patch('subprocess.call')
+    def test_install_hugepages_explicit_size(self, _call, _check_call, _virt_mem):
         self.test_config.set('hugepages', '2048')
         utils.install_hugepages()
         self.hugepage_support.assert_called_with(
@@ -751,9 +755,10 @@ class NovaComputeUtilsTests(CharmTestCase):
         )
 
     @patch('psutil.virtual_memory')
-    def test_install_hugepages_already_mounted(self, _virt_mem):
-        self.user_exists.return_value = True
+    @patch('subprocess.check_call')
+    @patch('subprocess.call')
+    def test_install_hugepages_already_mounted(self, _call, _check_call, _virt_mem):
         self.test_config.set('hugepages', '2048')
-        self.call.return_value = 0
+        _call.return_value = 0
         utils.install_hugepages()
         self.assertEqual(self.fstab_mount.call_args_list, [])
