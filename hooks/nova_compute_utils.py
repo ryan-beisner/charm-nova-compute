@@ -1,10 +1,11 @@
 import os
 import shutil
 import pwd
+import subprocess
 
 from base64 import b64decode
 from copy import deepcopy
-from subprocess import call, check_call, check_output, CalledProcessError
+from subprocess import check_call, check_output, CalledProcessError
 
 from charmhelpers.fetch import (
     apt_update,
@@ -819,11 +820,11 @@ def install_hugepages():
             nr_hugepages=hugepages,
             mount=False,
         )
-        if call(['mountpoint', mnt_point]):
+        if subprocess.call(['mountpoint', mnt_point]):
             fstab_mount(mnt_point)
         rsync(
             charm_dir() + '/files/qemu-hugefsdir',
             '/etc/init.d/qemu-hugefsdir'
         )
-        check_call('/etc/init.d/qemu-hugefsdir')
-        check_call(['update-rc.d', 'qemu-hugefsdir', 'defaults'])
+        subprocess.check_call('/etc/init.d/qemu-hugefsdir')
+        subprocess.check_call(['update-rc.d', 'qemu-hugefsdir', 'defaults'])
