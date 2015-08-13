@@ -177,7 +177,7 @@ BASE_RESOURCE_MAP = {
 LIBVIRT_RESOURCE_MAP = {
     QEMU_CONF: {
         'services': ['libvirt-bin'],
-        'contexts': [],
+        'contexts': [NovaComputeLibvirtContext()],
     },
     LIBVIRTD_CONF: {
         'services': ['libvirt-bin'],
