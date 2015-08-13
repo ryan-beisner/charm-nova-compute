@@ -82,6 +82,7 @@ BASE_PACKAGES = [
     'genisoimage',  # was missing as a package dependency until raring.
     'librbd1',  # bug 1440953
     'python-six',
+    'python-psutil',
 ]
 
 BASE_GIT_PACKAGES = [
