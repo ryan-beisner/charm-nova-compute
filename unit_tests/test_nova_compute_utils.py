@@ -714,7 +714,6 @@ class NovaComputeUtilsTests(CharmTestCase):
              'parted', 'python-libvirt', 'qemu', 'qemu-system',
              'qemu-utils', 'vlan', 'xen-system-amd64'], fatal=True)
 
-
     @patch('psutil.virtual_memory')
     @patch('subprocess.check_call')
     @patch('subprocess.call')
@@ -743,7 +742,8 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch('psutil.virtual_memory')
     @patch('subprocess.check_call')
     @patch('subprocess.call')
-    def test_install_hugepages_explicit_size(self, _call, _check_call, _virt_mem):
+    def test_install_hugepages_explicit_size(self, _call, _check_call,
+                                             _virt_mem):
         self.test_config.set('hugepages', '2048')
         utils.install_hugepages()
         self.hugepage_support.assert_called_with(
@@ -757,7 +757,8 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch('psutil.virtual_memory')
     @patch('subprocess.check_call')
     @patch('subprocess.call')
-    def test_install_hugepages_already_mounted(self, _call, _check_call, _virt_mem):
+    def test_install_hugepages_already_mounted(self, _call, _check_call,
+                                               _virt_mem):
         self.test_config.set('hugepages', '2048')
         _call.return_value = 0
         utils.install_hugepages()
