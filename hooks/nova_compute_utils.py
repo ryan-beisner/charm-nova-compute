@@ -4,7 +4,7 @@ import pwd
 
 from base64 import b64decode
 from copy import deepcopy
-from subprocess import check_call, check_output, CalledProcessError
+from subprocess import call, check_call, check_output, CalledProcessError
 
 from charmhelpers.fetch import (
     apt_update,
@@ -52,6 +52,12 @@ from charmhelpers.contrib.openstack.utils import (
 
 from charmhelpers.contrib.python.packages import (
     pip_install,
+)
+
+from charmhelpers.core.hugepage import hugepage_support
+from charmhelpers.core.host import (
+    fstab_mount,
+    rsync,
 )
 
 from nova_compute_context import (
@@ -787,3 +793,36 @@ def git_post_install(projects_yaml):
 
     apt_update()
     apt_install(LATE_GIT_PACKAGES, fatal=True)
+
+
+def install_hugepages():
+    """ Configure hugepages """
+    hugepage_config = config('hugepages')
+    if hugepage_config:
+        # TODO: defaults to 2M - this should probably be configurable
+        #       and support multiple pool sizes - e.g. 2M and 1G.
+        hugepage_size = 2048
+        if hugepage_config.endswith('%'):
+            import psutil
+            mem = psutil.virtual_memory()
+            hugepage_config_pct = hugepage_config.strip('%')
+            hugepage_multiplier = float(hugepage_config_pct) / 100
+            hugepages = int((mem.total * hugepage_multiplier) / hugepage_size)
+        else:
+            hugepages = int(hugepage_config)
+        mnt_point = '/mnt/huge'
+        hugepage_support(
+            'nova',
+            mnt_point=mnt_point,
+            group='root',
+            nr_hugepages=hugepages,
+            mount=False,
+        )
+        if call(['mountpoint', mnt_point]):
+            fstab_mount(mnt_point)
+        rsync(
+            charm_dir() + '/files/qemu-hugefsdir',
+            '/etc/init.d/qemu-hugefsdir'
+        )
+        check_call('/etc/init.d/qemu-hugefsdir')
+        check_call(['update-rc.d', 'qemu-hugefsdir', 'defaults'])
