@@ -30,6 +30,9 @@ TO_PATCH = [
     'add_user_to_group',
     'MetadataServiceContext',
     'lsb_release',
+    # subprocess
+    'call',
+    'check_call',
 ]
 
 OVS_PKGS = [
@@ -708,3 +711,49 @@ class NovaComputeUtilsTests(CharmTestCase):
              'iputils-arping', 'kpartx', 'kvm', 'netcat', 'open-iscsi',
              'parted', 'python-libvirt', 'qemu', 'qemu-system',
              'qemu-utils', 'vlan', 'xen-system-amd64'], fatal=True)
+
+
+    @patch('psutil.virtual_memory')
+    def test_install_hugepages(self, _virt_mem):
+        class mem(object):
+            def __init__(self):
+                self.total = 10000000
+        self.user_exists.return_value = True
+        self.test_config.set('hugepages', '10%')
+        _virt_mem.side_effect = mem
+        self.call.return_value = 1
+        utils.install_hugepages()
+        self.hugepage_support.assert_called_with(
+            'nova',
+            mnt_point='/mnt/huge',
+            group='root',
+            nr_hugepages=488,
+            mount=False,
+        )
+        check_call_calls = [
+            call('/etc/init.d/qemu-hugefsdir'),
+            call(['update-rc.d', 'qemu-hugefsdir', 'defaults']),
+        ]
+        self.check_call.assert_has_calls(check_call_calls)
+        self.fstab_mount.assert_called_with('/mnt/huge')
+
+    @patch('psutil.virtual_memory')
+    def test_install_hugepages_explicit_size(self, _virt_mem):
+        self.user_exists.return_value = True
+        self.test_config.set('hugepages', '2048')
+        utils.install_hugepages()
+        self.hugepage_support.assert_called_with(
+            'nova',
+            mnt_point='/mnt/huge',
+            group='root',
+            nr_hugepages=2048,
+            mount=False,
+        )
+
+    @patch('psutil.virtual_memory')
+    def test_install_hugepages_already_mounted(self, _virt_mem):
+        self.user_exists.return_value = True
+        self.test_config.set('hugepages', '2048')
+        self.call.return_value = 0
+        utils.install_hugepages()
+        self.assertEqual(self.fstab_mount.call_args_list, [])
