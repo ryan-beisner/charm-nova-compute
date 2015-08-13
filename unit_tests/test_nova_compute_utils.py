@@ -727,7 +727,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         utils.install_hugepages()
         self.hugepage_support.assert_called_with(
             'nova',
-            mnt_point='/mnt/huge',
+            mnt_point='/run/hugepages/kvm',
             group='root',
             nr_hugepages=488,
             mount=False,
@@ -737,7 +737,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             call(['update-rc.d', 'qemu-hugefsdir', 'defaults']),
         ]
         _check_call.assert_has_calls(check_call_calls)
-        self.fstab_mount.assert_called_with('/mnt/huge')
+        self.fstab_mount.assert_called_with('/run/hugepages/kvm')
 
     @patch('psutil.virtual_memory')
     @patch('subprocess.check_call')
@@ -748,7 +748,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         utils.install_hugepages()
         self.hugepage_support.assert_called_with(
             'nova',
-            mnt_point='/mnt/huge',
+            mnt_point='/run/hugepages/kvm',
             group='root',
             nr_hugepages=2048,
             mount=False,
