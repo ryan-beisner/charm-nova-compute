@@ -331,6 +331,8 @@ def relation_broken():
 
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
+    # NOTE: ensure psutil install for hugepages configuration
+    apt_install(filter_installed_packages(['python-psutil']))
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
 
