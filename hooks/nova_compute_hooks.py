@@ -65,6 +65,7 @@ from nova_compute_utils import (
     get_topics,
     assert_charm_supports_ipv6,
     manage_ovs,
+    install_hugepages,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -139,6 +140,8 @@ def config_changed():
 
     if is_relation_made("nrpe-external-master"):
         update_nrpe_config()
+
+    install_hugepages()
 
     CONFIGS.write_all()
 

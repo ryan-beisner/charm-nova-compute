@@ -37,6 +37,31 @@ class OSConfigException(Exception):
     pass
 
 
+def os_template_dirs(templates_dir, os_release):
+    tmpl_dirs = [(rel, os.path.join(templates_dir, rel))
+                 for rel in six.itervalues(OPENSTACK_CODENAMES)]
+
+    if not os.path.isdir(templates_dir):
+        log('Templates directory not found @ %s.' % templates_dir,
+            level=ERROR)
+        raise OSConfigException
+    dirs = [templates_dir]
+    helper_templates = os.path.join(os.path.dirname(__file__), 'templates')
+    if os.path.isdir(helper_templates):
+        dirs.append(helper_templates)
+
+    for rel, tmpl_dir in tmpl_dirs:
+        if os.path.isdir(tmpl_dir):
+            dirs.insert(0, tmpl_dir)
+        if rel == os_release:
+            break
+    ch_templates = os.path.dirname(__file__) + '/charmhelpers/contrib/openstack/templates'
+    dirs.append(ch_templates)
+    log('Template search path: %s' %
+        ' '.join(dirs), level=INFO)
+    return dirs
+
+
 def get_loader(templates_dir, os_release):
     """
     Create a jinja2.ChoiceLoader containing template dirs up to
