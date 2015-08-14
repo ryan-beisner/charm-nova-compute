@@ -10,5 +10,5 @@
 # Description:       Make sure qemu gets a temp hugetblfs dir
 ### END INIT INFO
 
-mkdir -p /mnt/huge/libvirt/qemu || true
-chown libvirt-qemu:libvirtd /mnt/huge/libvirt/qemu
+mkdir -p /run/hugepages/kvm/libvirt/qemu || true
+chown libvirt-qemu:libvirtd /run/hugepages/kvm/libvirt/qemu
