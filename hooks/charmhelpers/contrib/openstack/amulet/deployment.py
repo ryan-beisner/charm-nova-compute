@@ -53,15 +53,11 @@ class OpenStackAmuletDeployment(AmuletDeployment):
 
         if self.stable:
             for svc in other_services:
-                if svc.get('location'):
-                    continue
                 temp = 'lp:charms/{}/{}'
                 svc['location'] = temp.format(base_series,
                                               svc['name'])
         else:
             for svc in other_services:
-                if svc.get('location'):
-                    continue
                 if svc['name'] in base_charms:
                     temp = 'lp:charms/{}/{}'
                     svc['location'] = temp.format(base_series,
@@ -85,8 +81,7 @@ class OpenStackAmuletDeployment(AmuletDeployment):
                       'ceph-osd', 'ceph-radosgw']
         # Most OpenStack subordinate charms do not expose an origin option
         # as that is controlled by the principle.
-        ignore = ['cinder-ceph', 'hacluster', 'neutron-openvswitch', 'nrpe',
-                  'cisco-vpp', 'odl-controller']
+        ignore = ['cinder-ceph', 'hacluster', 'neutron-openvswitch', 'nrpe']
 
         if self.openstack:
             for svc in services:
