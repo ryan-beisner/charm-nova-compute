@@ -21,8 +21,7 @@ from charmhelpers.core import hookenv
 
 
 def render(source, target, context, owner='root', group='root',
-           perms=0o444, templates_dir=None, encoding='UTF-8',
-           template_searchpath=None):
+           perms=0o444, templates_dir=None, encoding='UTF-8'):
     """
     Render a template.
 
@@ -41,7 +40,7 @@ def render(source, target, context, owner='root', group='root',
     this will attempt to use charmhelpers.fetch.apt_install to install it.
     """
     try:
-        from jinja2 import ChoiceLoader, FileSystemLoader, Environment, exceptions
+        from jinja2 import FileSystemLoader, Environment, exceptions
     except ImportError:
         try:
             from charmhelpers.fetch import apt_install
@@ -51,17 +50,11 @@ def render(source, target, context, owner='root', group='root',
                         level=hookenv.ERROR)
             raise
         apt_install('python-jinja2', fatal=True)
-        from jinja2 import ChoiceLoader, FileSystemLoader, Environment, exceptions
+        from jinja2 import FileSystemLoader, Environment, exceptions
 
-    if template_searchpath:
-        fs_loaders = []
-        for tmpl_dir in template_searchpath:
-            fs_loaders.append(FileSystemLoader(tmpl_dir))
-        loader = ChoiceLoader(fs_loaders) 
-    else:
-        if templates_dir is None:
-            templates_dir = os.path.join(hookenv.charm_dir(), 'templates')
-        loader = Environment(loader=FileSystemLoader(templates_dir))
+    if templates_dir is None:
+        templates_dir = os.path.join(hookenv.charm_dir(), 'templates')
+    loader = Environment(loader=FileSystemLoader(templates_dir))
     try:
         source = source
         template = loader.get_template(source)
