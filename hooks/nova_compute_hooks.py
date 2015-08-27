@@ -285,7 +285,7 @@ def ceph_changed():
 
     # With some refactoring, this can move into NovaComputeCephContext
     # and allow easily extended to support other compute flavors.
-    if config('virt-type') in ['kvm', 'qemu', 'lxc']:
+    if config('virt-type') in ['kvm', 'qemu', 'lxc'] and relation_get('key'):
         create_libvirt_secret(secret_file=CEPH_SECRET,
                               secret_uuid=CEPH_SECRET_UUID,
                               key=relation_get('key'))
