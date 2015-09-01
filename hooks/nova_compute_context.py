@@ -124,6 +124,9 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('disk-cachemodes'):
             ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
+        if config('hugepages'):
+            ctxt['hugepages'] = True
+
         ctxt['host_uuid'] = '%s' % uuid.uuid4()
         return ctxt
 
