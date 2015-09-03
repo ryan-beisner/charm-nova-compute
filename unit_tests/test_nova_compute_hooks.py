@@ -57,6 +57,7 @@ TO_PATCH = [
     # socket
     'gethostname',
     'create_sysctl',
+    'install_hugepages',
 ]
 
 
