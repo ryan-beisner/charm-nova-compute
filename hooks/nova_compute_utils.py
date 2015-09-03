@@ -1,6 +1,7 @@
 import os
 import shutil
 import pwd
+import subprocess
 
 from base64 import b64decode
 from copy import deepcopy
@@ -60,6 +61,12 @@ from charmhelpers.contrib.python.packages import (
     pip_install,
 )
 
+from charmhelpers.core.hugepage import hugepage_support
+from charmhelpers.core.host import (
+    fstab_mount,
+    rsync,
+)
+
 from nova_compute_context import (
     CloudComputeContext,
     MetadataServiceContext,
@@ -82,6 +89,7 @@ BASE_PACKAGES = [
     'genisoimage',  # was missing as a package dependency until raring.
     'librbd1',  # bug 1440953
     'python-six',
+    'python-psutil',
 ]
 
 BASE_GIT_PACKAGES = [
@@ -177,7 +185,7 @@ BASE_RESOURCE_MAP = {
 LIBVIRT_RESOURCE_MAP = {
     QEMU_CONF: {
         'services': ['libvirt-bin'],
-        'contexts': [],
+        'contexts': [NovaComputeLibvirtContext()],
     },
     LIBVIRTD_CONF: {
         'services': ['libvirt-bin'],
@@ -808,3 +816,36 @@ def git_post_install(projects_yaml):
 
     apt_update()
     apt_install(LATE_GIT_PACKAGES, fatal=True)
+
+
+def install_hugepages():
+    """ Configure hugepages """
+    hugepage_config = config('hugepages')
+    if hugepage_config:
+        # TODO: defaults to 2M - this should probably be configurable
+        #       and support multiple pool sizes - e.g. 2M and 1G.
+        hugepage_size = 2048
+        if hugepage_config.endswith('%'):
+            import psutil
+            mem = psutil.virtual_memory()
+            hugepage_config_pct = hugepage_config.strip('%')
+            hugepage_multiplier = float(hugepage_config_pct) / 100
+            hugepages = int((mem.total * hugepage_multiplier) / hugepage_size)
+        else:
+            hugepages = int(hugepage_config)
+        mnt_point = '/run/hugepages/kvm'
+        hugepage_support(
+            'nova',
+            mnt_point=mnt_point,
+            group='root',
+            nr_hugepages=hugepages,
+            mount=False,
+        )
+        if subprocess.call(['mountpoint', mnt_point]):
+            fstab_mount(mnt_point)
+        rsync(
+            charm_dir() + '/files/qemu-hugefsdir',
+            '/etc/init.d/qemu-hugefsdir'
+        )
+        subprocess.check_call('/etc/init.d/qemu-hugefsdir')
+        subprocess.check_call(['update-rc.d', 'qemu-hugefsdir', 'defaults'])

@@ -65,6 +65,7 @@ from nova_compute_utils import (
     get_topics,
     assert_charm_supports_ipv6,
     manage_ovs,
+    install_hugepages,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -136,6 +137,9 @@ def config_changed():
 
     if is_relation_made("nrpe-external-master"):
         update_nrpe_config()
+
+    if config('hugepages'):
+        install_hugepages()
 
     CONFIGS.write_all()
 
@@ -325,6 +329,8 @@ def relation_broken():
 
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
+    # NOTE: ensure psutil install for hugepages configuration
+    apt_install(filter_installed_packages(['python-psutil']))
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
 
