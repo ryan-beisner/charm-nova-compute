@@ -618,14 +618,22 @@ def lxc_list(user):
 
 @retry_on_exception(5, base_delay=2, exc_type=CalledProcessError)
 def configure_lxd_host(settings, user):
-    cmd = ['sudo', '-u', user, 'lxc', 'config', 'set',
-           'core.trust_password', settings['lxd_password']]
-    check_call(cmd)
+    if lsb_release()['DISTRIB_CODENAME'].lower() > "vivid":
+        cmd = ['sudo', '-u', user, 'lxc', 'config', 'set',
+               'core.trust_password', settings['lxd_password']]
+        check_call(cmd)
 
-    p = Popen(['sudo', '-u', user, 'lxc', 'remote', 'add',
-               settings['lxd_hostname'], '%s:8443' % settings['lxd_address'],
-               '--accept-certificate'], stdin=PIPE)
-    p.communicate(input='%s\n' % settings['lxd_password'])
+        cmd = ['sudo', '-u', user, 'lxc', 'config', 'core.https_address option',
+               settings['lxd_address']]
+        check_call(cmd)
+
+    if lsb_release()['DISTRIB_CODENAME'].lower() == "vivid";
+        log('Loading kernel module', level=INFO)
+        cmd = ['modprobe', 'overlay']
+        check_call(cmd)
+        with open('/etc/modules', 'r+') as modules:
+            if module not in modules.read():
+                modules.write(module)
 
 
 def configure_subuid(user):

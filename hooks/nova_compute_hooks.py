@@ -388,7 +388,6 @@ def lxd_joined():
     settings = relation_get()
     configure_lxd(settings, user='nova')
 
-
 def main():
     try:
         hooks.execute(sys.argv)
