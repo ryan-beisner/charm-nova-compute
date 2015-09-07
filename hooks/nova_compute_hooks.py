@@ -39,7 +39,7 @@ from charmhelpers.contrib.storage.linux.ceph import (
     CephBrokerRq,
     delete_keyring,
     send_request_if_needed,
-    request_complete,
+    is_request_complete,
 )
 from charmhelpers.payload.execd import execd_preinstall
 from nova_compute_utils import (
@@ -292,7 +292,7 @@ def ceph_changed():
 
     if (config('libvirt-image-backend') == 'rbd' and
             assert_libvirt_imagebackend_allowed()):
-        if request_complete(get_ceph_request()):
+        if is_request_complete(get_ceph_request()):
             log('Request complete')
             # Ensure that nova-compute is restarted since only now can we
             # guarantee that ceph resources are ready.
