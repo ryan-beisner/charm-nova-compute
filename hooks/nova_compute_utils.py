@@ -627,7 +627,7 @@ def configure_lxd_host(settings, user):
                settings['lxd_address']]
         check_call(cmd)
 
-    if lsb_release()['DISTRIB_CODENAME'].lower() == "vivid";
+    if lsb_release()['DISTRIB_CODENAME'].lower() == "vivid":
         log('Loading kernel module', level=INFO)
         cmd = ['modprobe', 'overlay']
         check_call(cmd)
