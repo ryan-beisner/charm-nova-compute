@@ -622,11 +622,10 @@ def configure_lxd_host(settings, user):
     if ubuntu_release > "vivid":
         log('>= Wily deployment - configuring LXD trust password and address',
             level=INFO)
-        cmd = ['lxc', 'config', 'set',
+        cmd = ['sudo', '-u', user, 'lxc', 'config', 'set',
                'core.trust_password', settings['lxd_password']]
         check_call(cmd)
-
-        cmd = ['lxc', 'config', 'set',
+        cmd = ['sudo', '-u', user, 'lxc', 'config', 'set',
                'core.https_address', settings['lxd_address']]
         check_call(cmd)
     elif ubuntu_release == "vivid":
