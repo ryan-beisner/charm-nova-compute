@@ -618,7 +618,10 @@ def lxc_list(user):
 
 @retry_on_exception(5, base_delay=2, exc_type=CalledProcessError)
 def configure_lxd_host(settings, user):
-    if lsb_release()['DISTRIB_CODENAME'].lower() > "vivid":
+    ubuntu_release = lsb_release()['DISTRIB_CODENAME'].lower()
+    if ubuntu_release > "vivid":
+        log('>= Wily deployment - configuring LXD trust password and address',
+            level=INFO)
         cmd = ['sudo', '-u', user, 'lxc', 'config', 'set',
                'core.trust_password', settings['lxd_password']]
         check_call(cmd)
@@ -626,14 +629,13 @@ def configure_lxd_host(settings, user):
         cmd = ['sudo', '-u', user, 'lxc', 'config', 'core.https_address option',
                settings['lxd_address']]
         check_call(cmd)
-
-    if lsb_release()['DISTRIB_CODENAME'].lower() == "vivid":
-        log('Loading kernel module', level=INFO)
+    elif ubuntu_release == "vivid":
+        log('Vivid deployment - loading overlay kernel module', level=INFO)
         cmd = ['modprobe', 'overlay']
         check_call(cmd)
         with open('/etc/modules', 'r+') as modules:
-            if module not in modules.read():
-                modules.write(module)
+            if 'overlay' not in modules.read():
+                modules.write('overlay')
 
 
 def configure_subuid(user):
