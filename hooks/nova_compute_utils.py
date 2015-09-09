@@ -622,12 +622,12 @@ def configure_lxd_host(settings, user):
     if ubuntu_release > "vivid":
         log('>= Wily deployment - configuring LXD trust password and address',
             level=INFO)
-        cmd = ['sudo', '-u', user, 'lxc', 'config', 'set',
+        cmd = ['lxc', 'config', 'set',
                'core.trust_password', settings['lxd_password']]
         check_call(cmd)
 
-        cmd = ['sudo', '-u', user, 'lxc', 'config', 'core.https_address option',
-               settings['lxd_address']]
+        cmd = ['lxc', 'config', 'set',
+               'core.https_address', settings['lxd_address']]
         check_call(cmd)
     elif ubuntu_release == "vivid":
         log('Vivid deployment - loading overlay kernel module', level=INFO)
