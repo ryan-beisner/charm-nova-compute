@@ -54,6 +54,9 @@ TO_PATCH = [
     # misc_utils
     'ensure_ceph_keyring',
     'execd_preinstall',
+    'assert_libvirt_imagebackend_allowed',
+    'is_request_complete',
+    'send_request_if_needed',
     # socket
     'gethostname',
     'create_sysctl',
@@ -450,6 +453,9 @@ class NovaComputeRelationsTests(CharmTestCase):
     @patch.object(hooks, 'CONFIGS')
     def test_ceph_changed_with_key_and_relation_data(self, configs,
                                                      service_name):
+        self.test_config.set('libvirt-image-backend', 'rbd')
+        self.is_request_complete.return_value = True
+        self.assert_libvirt_imagebackend_allowed.return_value = True
         configs.complete_contexts = MagicMock()
         configs.complete_contexts.return_value = ['ceph']
         configs.write = MagicMock()
@@ -462,6 +468,7 @@ class NovaComputeRelationsTests(CharmTestCase):
             call('/etc/nova/nova.conf'),
         ]
         self.assertEquals(ex, configs.write.call_args_list)
+        self.service_restart.assert_called_with('nova-compute')
 
     @patch.object(hooks, 'CONFIGS')
     def test_neutron_plugin_changed(self, configs):
