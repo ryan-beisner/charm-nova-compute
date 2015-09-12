@@ -6,7 +6,6 @@ from charmhelpers.core.hookenv import (
     config,
     is_relation_made,
     log,
-    INFO,
     ERROR,
     relation_ids,
     relation_get,
@@ -38,8 +37,9 @@ from charmhelpers.contrib.openstack.utils import (
 from charmhelpers.contrib.storage.linux.ceph import (
     ensure_ceph_keyring,
     CephBrokerRq,
-    CephBrokerRsp,
     delete_keyring,
+    send_request_if_needed,
+    is_request_complete,
 )
 from charmhelpers.payload.execd import execd_preinstall
 from nova_compute_utils import (
@@ -264,6 +264,13 @@ def ceph_joined():
     service_restart('libvirt-bin')
 
 
+def get_ceph_request():
+    rq = CephBrokerRq()
+    replicas = config('ceph-osd-replication-count')
+    rq.add_op_create_pool(name=config('rbd-pool'), replica_count=replicas)
+    return rq
+
+
 @hooks.hook('ceph-relation-changed')
 @restart_on_change(restart_map())
 def ceph_changed():
@@ -282,36 +289,20 @@ def ceph_changed():
 
     # With some refactoring, this can move into NovaComputeCephContext
     # and allow easily extended to support other compute flavors.
-    if config('virt-type') in ['kvm', 'qemu', 'lxc']:
+    if config('virt-type') in ['kvm', 'qemu', 'lxc'] and relation_get('key'):
         create_libvirt_secret(secret_file=CEPH_SECRET,
                               secret_uuid=CEPH_SECRET_UUID,
                               key=relation_get('key'))
 
     if (config('libvirt-image-backend') == 'rbd' and
             assert_libvirt_imagebackend_allowed()):
-        settings = relation_get()
-        if settings and 'broker_rsp' in settings:
-            rsp = CephBrokerRsp(settings['broker_rsp'])
-            # Non-zero return code implies failure
-            if rsp.exit_code:
-                log("Ceph broker request failed (rc=%s, msg=%s)" %
-                    (rsp.exit_code, rsp.exit_msg), level=ERROR)
-                return
-
-            log("Ceph broker request succeeded (rc=%s, msg=%s)" %
-                (rsp.exit_code, rsp.exit_msg), level=INFO)
+        if is_request_complete(get_ceph_request()):
+            log('Request complete')
             # Ensure that nova-compute is restarted since only now can we
             # guarantee that ceph resources are ready.
-            if config('libvirt-image-backend') == 'rbd':
-                service_restart('nova-compute')
+            service_restart('nova-compute')
         else:
-            rq = CephBrokerRq()
-            replicas = config('ceph-osd-replication-count')
-            rq.add_op_create_pool(name=config('rbd-pool'),
-                                  replica_count=replicas)
-            for rid in relation_ids('ceph'):
-                relation_set(broker_req=rq.request)
-                log("Request(s) sent to Ceph broker (rid=%s)" % (rid))
+            send_request_if_needed(get_ceph_request())
 
 
 @hooks.hook('ceph-relation-broken')
