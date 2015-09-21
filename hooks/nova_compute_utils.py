@@ -849,6 +849,7 @@ def install_hugepages():
             group='root',
             nr_hugepages=hugepages,
             mount=False,
+            set_shmmax=True,
         )
         if subprocess.call(['mountpoint', mnt_point]):
             fstab_mount(mnt_point)

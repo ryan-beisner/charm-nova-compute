@@ -731,6 +731,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             group='root',
             nr_hugepages=488,
             mount=False,
+            set_shmmax=True,
         )
         check_call_calls = [
             call('/etc/init.d/qemu-hugefsdir'),
@@ -752,6 +753,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             group='root',
             nr_hugepages=2048,
             mount=False,
+            set_shmmax=True,
         )
 
     @patch('psutil.virtual_memory')
