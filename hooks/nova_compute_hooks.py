@@ -373,11 +373,15 @@ def neutron_plugin_changed():
     CONFIGS.write(NOVA_CONF)
 
 
-@hooks.hook('lxd-relation-joined')
+@hooks.hook('lxd-relation-changed')
 @restart_on_change(restart_map())
 def lxd_joined():
-    settings = relation_get()
-    configure_lxd(settings, user='nova')
+    settings = {
+        'lxd_password': relation_get('lxd_password'),
+        'lxd_address': relation_get('lxd_address'),
+    }
+    if all(settings):
+        configure_lxd(settings, user='nova')
 
 def main():
     try:
