@@ -589,22 +589,14 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
     check_call(cmd)
 
 
-def configure_lxd(settings, user='nova'):
+def configure_lxd(user='nova'):
     ''' Configure lxd use for nova user '''
     if not git_install_requested():
         if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
             raise Exception("LXD is not supported for Ubuntu "
                             "versions less than 15.04 (vivid)")
 
-    configure_subuid(user='nova')
-    configure_lxd_daemon(settings, user='nova')
-    service_restart('nova-compute')
-
-
-def configure_lxd_daemon(settings, user):
-    add_user_to_group(user, 'lxd')
-    service_restart('lxd')
-    # NOTE(jamespage): Call list function to initialize cert
+    configure_subuid(user)
     lxc_list(user)
 
 
