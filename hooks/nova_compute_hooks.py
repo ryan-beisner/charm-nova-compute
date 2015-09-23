@@ -380,7 +380,7 @@ def lxd_joined():
         'lxd_password': relation_get('lxd_password'),
         'lxd_address': relation_get('lxd_address'),
     }
-    if all(settings):
+    if all(settings.values()):
         configure_lxd(settings, user='nova')
 
 def main():
