@@ -72,6 +72,8 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 
+from charmhelpers.core.unitdata import kv
+
 from nova_compute_context import (
     CEPH_SECRET_UUID,
     assert_libvirt_imagebackend_allowed
@@ -373,15 +375,21 @@ def neutron_plugin_changed():
     CONFIGS.write(NOVA_CONF)
 
 
+@hooks.hook('lxd-relation-joined')
+def lxd_joined(relid=None):
+    relation_set(relation_id=relid,
+                 user='nova')
+
+
 @hooks.hook('lxd-relation-changed')
-@restart_on_change(restart_map())
-def lxd_joined():
-    settings = {
-        'lxd_password': relation_get('lxd_password'),
-        'lxd_address': relation_get('lxd_address'),
-    }
-    if all(settings.values()):
-        configure_lxd(settings, user='nova')
+def lxc_changed():
+    nonce = relation_get('nonce')
+    db = kv()
+    if nonce and db.get('lxd-nonce') != nonce:
+        db.set('lxd-nonce', nonce)
+        configure_lxd(user='nova')
+        service_restart('nova-compute')
+
 
 def main():
     try:
