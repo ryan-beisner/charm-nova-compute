@@ -598,8 +598,6 @@ def configure_lxd(settings, user='nova'):
 
     configure_subuid(user='nova')
     configure_lxd_daemon(settings, user='nova')
-    configure_lxd_host(settings, user='nova')
-
     service_restart('nova-compute')
 
 
@@ -614,27 +612,6 @@ def configure_lxd_daemon(settings, user):
 def lxc_list(user):
     cmd = ['sudo', '-u', user, 'lxc', 'list']
     check_call(cmd)
-
-
-@retry_on_exception(5, base_delay=2, exc_type=CalledProcessError)
-def configure_lxd_host(settings, user):
-    ubuntu_release = lsb_release()['DISTRIB_CODENAME'].lower()
-    if ubuntu_release > "vivid":
-        log('>= Wily deployment - configuring LXD trust password and address',
-            level=INFO)
-        cmd = ['lxc', 'config', 'set',
-               'core.trust_password', settings['lxd_password']]
-        check_call(cmd)
-        cmd = ['lxc', 'config', 'set',
-               'core.https_address', settings['lxd_address']]
-        check_call(cmd)
-    elif ubuntu_release == "vivid":
-        log('Vivid deployment - loading overlay kernel module', level=INFO)
-        cmd = ['modprobe', 'overlay']
-        check_call(cmd)
-        with open('/etc/modules', 'r+') as modules:
-            if 'overlay' not in modules.read():
-                modules.write('overlay')
 
 
 def configure_subuid(user):
