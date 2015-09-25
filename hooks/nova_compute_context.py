@@ -128,7 +128,7 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
             ctxt['cpu_mode'] = config('cpu-mode')
 
         if config('cpu-model'):
-            ctxt['cpu_model'] = config('cpu-model') 
+            ctxt['cpu_model'] = config('cpu-model')
 
         if config('hugepages'):
             ctxt['hugepages'] = True
