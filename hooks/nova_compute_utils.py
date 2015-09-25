@@ -32,6 +32,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     DEBUG,
     INFO,
+    status_get,
 )
 
 from charmhelpers.core.templating import render
@@ -48,7 +49,8 @@ from charmhelpers.contrib.openstack.utils import (
     git_src_dir,
     git_pip_venv_dir,
     git_yaml_value,
-    os_release
+    os_release,
+    set_os_workload_status,
 )
 
 from charmhelpers.contrib.python.packages import (
@@ -246,6 +248,14 @@ LIBVIRT_URIS = {
     'xen': 'xen:///',
     'uml': 'uml:///system',
     'lxc': 'lxc:///',
+}
+
+# The interface is said to be satisfied if anyone of the interfaces in the
+# list has a complete context.
+REQUIRED_INTERFACES = {
+    'database': ['shared-db', 'pgsql-db'],
+    'message': ['amqp', 'zeromq-configuration'],
+    'image': ['image-service'],
 }
 
 
@@ -829,3 +839,12 @@ def install_hugepages():
         )
         subprocess.check_call('/etc/init.d/qemu-hugefsdir')
         subprocess.check_call(['update-rc.d', 'qemu-hugefsdir', 'defaults'])
+
+
+def check_optional_relations(configs):
+    if relation_ids('ceph'):
+        required_interfaces = {'image-backend': 'ceph'}
+        set_os_workload_status(configs, required_interfaces)
+        return status_get()
+    else:
+        return 'unknown', 'No optional relations'
