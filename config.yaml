@@ -211,6 +211,22 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  cpu-mode:
+    type: string
+    default:
+    description: |
+      Set to 'host-model' to clone the host CPU feature flags; to 
+      'host-passthrough' to use the host CPU model exactly; to 'custom' to 
+      use a named CPU model; to 'none' to not set any CPU model. If 
+      virt_type='kvm|qemu', it will default to 'host-model', otherwise it will 
+      default to 'none'.
+  cpu-model:
+    type: string
+    default:
+    description: |
+      Set to a named libvirt CPU model (see names listed in 
+      /usr/share/libvirt/cpu_map.xml). Only has effect if cpu_mode='custom' and 
+      virt_type='kvm|qemu'.
   # Storage configuration options
   libvirt-image-backend:
     type: string
