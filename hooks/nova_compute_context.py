@@ -124,6 +124,12 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('disk-cachemodes'):
             ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
+        if config('cpu-mode'):
+            ctxt['cpu_mode'] = config('cpu-mode')
+
+        if config('cpu-model'):
+            ctxt['cpu_model'] = config('cpu-model') 
+
         if config('hugepages'):
             ctxt['hugepages'] = True
 
