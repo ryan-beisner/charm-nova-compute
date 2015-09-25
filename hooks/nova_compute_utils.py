@@ -843,7 +843,7 @@ def install_hugepages():
 
 def check_optional_relations(configs):
     if relation_ids('ceph'):
-        required_interfaces = {'image-backend': 'ceph'}
+        required_interfaces = {'image-backend': ['ceph']}
         set_os_workload_status(configs, required_interfaces)
         return status_get()
     else:
