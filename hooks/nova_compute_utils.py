@@ -842,8 +842,14 @@ def install_hugepages():
 
 
 def check_optional_relations(configs):
+    required_interfaces = {}
     if relation_ids('ceph'):
-        required_interfaces = {'image-backend': ['ceph']}
+        required_interfaces['storage-backend'] = ['ceph']
+
+    if relation_ids('neutron-plugin'):
+        required_interfaces['neutron-plugin'] = ['neutron-plugin']
+
+    if required_interfaces:
         set_os_workload_status(configs, required_interfaces)
         return status_get()
     else:
