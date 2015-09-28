@@ -1,5 +1,7 @@
 import uuid
+import os
 import platform
+
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -180,6 +182,23 @@ class NovaComputeCephContext(context.CephContext):
             ctxt['libvirt_rbd_images_ceph_conf'] = ceph_config_file()
         elif config('libvirt-image-backend') == 'lvm':
             ctxt['libvirt_images_type'] = 'lvm'
+
+        rbd_cache = config('rbd-client-cache') or ""
+        if rbd_cache.lower() == "enabled":
+            # We use write-though only to be safe for migration
+            ctxt['rbd_client_cache_settings'] = \
+                {'rbd cache': 'true',
+                 'rbd cache size': '64 MiB',
+                 'rbd cache max dirty': '0 MiB',
+                 'rbd cache writethrough until flush': 'true',
+                 'admin socket': '/var/run/ceph/rbd-client-$pid.asok'}
+
+            asok_path = '/var/run/ceph/'
+            if not os.path.isdir(asok_path):
+                os.mkdir(asok_path)
+
+        elif rbd_cache.lower() == "disabled":
+            ctxt['rbd_client_cache_settings'] = {'rbd cache': 'false'}
 
         return ctxt
 
