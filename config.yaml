@@ -225,6 +225,14 @@ options:
     description: |
       RBD pool to use with Nova libvirt RBDImageBackend. Only required when you
       have libvirt-image-backend set to 'rbd'.
+  rbd-client-cache:
+    type: string
+    default:
+    description: |
+      Enable/disable rbd client cache. Leaving this value unset will result in
+      default Ceph rbd client settings being used (rbd cache is enabled by
+      default for Ceph >= Giant). Supported values here are "enabled" or
+      "disabled".
   ceph-osd-replication-count:
     type: int
     default: 3
