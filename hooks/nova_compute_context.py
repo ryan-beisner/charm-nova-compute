@@ -26,7 +26,6 @@ from charmhelpers.contrib.network.ovs import add_bridge
 from charmhelpers.contrib.network.ip import (
     get_address_in_network,
     get_ipv6_addr,
-    format_ipv6_addr,
 )
 
 # This is just a label and it must be consistent across
@@ -493,6 +492,7 @@ class HostIPContext(context.OSContextGenerator):
             host_ip = get_host_ip(unit_get('private-address'))
 
         if host_ip:
-            ctxt['host_ip'] = format_ipv6_addr(host_ip) or host_ip
+            # NOTE: do not format this even for ipv6 (see bug 1499656)
+            ctxt['host_ip'] = host_ip
 
         return ctxt
