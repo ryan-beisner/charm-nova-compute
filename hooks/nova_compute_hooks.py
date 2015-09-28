@@ -410,6 +410,8 @@ def update_nrpe_config():
 
 
 @hooks.hook('neutron-plugin-relation-changed')
+@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def neutron_plugin_changed():
     settings = relation_get()
