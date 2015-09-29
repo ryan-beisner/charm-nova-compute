@@ -288,9 +288,9 @@ def compute_changed():
 
 
 @hooks.hook('ceph-relation-joined')
-@restart_on_change(restart_map())
 @os_workload_status(CONFIGS, REQUIRED_INTERFACES,
                     charm_func=check_optional_relations)
+@restart_on_change(restart_map())
 def ceph_joined():
     status_set('maintenance', 'Installing apt packages')
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
@@ -306,9 +306,9 @@ def get_ceph_request():
 
 
 @hooks.hook('ceph-relation-changed')
-@restart_on_change(restart_map())
 @os_workload_status(CONFIGS, REQUIRED_INTERFACES,
                     charm_func=check_optional_relations)
+@restart_on_change(restart_map())
 def ceph_changed():
     if 'ceph' not in CONFIGS.complete_contexts():
         log('ceph relation incomplete. Peer not ready?')
