@@ -253,7 +253,6 @@ LIBVIRT_URIS = {
 # The interface is said to be satisfied if anyone of the interfaces in the
 # list has a complete context.
 REQUIRED_INTERFACES = {
-    'database': ['shared-db', 'pgsql-db'],
     'message': ['amqp', 'zeromq-configuration'],
     'image': ['image-service'],
 }
@@ -848,6 +847,9 @@ def check_optional_relations(configs):
 
     if relation_ids('neutron-plugin'):
         required_interfaces['neutron-plugin'] = ['neutron-plugin']
+
+    if relation_ids('shared-db') or relation_ids('pgsql-db'):
+        required_interfaces['database'] = ['shared-db', 'pgsql-db']
 
     if required_interfaces:
         set_os_workload_status(configs, required_interfaces)
