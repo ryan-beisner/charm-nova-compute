@@ -477,7 +477,10 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                    ".factory")
         expected = {"paste.filter_factory": factory,
                     "limits": "( POST, *, .*, 9999, MINUTE );"}
-        u.validate_config_data(unit, conf, section, expected)
+        ret = u.validate_config_data(unit, conf, section, expected)
+        if ret:
+            message = "api paste config error: {}".format(ret)
+            amulet.raise_status(amulet.FAIL, msg=message)
 
     def test_image_instance_create(self):
         """Create an image/instance, verify they exist, and delete them."""
