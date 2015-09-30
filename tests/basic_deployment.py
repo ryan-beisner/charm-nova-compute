@@ -68,7 +68,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
     def _configure_services(self):
         """Configure all of the services."""
         nova_config = {'config-flags': 'auto_assign_floating_ip=False',
-                       'enable-live-migration': 'False'}
+                       'enable-live-migration': 'False',
+                       'api-rate-limit-rules':
+                            '( POST, *, .*, 9999, MINUTE );'}
         nova_cc_config = {}
         if self.git:
             amulet_http_proxy = os.environ.get('AMULET_HTTP_PROXY')
@@ -465,6 +467,17 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             if ret:
                 message = "nova config error: {}".format(ret)
                 amulet.raise_status(amulet.FAIL, msg=message)
+
+    def test_api_paste_config(self):
+        """Check that the rate limiting is set on the nova api (for POSTs)."""
+        unit = self.nova_compute_sentry
+        conf = '/etc/nova/api-paste.ini'
+        section = "filter:ratelimit"
+        factory = ("nova.api.openstack.compute.limits:RateLimitingMiddleware"
+                   ".factory")
+        expected = {"paste.filter_factory": factory,
+                    "limits": "( POST, *, .*, 9999, MINUTE );"}
+        u.validate_config_data(unit, conf, section, expected)
 
     def test_image_instance_create(self):
         """Create an image/instance, verify they exist, and delete them."""
