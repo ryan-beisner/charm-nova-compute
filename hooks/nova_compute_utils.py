@@ -6,8 +6,6 @@ import subprocess
 from base64 import b64decode
 from copy import deepcopy
 from subprocess import (
-    PIPE,
-    Popen,
     check_call,
     check_output,
     CalledProcessError
