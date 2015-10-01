@@ -179,7 +179,7 @@ BASE_RESOURCE_MAP = {
     },
     API_PASTE_INI: {
         'services': ['nova-compute'],
-        'contexts': [APIRateLimitingContext]}
+        'contexts': [APIRateLimitingContext()]}
 }
 
 LIBVIRT_RESOURCE_MAP = {
