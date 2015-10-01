@@ -496,3 +496,12 @@ class HostIPContext(context.OSContextGenerator):
             ctxt['host_ip'] = host_ip
 
         return ctxt
+
+
+class APIRateLimitingContext(context.OSContextGenerator):
+    def __call__(self):
+        ctxt = {}
+        rate_rules = config('api-rate-limit-rules')
+        if rate_rules:
+            ctxt['api_rate_limit_rules'] = rate_rules
+        return ctxt
