@@ -24,6 +24,9 @@ requires:
     interface: glance
   ceph:
     interface: ceph-client
+  lxd:
+    interface: containers
+    scope: container
   nova-ceilometer:
     interface: nova-ceilometer
     scope: container

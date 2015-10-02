@@ -5,7 +5,11 @@ import subprocess
 
 from base64 import b64decode
 from copy import deepcopy
-from subprocess import check_call, check_output, CalledProcessError
+from subprocess import (
+    check_call,
+    check_output,
+    CalledProcessError
+)
 
 from charmhelpers.fetch import (
     apt_update,
@@ -134,6 +138,7 @@ GIT_PACKAGE_BLACKLIST = [
     'nova-compute',
     'nova-compute-kvm',
     'nova-compute-lxc',
+    'nova-compute-lxd',
     'nova-compute-qemu',
     'nova-compute-uml',
     'nova-compute-xen',
@@ -598,20 +603,12 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
 
 def configure_lxd(user='nova'):
     ''' Configure lxd use for nova user '''
-    if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
-        raise Exception("LXD is not supported for Ubuntu "
-                        "versions less than 15.04 (vivid)")
+    if not git_install_requested():
+        if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
+            raise Exception("LXD is not supported for Ubuntu "
+                            "versions less than 15.04 (vivid)")
 
-    configure_subuid(user='nova')
-    configure_lxd_daemon(user='nova')
-
-    service_restart('nova-compute')
-
-
-def configure_lxd_daemon(user):
-    add_user_to_group(user, 'lxd')
-    service_restart('lxd')
-    # NOTE(jamespage): Call list function to initialize cert
+    configure_subuid(user)
     lxc_list(user)
 
 
