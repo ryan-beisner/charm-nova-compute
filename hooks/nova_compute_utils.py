@@ -263,7 +263,7 @@ LIBVIRT_URIS = {
 # The interface is said to be satisfied if anyone of the interfaces in the
 # list has a complete context.
 REQUIRED_INTERFACES = {
-    'message': ['amqp', 'zeromq-configuration'],
+    'messaging': ['amqp', 'zeromq-configuration'],
     'image': ['image-service'],
 }
 
