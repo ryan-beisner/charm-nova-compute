@@ -76,6 +76,8 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 
+from charmhelpers.core.unitdata import kv
+
 from nova_compute_context import (
     CEPH_SECRET_UUID,
     assert_libvirt_imagebackend_allowed
@@ -148,7 +150,6 @@ def config_changed():
         fix_path_ownership(fp, user='nova')
 
     if config('virt-type').lower() == 'lxd':
-        status_set('maintenance', 'Configure LXD')
         configure_lxd(user='nova')
 
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
@@ -421,6 +422,22 @@ def neutron_plugin_changed():
     else:
         apt_purge('nova-api-metadata', fatal=True)
     CONFIGS.write(NOVA_CONF)
+
+
+@hooks.hook('lxd-relation-joined')
+def lxd_joined(relid=None):
+    relation_set(relation_id=relid,
+                 user='nova')
+
+
+@hooks.hook('lxd-relation-changed')
+def lxc_changed():
+    nonce = relation_get('nonce')
+    db = kv()
+    if nonce and db.get('lxd-nonce') != nonce:
+        db.set('lxd-nonce', nonce)
+        configure_lxd(user='nova')
+        service_restart('nova-compute')
 
 
 def main():
