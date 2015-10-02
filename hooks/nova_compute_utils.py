@@ -74,7 +74,6 @@ from nova_compute_context import (
     CEPH_CONF,
     ceph_config_file,
     HostIPContext,
-    APIRateLimitingContext
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
@@ -151,7 +150,6 @@ LIBVIRTD_CONF = '/etc/libvirt/libvirtd.conf'
 LIBVIRT_BIN = '/etc/default/libvirt-bin'
 LIBVIRT_BIN_OVERRIDES = '/etc/init/libvirt-bin.override'
 NOVA_CONF = '%s/nova.conf' % NOVA_CONF_DIR
-API_PASTE_INI = '%s/api-paste.ini' % NOVA_CONF_DIR
 
 BASE_RESOURCE_MAP = {
     NOVA_CONF: {
@@ -177,9 +175,6 @@ BASE_RESOURCE_MAP = {
                      HostIPContext(),
                      context.LogLevelContext()],
     },
-    API_PASTE_INI: {
-        'services': ['nova-compute'],
-        'contexts': [APIRateLimitingContext()]}
 }
 
 LIBVIRT_RESOURCE_MAP = {
