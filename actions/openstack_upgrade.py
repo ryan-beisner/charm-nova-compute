@@ -3,16 +3,16 @@ import sys
 
 sys.path.append('hooks/')
 
-from nova_compute_hooks import (
-    config_changed,
-    CONFIGS
-)
-
 from charmhelpers.contrib.openstack.utils import (
     do_action_openstack_upgrade,
 )
 
 from nova_compute_utils import do_openstack_upgrade
+
+from nova_compute_hooks import (
+    config_changed,
+    CONFIGS
+)
 
 
 def openstack_upgrade():
