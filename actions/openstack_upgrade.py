@@ -1,4 +1,7 @@
 #!/usr/bin/python
+import sys
+
+sys.path.append('hooks/')
 
 from nova_compute_hooks import (
     config_changed,
