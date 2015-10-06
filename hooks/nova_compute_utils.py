@@ -523,7 +523,7 @@ def import_authorized_keys(user='root', prefix=None):
             _keys.write('{}\n'.format(authorized_keys[index]))
 
 
-def do_openstack_upgrade():
+def do_openstack_upgrade(configs):
     # NOTE(jamespage) horrible hack to make utils forget a cached value
     import charmhelpers.contrib.openstack.utils as utils
     utils.os_rel = None
@@ -543,10 +543,8 @@ def do_openstack_upgrade():
     apt_install(determine_packages(), fatal=True)
 
     # Regenerate configs in full for new release
-    configs = register_configs()
     configs.write_all()
     [service_restart(s) for s in services()]
-    return configs
 
 
 def import_keystone_ca_cert():
