@@ -463,16 +463,22 @@ class NovaComputeUtilsTests(CharmTestCase):
                                      compute_context.CEPH_SECRET_UUID,
                                      '--base64', key])
 
+    @patch.object(utils, 'lxc_list')
     @patch.object(utils, 'configure_subuid')
-    def test_configure_lxd_vivid(self, _configure_subuid):
+    def test_configure_lxd_vivid(self, _configure_subuid, _lxc_list):
         self.lsb_release.return_value = {
             'DISTRIB_CODENAME': 'vivid'
         }
         utils.configure_lxd('nova')
-        _configure_subuid.assert_called_with(user='nova')
+        _configure_subuid.assert_called_with('nova')
+        _lxc_list.assert_called_with('nova')
 
+    @patch.object(utils, 'git_install_requested')
+    @patch.object(utils, 'lxc_list')
     @patch.object(utils, 'configure_subuid')
-    def test_configure_lxd_pre_vivid(self, _configure_subuid):
+    def test_configure_lxd_pre_vivid(self, _configure_subuid, _lxc_list,
+                                     _git_install):
+        _git_install.return_value = False
         self.lsb_release.return_value = {
             'DISTRIB_CODENAME': 'trusty'
         }
