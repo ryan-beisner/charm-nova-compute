@@ -23,7 +23,7 @@ def openstack_upgrade():
     code to run, otherwise a full service level upgrade will fire
     on config-changed."""
 
-    if (do_action_openstack_upgrade('nova_compute-common',
+    if (do_action_openstack_upgrade('nova-common',
                                     do_openstack_upgrade,
                                     CONFIGS)):
         config_changed()
