@@ -82,7 +82,7 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.configure_installation_source.assert_called_with(repo)
         self.assertTrue(self.apt_update.called)
         self.apt_install.assert_called_with(['foo', 'bar'], fatal=True)
-        self.execd_preinstall.assert_called()
+        self.assertTrue(self.execd_preinstall.called)
 
     def test_install_hook_git(self):
         self.git_install_requested.return_value = True
@@ -107,7 +107,7 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.assertTrue(self.apt_update.called)
         self.apt_install.assert_called_with(['foo', 'bar'], fatal=True)
         self.git_install.assert_called_with(projects_yaml)
-        self.execd_preinstall.assert_called()
+        self.assertTrue(self.execd_preinstall.called)
 
     def test_config_changed_with_upgrade(self):
         self.git_install_requested.return_value = False
@@ -194,7 +194,7 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.git_install_requested.return_value = False
         self.test_config.set('sysctl', '{ kernel.max_pid : "1337" }')
         hooks.config_changed()
-        self.create_sysctl.assert_called()
+        self.assertTrue(self.create_sysctl.called)
 
     @patch.object(hooks, 'config_value_changed')
     def test_config_changed_git(self, config_val_changed):
@@ -235,7 +235,7 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.migration_enabled.return_value = False
         self.is_relation_made.return_value = True
         hooks.config_changed()
-        self.update_nrpe_config.assert_called_once()
+        self.assertTrue(self.update_nrpe_config.called)
 
     def test_amqp_joined(self):
         hooks.amqp_joined()
@@ -378,7 +378,6 @@ class NovaComputeRelationsTests(CharmTestCase):
     def test_compute_joined_no_migration_no_resize(self):
         self.migration_enabled.return_value = False
         hooks.compute_joined()
-        self.relation_set.assertCalledWith(hostname='arm')
         self.assertFalse(self.relation_set.called)
 
     def test_compute_joined_with_ssh_migration(self):

@@ -463,37 +463,28 @@ class NovaComputeUtilsTests(CharmTestCase):
                                      compute_context.CEPH_SECRET_UUID,
                                      '--base64', key])
 
-    @patch.object(utils, 'check_call')
-    @patch.object(utils, 'check_output')
-    def test_configure_lxd_daemon(self, _check_output, _check_call):
-        self.test_config.set('virt-type', 'lxd')
-        utils.configure_lxd_daemon('nova')
-        self.add_user_to_group.assert_called_with('nova', 'lxd')
-        self.service_restart.assert_called_with('lxd')
-        _check_output.assert_called_wth(['sudo', '-u', 'nova', 'lxc', 'list'])
-
-    @patch.object(utils, 'configure_lxd_daemon')
+    @patch.object(utils, 'lxc_list')
     @patch.object(utils, 'configure_subuid')
-    def test_configure_lxd_vivid(self, _configure_subuid,
-                                 _configure_lxd_daemon):
+    def test_configure_lxd_vivid(self, _configure_subuid, _lxc_list):
         self.lsb_release.return_value = {
             'DISTRIB_CODENAME': 'vivid'
         }
         utils.configure_lxd('nova')
-        _configure_subuid.assert_called_with(user='nova')
-        _configure_lxd_daemon.assert_called_with(user='nova')
+        _configure_subuid.assert_called_with('nova')
+        _lxc_list.assert_called_with('nova')
 
-    @patch.object(utils, 'configure_lxd_daemon')
+    @patch.object(utils, 'git_install_requested')
+    @patch.object(utils, 'lxc_list')
     @patch.object(utils, 'configure_subuid')
-    def test_configure_lxd_pre_vivid(self, _configure_subuid,
-                                     _configure_lxd_daemon):
+    def test_configure_lxd_pre_vivid(self, _configure_subuid, _lxc_list,
+                                     _git_install):
+        _git_install.return_value = False
         self.lsb_release.return_value = {
             'DISTRIB_CODENAME': 'trusty'
         }
         with self.assertRaises(Exception):
             utils.configure_lxd('nova')
         self.assertFalse(_configure_subuid.called)
-        self.assertFalse(_configure_lxd_daemon.called)
 
     def test_enable_nova_metadata(self):
         class DummyContext():

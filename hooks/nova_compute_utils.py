@@ -5,7 +5,11 @@ import subprocess
 
 from base64 import b64decode
 from copy import deepcopy
-from subprocess import check_call, check_output, CalledProcessError
+from subprocess import (
+    check_call,
+    check_output,
+    CalledProcessError
+)
 
 from charmhelpers.fetch import (
     apt_update,
@@ -32,6 +36,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     DEBUG,
     INFO,
+    status_get,
 )
 
 from charmhelpers.core.templating import render
@@ -48,7 +53,8 @@ from charmhelpers.contrib.openstack.utils import (
     git_src_dir,
     git_pip_venv_dir,
     git_yaml_value,
-    os_release
+    os_release,
+    set_os_workload_status,
 )
 
 from charmhelpers.contrib.python.packages import (
@@ -131,6 +137,7 @@ GIT_PACKAGE_BLACKLIST = [
     'nova-compute',
     'nova-compute-kvm',
     'nova-compute-lxc',
+    'nova-compute-lxd',
     'nova-compute-qemu',
     'nova-compute-uml',
     'nova-compute-xen',
@@ -246,6 +253,13 @@ LIBVIRT_URIS = {
     'xen': 'xen:///',
     'uml': 'uml:///system',
     'lxc': 'lxc:///',
+}
+
+# The interface is said to be satisfied if anyone of the interfaces in the
+# list has a complete context.
+REQUIRED_INTERFACES = {
+    'messaging': ['amqp', 'zeromq-configuration'],
+    'image': ['image-service'],
 }
 
 
@@ -582,20 +596,12 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
 
 def configure_lxd(user='nova'):
     ''' Configure lxd use for nova user '''
-    if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
-        raise Exception("LXD is not supported for Ubuntu "
-                        "versions less than 15.04 (vivid)")
+    if not git_install_requested():
+        if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
+            raise Exception("LXD is not supported for Ubuntu "
+                            "versions less than 15.04 (vivid)")
 
-    configure_subuid(user='nova')
-    configure_lxd_daemon(user='nova')
-
-    service_restart('nova-compute')
-
-
-def configure_lxd_daemon(user):
-    add_user_to_group(user, 'lxd')
-    service_restart('lxd')
-    # NOTE(jamespage): Call list function to initialize cert
+    configure_subuid(user)
     lxc_list(user)
 
 
@@ -827,3 +833,21 @@ def install_hugepages():
         )
         subprocess.check_call('/etc/init.d/qemu-hugefsdir')
         subprocess.check_call(['update-rc.d', 'qemu-hugefsdir', 'defaults'])
+
+
+def check_optional_relations(configs):
+    required_interfaces = {}
+    if relation_ids('ceph'):
+        required_interfaces['storage-backend'] = ['ceph']
+
+    if relation_ids('neutron-plugin'):
+        required_interfaces['neutron-plugin'] = ['neutron-plugin']
+
+    if relation_ids('shared-db') or relation_ids('pgsql-db'):
+        required_interfaces['database'] = ['shared-db', 'pgsql-db']
+
+    if required_interfaces:
+        set_os_workload_status(configs, required_interfaces)
+        return status_get()
+    else:
+        return 'unknown', 'No optional relations'
