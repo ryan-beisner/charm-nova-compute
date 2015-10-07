@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import glob
 import json
 import os
 import re
@@ -951,6 +952,19 @@ class NeutronContext(OSContextGenerator):
                     'config': config}
         return ovs_ctxt
 
+    def midonet_ctxt(self):
+        driver = neutron_plugin_attribute(self.plugin, 'driver',
+                                          self.network_manager)
+        midonet_config = neutron_plugin_attribute(self.plugin, 'config',
+                                                  self.network_manager)
+        mido_ctxt = {'core_plugin': driver,
+                     'neutron_plugin': 'midonet',
+                     'neutron_security_groups': self.neutron_security_groups,
+                     'local_ip': unit_private_ip(),
+                     'config': midonet_config}
+
+        return mido_ctxt
+
     def __call__(self):
         if self.network_manager not in ['quantum', 'neutron']:
             return {}
@@ -972,6 +986,8 @@ class NeutronContext(OSContextGenerator):
             ctxt.update(self.nuage_ctxt())
         elif self.plugin == 'plumgrid':
             ctxt.update(self.pg_ctxt())
+        elif self.plugin == 'midonet':
+            ctxt.update(self.midonet_ctxt())
 
         alchemy_flags = config('neutron-alchemy-flags')
         if alchemy_flags:
@@ -1363,7 +1379,7 @@ class DataPortContext(NeutronPortContext):
             normalized.update({port: port for port in resolved
                                if port in ports})
             if resolved:
-                return {bridge: normalized[port] for port, bridge in
+                return {normalized[port]: bridge for port, bridge in
                         six.iteritems(portmap) if port in normalized.keys()}
 
         return None
@@ -1374,12 +1390,22 @@ class PhyNICMTUContext(DataPortContext):
     def __call__(self):
         ctxt = {}
         mappings = super(PhyNICMTUContext, self).__call__()
-        if mappings and mappings.values():
-            ports = mappings.values()
+        if mappings and mappings.keys():
+            ports = sorted(mappings.keys())
             napi_settings = NeutronAPIContext()()
             mtu = napi_settings.get('network_device_mtu')
+            all_ports = set()
+            # If any of ports is a vlan device, its underlying device must have
+            # mtu applied first.
+            for port in ports:
+                for lport in glob.glob("/sys/class/net/%s/lower_*" % port):
+                    lport = os.path.basename(lport)
+                    all_ports.add(lport.split('_')[1])
+
+            all_ports = list(all_ports)
+            all_ports.extend(ports)
             if mtu:
-                ctxt["devs"] = '\\n'.join(ports)
+                ctxt["devs"] = '\\n'.join(all_ports)
                 ctxt['mtu'] = mtu
 
         return ctxt
