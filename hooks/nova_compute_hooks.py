@@ -411,10 +411,10 @@ def lxc_changed():
 def main():
     try:
         hooks.execute(sys.argv)
-        set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                               charm_func=check_optional_relations)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
+    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+                           charm_func=check_optional_relations)
 
 
 if __name__ == '__main__':
