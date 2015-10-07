@@ -33,7 +33,7 @@ from charmhelpers.contrib.openstack.utils import (
     git_install_requested,
     openstack_upgrade_available,
     os_requires_version,
-    os_workload_status,
+    set_os_workload_status,
 )
 
 from charmhelpers.contrib.storage.linux.ceph import (
@@ -92,8 +92,6 @@ CONFIGS = register_configs()
 
 
 @hooks.hook('install.real')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 def install():
     status_set('maintenance', 'Executing pre-install')
     execd_preinstall()
@@ -108,8 +106,6 @@ def install():
 
 
 @hooks.hook('config-changed')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def config_changed():
     if config('prefer-ipv6'):
@@ -166,8 +162,6 @@ def config_changed():
 
 
 @hooks.hook('amqp-relation-joined')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 def amqp_joined(relation_id=None):
     relation_set(relation_id=relation_id,
                  username=config('rabbit-user'),
@@ -176,8 +170,6 @@ def amqp_joined(relation_id=None):
 
 @hooks.hook('amqp-relation-changed')
 @hooks.hook('amqp-relation-departed')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def amqp_changed():
     if 'amqp' not in CONFIGS.complete_contexts():
@@ -193,8 +185,6 @@ def amqp_changed():
 
 
 @hooks.hook('shared-db-relation-joined')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 def db_joined(rid=None):
     if is_relation_made('pgsql-db'):
         # error, postgresql is used
@@ -210,8 +200,6 @@ def db_joined(rid=None):
 
 
 @hooks.hook('pgsql-db-relation-joined')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 def pgsql_db_joined():
     if is_relation_made('shared-db'):
         # raise error
@@ -224,8 +212,6 @@ def pgsql_db_joined():
 
 
 @hooks.hook('shared-db-relation-changed')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def db_changed():
     if 'shared-db' not in CONFIGS.complete_contexts():
@@ -235,8 +221,6 @@ def db_changed():
 
 
 @hooks.hook('pgsql-db-relation-changed')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def postgresql_db_changed():
     if 'pgsql-db' not in CONFIGS.complete_contexts():
@@ -246,8 +230,6 @@ def postgresql_db_changed():
 
 
 @hooks.hook('image-service-relation-changed')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def image_service_changed():
     if 'image-service' not in CONFIGS.complete_contexts():
@@ -289,8 +271,6 @@ def compute_changed():
 
 
 @hooks.hook('ceph-relation-joined')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def ceph_joined():
     status_set('maintenance', 'Installing apt packages')
@@ -307,8 +287,6 @@ def get_ceph_request():
 
 
 @hooks.hook('ceph-relation-changed')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def ceph_changed():
     if 'ceph' not in CONFIGS.complete_contexts():
@@ -343,8 +321,6 @@ def ceph_changed():
 
 
 @hooks.hook('ceph-relation-broken')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 def ceph_broken():
     service = service_name()
     delete_keyring(service=service)
@@ -355,8 +331,6 @@ def ceph_broken():
             'image-service-relation-broken',
             'shared-db-relation-broken',
             'pgsql-db-relation-broken')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def relation_broken():
     CONFIGS.write_all()
@@ -381,8 +355,6 @@ def nova_ceilometer_relation_changed():
 
 
 @hooks.hook('zeromq-configuration-relation-joined')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @os_requires_version('kilo', 'nova-common')
 def zeromq_configuration_relation_joined(relid=None):
     relation_set(relation_id=relid,
@@ -391,8 +363,6 @@ def zeromq_configuration_relation_joined(relid=None):
 
 
 @hooks.hook('zeromq-configuration-relation-changed')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def zeromq_configuration_relation_changed():
     CONFIGS.write(NOVA_CONF)
@@ -411,8 +381,6 @@ def update_nrpe_config():
 
 
 @hooks.hook('neutron-plugin-relation-changed')
-@os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                    charm_func=check_optional_relations)
 @restart_on_change(restart_map())
 def neutron_plugin_changed():
     settings = relation_get()
@@ -443,6 +411,8 @@ def lxc_changed():
 def main():
     try:
         hooks.execute(sys.argv)
+        set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+                               charm_func=check_optional_relations)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
 
