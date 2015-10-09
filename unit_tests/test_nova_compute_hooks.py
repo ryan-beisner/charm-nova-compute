@@ -115,6 +115,15 @@ class NovaComputeRelationsTests(CharmTestCase):
         hooks.config_changed()
         self.assertTrue(self.do_openstack_upgrade.called)
 
+    @patch.object(hooks, 'git_install_requested')
+    def test_config_changed_with_openstack_upgrade_action(self, git_requested):
+        git_requested.return_value = False
+        self.openstack_upgrade_available.return_value = True
+        self.test_config.set('action-managed-upgrade', True)
+
+        hooks.config_changed()
+        self.assertFalse(self.do_openstack_upgrade.called)
+
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_with_migration(self, compute_joined):
         self.git_install_requested.return_value = False
