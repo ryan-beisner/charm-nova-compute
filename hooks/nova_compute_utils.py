@@ -557,7 +557,8 @@ def do_openstack_upgrade(configs):
     apt_install(determine_packages(), fatal=True)
 
     # Regenerate configs in full for new release
-    configs.write_all()
+    new_configs = register_configs()
+    new_configs.write_all()
     [service_restart(s) for s in services()]
 
 

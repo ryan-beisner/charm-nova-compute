@@ -121,6 +121,8 @@ def config_changed():
         if openstack_upgrade_available('nova-common'):
             status_set('maintenance', 'Running openstack upgrade')
             do_openstack_upgrade(CONFIGS)
+            # Refresh configs templates as os release has changed
+            CONFIGS = register_configs()
 
     sysctl_dict = config('sysctl')
     if sysctl_dict:
