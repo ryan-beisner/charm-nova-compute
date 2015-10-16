@@ -128,6 +128,11 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         self.nova_cc_sentry = self.d.sentry.unit['nova-cloud-controller/0']
         self.glance_sentry = self.d.sentry.unit['glance/0']
 
+        u.log.debug('openstack release val: {}'.format(
+            self._get_openstack_release()))
+        u.log.debug('openstack release str: {}'.format(
+            self._get_openstack_release_string()))
+
         # Authenticate admin with keystone
         self.keystone = u.authenticate_keystone_admin(self.keystone_sentry,
                                                       user='admin',
@@ -163,32 +168,38 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                                                   password='password',
                                                   tenant=self.demo_tenant)
 
-    def test_services(self):
+    def test_100_services(self):
         """Verify the expected services are running on the corresponding
            service units."""
-        commands = {
-            self.mysql_sentry: ['status mysql'],
-            self.rabbitmq_sentry: ['sudo service rabbitmq-server status'],
-            self.nova_compute_sentry: ['status nova-compute',
-                                       'status nova-network',
-                                       'status nova-api'],
-            self.nova_cc_sentry: ['status nova-api-ec2',
-                                  'status nova-api-os-compute',
-                                  'status nova-objectstore',
-                                  'status nova-cert',
-                                  'status nova-scheduler'],
-            self.keystone_sentry: ['status keystone'],
-            self.glance_sentry: ['status glance-registry', 'status glance-api']
-        }
-        if self._get_openstack_release() >= self.precise_grizzly:
-            commands[self.nova_cc_sentry] = ['status nova-conductor']
+        u.log.debug('Checking system services on units...')
 
-        ret = u.validate_services(commands)
+        services = {
+            self.mysql_sentry: ['mysql'],
+            self.rabbitmq_sentry: ['rabbitmq-server'],
+            self.nova_compute_sentry: ['nova-compute',
+                                       'nova-network',
+                                       'nova-api'],
+            self.nova_cc_sentry: ['nova-api-ec2',
+                                  'nova-api-os-compute',
+                                  'nova-objectstore',
+                                  'nova-cert',
+                                  'nova-scheduler'],
+            self.keystone_sentry: ['keystone'],
+            self.glance_sentry: ['glance-registry',
+                                 'glance-api']
+        }
+
+        if self._get_openstack_release() >= self.precise_grizzly:
+            services[self.nova_cc_sentry] = ['nova-conductor']
+
+        ret = u.validate_services_by_name(services)
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_service_catalog(self):
+    def test_102_service_catalog(self):
         """Verify that the service catalog endpoint data is valid."""
+        u.log.debug('Checking keystone service catalog...')
+
         endpoint_vol = {'adminURL': u.valid_url,
                         'region': 'RegionOne',
                         'publicURL': u.valid_url,
@@ -197,9 +208,11 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                        'region': 'RegionOne',
                        'publicURL': u.valid_url,
                        'internalURL': u.valid_url}
+
         if self._get_openstack_release() >= self.precise_folsom:
             endpoint_vol['id'] = u.not_null
             endpoint_id['id'] = u.not_null
+
         if self._get_openstack_release() >= self.trusty_kilo:
             expected = {'compute': [endpoint_vol], 'identity': [endpoint_id]}
         else:
@@ -211,8 +224,10 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_openstack_compute_api_endpoint(self):
+    def test_104_openstack_compute_api_endpoint(self):
         """Verify the openstack compute api (osapi) endpoint data."""
+        u.log.debug('Checking compute endpoint data...')
+
         endpoints = self.keystone.endpoints.list()
         admin_port = internal_port = public_port = '8774'
         expected = {
@@ -230,11 +245,12 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = 'osapi endpoint: {}'.format(ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_ec2_api_endpoint(self):
+    def test_106_ec2_api_endpoint(self):
         """Verify the EC2 api endpoint data."""
         if self._get_openstack_release() >= self.trusty_kilo:
             return
 
+        u.log.debug('Checking ec2 endpoint data...')
         endpoints = self.keystone.endpoints.list()
         admin_port = internal_port = public_port = '8773'
         expected = {
@@ -252,11 +268,12 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = 'EC2 endpoint: {}'.format(ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_s3_api_endpoint(self):
+    def test_108_s3_api_endpoint(self):
         """Verify the S3 api endpoint data."""
         if self._get_openstack_release() >= self.trusty_kilo:
             return
 
+        u.log.debug('Checking s3 endpoint data...')
         endpoints = self.keystone.endpoints.list()
         admin_port = internal_port = public_port = '3333'
         expected = {
@@ -274,8 +291,10 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = 'S3 endpoint: {}'.format(ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_nova_shared_db_relation(self):
+    def test_200_nova_shared_db_relation(self):
         """Verify the nova-compute to mysql shared-db relation data"""
+        u.log.debug('Checking n-c:mysql db relation data...')
+
         unit = self.nova_compute_sentry
         relation = ['shared-db', 'mysql:shared-db']
         expected = {
@@ -290,8 +309,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('nova-compute shared-db', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_mysql_shared_db_relation(self):
+    def test_202_mysql_shared_db_relation(self):
         """Verify the mysql to nova-compute shared-db relation data"""
+        u.log.debug('Checking mysql:n-c db relation data...')
         unit = self.mysql_sentry
         relation = ['shared-db', 'nova-compute:shared-db']
         expected = {
@@ -305,8 +325,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('mysql shared-db', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_nova_amqp_relation(self):
+    def test_204_nova_amqp_relation(self):
         """Verify the nova-compute to rabbitmq-server amqp relation data"""
+        u.log.debug('Checking n-c:rmq amqp relation data...')
         unit = self.nova_compute_sentry
         relation = ['amqp', 'rabbitmq-server:amqp']
         expected = {
@@ -320,8 +341,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('nova-compute amqp', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_rabbitmq_amqp_relation(self):
+    def test_206_rabbitmq_amqp_relation(self):
         """Verify the rabbitmq-server to nova-compute amqp relation data"""
+        u.log.debug('Checking rmq:n-c amqp relation data...')
         unit = self.rabbitmq_sentry
         relation = ['amqp', 'nova-compute:amqp']
         expected = {
@@ -335,8 +357,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('rabbitmq amqp', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_nova_cloud_compute_relation(self):
+    def test_208_nova_cloud_compute_relation(self):
         """Verify the nova-compute to nova-cc cloud-compute relation data"""
+        u.log.debug('Checking n-c:n-c-c cloud-compute relation data...')
         unit = self.nova_compute_sentry
         relation = ['cloud-compute', 'nova-cloud-controller:cloud-compute']
         expected = {
@@ -348,8 +371,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('nova-compute cloud-compute', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_nova_cc_cloud_compute_relation(self):
+    def test_210_nova_cc_cloud_compute_relation(self):
         """Verify the nova-cc to nova-compute cloud-compute relation data"""
+        u.log.debug('Checking n-c-c:n-c cloud-compute relation data...')
         unit = self.nova_cc_sentry
         relation = ['cloud-compute', 'nova-compute:cloud-compute']
         expected = {
@@ -367,43 +391,14 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('nova-cc cloud-compute', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_z_restart_on_config_change(self):
-        """Verify that the specified services are restarted when the config
-           is changed.
-
-           Note(coreycb): The method name with the _z_ is a little odd
-           but it forces the test to run last.  It just makes things
-           easier because restarting services requires re-authorization.
-           """
-        # NOTE(coreycb): Skipping failing test on essex until resolved.
-        #                config-flags don't take effect on essex.
-        if self._get_openstack_release() == self.precise_essex:
-            u.log.error("Skipping failing test until resolved")
-            return
-
-        services = ['nova-compute', 'nova-api', 'nova-network']
-        self.d.configure('nova-compute', {'config-flags': 'verbose=False'})
-
-        time = 20
-        for s in services:
-            if not u.service_restarted(self.nova_compute_sentry, s,
-                                       '/etc/nova/nova.conf', sleep_time=time):
-                self.d.configure('nova-compute',
-                                 {'config-flags': 'verbose=True'})
-                msg = ('service {} did not restart after config '
-                       'change'.format(s))
-                amulet.raise_status(amulet.FAIL, msg=msg)
-            time = 0
-
-        self.d.configure('nova-compute', {'config-flags': 'verbose=True'})
-
-    def test_nova_config(self):
+    def test_300_nova_config(self):
         """Verify the data in the nova config file."""
         # NOTE(coreycb): Currently no way to test on essex because config file
         #                has no section headers.
         if self._get_openstack_release() == self.precise_essex:
             return
 
+        u.log.debug('Checking nova config file data...')
         unit = self.nova_compute_sentry
         conf = '/etc/nova/nova.conf'
         rmq_nc_rel = self.rabbitmq_sentry.relation('amqp',
@@ -481,14 +476,16 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                 message = "nova config error: {}".format(ret)
                 amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_image_instance_create(self):
+    def test_400_image_instance_create(self):
         """Create an image/instance, verify they exist, and delete them."""
         # NOTE(coreycb): Skipping failing test on essex until resolved. essex
         #                nova API calls are getting "Malformed request url
         #                (HTTP 400)".
         if self._get_openstack_release() == self.precise_essex:
-            u.log.error("Skipping failing test until resolved")
+            u.log.error("Skipping test (due to Essex)")
             return
+
+        u.log.debug('Checking nova instance creation...')
 
         image = u.create_cirros_image(self.glance, "cirros-image")
         if not image:
@@ -511,5 +508,52 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             message = "nova cirros instance does not exist"
             amulet.raise_status(amulet.FAIL, msg=message)
 
-        u.delete_image(self.glance, image)
-        u.delete_instance(self.nova_demo, instance)
+        u.delete_resource(self.glance.images, image.id,
+                          msg="glance image")
+
+        u.delete_resource(self.nova_demo.servers, instance.id,
+                          msg="nova instance")
+
+    def test_900_restart_on_config_change(self):
+        """Verify that the specified services are restarted when the config
+           is changed."""
+        # NOTE(coreycb): Skipping failing test on essex until resolved.
+        #                config-flags don't take effect on essex.
+        if self._get_openstack_release() == self.precise_essex:
+            u.log.error("Skipping failing test until resolved")
+            return
+
+        sentry = self.nova_compute_sentry
+        juju_service = 'nova-compute'
+
+        # Expected default and alternate values
+        set_default = {'verbose': 'False'}
+        set_alternate = {'verbose': 'True'}
+
+        # Services which are expected to restart upon config change,
+        # and corresponding config files affected by the change
+        conf_file = '/etc/nova/nova.conf'
+        services = {
+            'nova-compute': conf_file,
+            'nova-api': conf_file,
+            'nova-network': conf_file
+        }
+
+        # Make config change, check for service restarts
+        u.log.debug('Making config change on {}...'.format(juju_service))
+        mtime = u.get_sentry_time(sentry)
+        self.d.configure(juju_service, set_alternate)
+
+        sleep_time = 30
+        for s, conf_file in services.iteritems():
+            u.log.debug("Checking that service restarted: {}".format(s))
+            if not u.validate_service_config_changed(sentry, mtime, s,
+                                                     conf_file,
+                                                     sleep_time=sleep_time):
+
+                self.d.configure(juju_service, set_default)
+                msg = "service {} didn't restart after config change".format(s)
+                amulet.raise_status(amulet.FAIL, msg=msg)
+            sleep_time = 0
+
+        self.d.configure(juju_service, set_default)
