@@ -2,7 +2,6 @@
 
 import amulet
 import os
-import time
 import yaml
 
 from charmhelpers.contrib.openstack.amulet.deployment import (
@@ -31,6 +30,11 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         self._add_relations()
         self._configure_services()
         self._deploy()
+
+        u.log.info('Waiting on extended status checks...')
+        exclude_services = ['mysql']
+        self._auto_wait_for_status(exclude_services=exclude_services)
+
         self._initialize_tests()
 
     def _add_services(self):
@@ -117,9 +121,6 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         self.nova_compute_sentry = self.d.sentry.unit['nova-compute/0']
         self.nova_cc_sentry = self.d.sentry.unit['nova-cloud-controller/0']
         self.glance_sentry = self.d.sentry.unit['glance/0']
-
-        # Let things settle a bit before moving forward
-        time.sleep(30)
 
         # Authenticate admin with keystone
         self.keystone = u.authenticate_keystone_admin(self.keystone_sentry,
