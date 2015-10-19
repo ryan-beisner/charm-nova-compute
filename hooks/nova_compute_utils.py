@@ -556,7 +556,7 @@ def do_openstack_upgrade(configs):
     apt_upgrade(options=dpkg_opts, fatal=True, dist=True)
     apt_install(determine_packages(), fatal=True)
 
-    # Regenerate configs in full for new release
+    configs.set_release(openstack_release=new_os_rel)
     configs.write_all()
     [service_restart(s) for s in services()]
 
