@@ -157,7 +157,7 @@ class NovaComputeVirtContext(context.OSContextGenerator):
 
 def assert_libvirt_imagebackend_allowed():
     os_rel = "Juno"
-    os_ver = get_os_version_package('nova-compute')
+    os_ver = get_os_version_package('nova-common')
     if float(os_ver) < float(get_os_version_codename(os_rel.lower())):
         msg = ("Libvirt RBD imagebackend only supported for openstack >= %s" %
                os_rel)
