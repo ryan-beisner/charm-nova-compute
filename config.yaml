@@ -211,6 +211,22 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  cpu-mode:
+    type: string
+    default:
+    description: |
+      Set to 'host-model' to clone the host CPU feature flags; to 
+      'host-passthrough' to use the host CPU model exactly; to 'custom' to 
+      use a named CPU model; to 'none' to not set any CPU model. If 
+      virt_type='kvm|qemu', it will default to 'host-model', otherwise it will 
+      default to 'none'.
+  cpu-model:
+    type: string
+    default:
+    description: |
+      Set to a named libvirt CPU model (see names listed in 
+      /usr/share/libvirt/cpu_map.xml). Only has effect if cpu_mode='custom' and 
+      virt_type='kvm|qemu'.
   # Storage configuration options
   libvirt-image-backend:
     type: string
@@ -225,6 +241,14 @@ options:
     description: |
       RBD pool to use with Nova libvirt RBDImageBackend. Only required when you
       have libvirt-image-backend set to 'rbd'.
+  rbd-client-cache:
+    type: string
+    default:
+    description: |
+      Enable/disable rbd client cache. Leaving this value unset will result in
+      default Ceph rbd client settings being used (rbd cache is enabled by
+      default for Ceph >= Giant). Supported values here are "enabled" or
+      "disabled".
   ceph-osd-replication-count:
     type: int
     default: 3
@@ -250,3 +274,20 @@ options:
       stipulated by nova-cloud-controller. The option is only available for
       backward compatibility for deployments which do not use the neutron-api
       charm. Please do not enable this on new deployments.
+  # Huge page configuration - off by default
+  hugepages:
+    type: string
+    default:
+    description: |
+      The pecentage of system memory to use for hugepages eg '10%' or the total
+      number of 2M hugepages - eg "1024".
+  action-managed-upgrade:
+    type: boolean
+    default: False
+    description: |
+      If True enables openstack upgrades for this charm via juju actions.
+      You will still need to set openstack-origin to the new repository but
+      instead of an upgrade running automatically across all units, it will
+      wait for you to execute the openstack-upgrade action for this charm on
+      each unit. If False it will revert to existing behavior of upgrading
+      all units on config change.

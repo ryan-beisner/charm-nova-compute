@@ -1,10 +1,15 @@
 import os
 import shutil
 import pwd
+import subprocess
 
 from base64 import b64decode
 from copy import deepcopy
-from subprocess import check_call, check_output, CalledProcessError
+from subprocess import (
+    check_call,
+    check_output,
+    CalledProcessError
+)
 
 from charmhelpers.fetch import (
     apt_update,
@@ -31,6 +36,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     DEBUG,
     INFO,
+    status_get,
 )
 
 from charmhelpers.core.templating import render
@@ -47,11 +53,18 @@ from charmhelpers.contrib.openstack.utils import (
     git_src_dir,
     git_pip_venv_dir,
     git_yaml_value,
-    os_release
+    os_release,
+    set_os_workload_status,
 )
 
 from charmhelpers.contrib.python.packages import (
     pip_install,
+)
+
+from charmhelpers.core.hugepage import hugepage_support
+from charmhelpers.core.host import (
+    fstab_mount,
+    rsync,
 )
 
 from nova_compute_context import (
@@ -76,6 +89,7 @@ BASE_PACKAGES = [
     'genisoimage',  # was missing as a package dependency until raring.
     'librbd1',  # bug 1440953
     'python-six',
+    'python-psutil',
 ]
 
 BASE_GIT_PACKAGES = [
@@ -123,6 +137,7 @@ GIT_PACKAGE_BLACKLIST = [
     'nova-compute',
     'nova-compute-kvm',
     'nova-compute-lxc',
+    'nova-compute-lxd',
     'nova-compute-qemu',
     'nova-compute-uml',
     'nova-compute-xen',
@@ -170,7 +185,7 @@ BASE_RESOURCE_MAP = {
 LIBVIRT_RESOURCE_MAP = {
     QEMU_CONF: {
         'services': ['libvirt-bin'],
-        'contexts': [],
+        'contexts': [NovaComputeLibvirtContext()],
     },
     LIBVIRTD_CONF: {
         'services': ['libvirt-bin'],
@@ -238,6 +253,13 @@ LIBVIRT_URIS = {
     'xen': 'xen:///',
     'uml': 'uml:///system',
     'lxc': 'lxc:///',
+}
+
+# The interface is said to be satisfied if anyone of the interfaces in the
+# list has a complete context.
+REQUIRED_INTERFACES = {
+    'messaging': ['amqp', 'zeromq-configuration'],
+    'image': ['image-service'],
 }
 
 
@@ -515,7 +537,7 @@ def import_authorized_keys(user='root', prefix=None):
             _keys.write('{}\n'.format(authorized_keys[index]))
 
 
-def do_openstack_upgrade():
+def do_openstack_upgrade(configs):
     # NOTE(jamespage) horrible hack to make utils forget a cached value
     import charmhelpers.contrib.openstack.utils as utils
     utils.os_rel = None
@@ -534,11 +556,9 @@ def do_openstack_upgrade():
     apt_upgrade(options=dpkg_opts, fatal=True, dist=True)
     apt_install(determine_packages(), fatal=True)
 
-    # Regenerate configs in full for new release
-    configs = register_configs()
+    configs.set_release(openstack_release=new_os_rel)
     configs.write_all()
     [service_restart(s) for s in services()]
-    return configs
 
 
 def import_keystone_ca_cert():
@@ -576,20 +596,12 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
 
 def configure_lxd(user='nova'):
     ''' Configure lxd use for nova user '''
-    if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
-        raise Exception("LXD is not supported for Ubuntu "
-                        "versions less than 15.04 (vivid)")
+    if not git_install_requested():
+        if lsb_release()['DISTRIB_CODENAME'].lower() < "vivid":
+            raise Exception("LXD is not supported for Ubuntu "
+                            "versions less than 15.04 (vivid)")
 
-    configure_subuid(user='nova')
-    configure_lxd_daemon(user='nova')
-
-    service_restart('nova-compute')
-
-
-def configure_lxd_daemon(user):
-    add_user_to_group(user, 'lxd')
-    service_restart('lxd')
-    # NOTE(jamespage): Call list function to initialize cert
+    configure_subuid(user)
     lxc_list(user)
 
 
@@ -787,3 +799,55 @@ def git_post_install(projects_yaml):
 
     apt_update()
     apt_install(LATE_GIT_PACKAGES, fatal=True)
+
+
+def install_hugepages():
+    """ Configure hugepages """
+    hugepage_config = config('hugepages')
+    if hugepage_config:
+        # TODO: defaults to 2M - this should probably be configurable
+        #       and support multiple pool sizes - e.g. 2M and 1G.
+        hugepage_size = 2048
+        if hugepage_config.endswith('%'):
+            import psutil
+            mem = psutil.virtual_memory()
+            hugepage_config_pct = hugepage_config.strip('%')
+            hugepage_multiplier = float(hugepage_config_pct) / 100
+            hugepages = int((mem.total * hugepage_multiplier) / hugepage_size)
+        else:
+            hugepages = int(hugepage_config)
+        mnt_point = '/run/hugepages/kvm'
+        hugepage_support(
+            'nova',
+            mnt_point=mnt_point,
+            group='root',
+            nr_hugepages=hugepages,
+            mount=False,
+            set_shmmax=True,
+        )
+        if subprocess.call(['mountpoint', mnt_point]):
+            fstab_mount(mnt_point)
+        rsync(
+            charm_dir() + '/files/qemu-hugefsdir',
+            '/etc/init.d/qemu-hugefsdir'
+        )
+        subprocess.check_call('/etc/init.d/qemu-hugefsdir')
+        subprocess.check_call(['update-rc.d', 'qemu-hugefsdir', 'defaults'])
+
+
+def check_optional_relations(configs):
+    required_interfaces = {}
+    if relation_ids('ceph'):
+        required_interfaces['storage-backend'] = ['ceph']
+
+    if relation_ids('neutron-plugin'):
+        required_interfaces['neutron-plugin'] = ['neutron-plugin']
+
+    if relation_ids('shared-db') or relation_ids('pgsql-db'):
+        required_interfaces['database'] = ['shared-db', 'pgsql-db']
+
+    if required_interfaces:
+        set_os_workload_status(configs, required_interfaces)
+        return status_get()
+    else:
+        return 'unknown', 'No optional relations'

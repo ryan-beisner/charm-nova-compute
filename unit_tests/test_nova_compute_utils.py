@@ -30,6 +30,10 @@ TO_PATCH = [
     'add_user_to_group',
     'MetadataServiceContext',
     'lsb_release',
+    'charm_dir',
+    'hugepage_support',
+    'rsync',
+    'fstab_mount',
 ]
 
 OVS_PKGS = [
@@ -54,6 +58,7 @@ class NovaComputeUtilsTests(CharmTestCase):
     def setUp(self):
         super(NovaComputeUtilsTests, self).setUp(utils, TO_PATCH)
         self.config.side_effect = self.test_config.get
+        self.charm_dir.return_value = 'mycharm'
 
     @patch.object(utils, 'enable_nova_metadata')
     @patch.object(utils, 'network_manager')
@@ -458,37 +463,28 @@ class NovaComputeUtilsTests(CharmTestCase):
                                      compute_context.CEPH_SECRET_UUID,
                                      '--base64', key])
 
-    @patch.object(utils, 'check_call')
-    @patch.object(utils, 'check_output')
-    def test_configure_lxd_daemon(self, _check_output, _check_call):
-        self.test_config.set('virt-type', 'lxd')
-        utils.configure_lxd_daemon('nova')
-        self.add_user_to_group.assert_called_with('nova', 'lxd')
-        self.service_restart.assert_called_with('lxd')
-        _check_output.assert_called_wth(['sudo', '-u', 'nova', 'lxc', 'list'])
-
-    @patch.object(utils, 'configure_lxd_daemon')
+    @patch.object(utils, 'lxc_list')
     @patch.object(utils, 'configure_subuid')
-    def test_configure_lxd_vivid(self, _configure_subuid,
-                                 _configure_lxd_daemon):
+    def test_configure_lxd_vivid(self, _configure_subuid, _lxc_list):
         self.lsb_release.return_value = {
             'DISTRIB_CODENAME': 'vivid'
         }
         utils.configure_lxd('nova')
-        _configure_subuid.assert_called_with(user='nova')
-        _configure_lxd_daemon.assert_called_with(user='nova')
+        _configure_subuid.assert_called_with('nova')
+        _lxc_list.assert_called_with('nova')
 
-    @patch.object(utils, 'configure_lxd_daemon')
+    @patch.object(utils, 'git_install_requested')
+    @patch.object(utils, 'lxc_list')
     @patch.object(utils, 'configure_subuid')
-    def test_configure_lxd_pre_vivid(self, _configure_subuid,
-                                     _configure_lxd_daemon):
+    def test_configure_lxd_pre_vivid(self, _configure_subuid, _lxc_list,
+                                     _git_install):
+        _git_install.return_value = False
         self.lsb_release.return_value = {
             'DISTRIB_CODENAME': 'trusty'
         }
         with self.assertRaises(Exception):
             utils.configure_lxd('nova')
         self.assertFalse(_configure_subuid.called)
-        self.assertFalse(_configure_lxd_daemon.called)
 
     def test_enable_nova_metadata(self):
         class DummyContext():
@@ -708,3 +704,55 @@ class NovaComputeUtilsTests(CharmTestCase):
              'iputils-arping', 'kpartx', 'kvm', 'netcat', 'open-iscsi',
              'parted', 'python-libvirt', 'qemu', 'qemu-system',
              'qemu-utils', 'vlan', 'xen-system-amd64'], fatal=True)
+
+    @patch('psutil.virtual_memory')
+    @patch('subprocess.check_call')
+    @patch('subprocess.call')
+    def test_install_hugepages(self, _call, _check_call, _virt_mem):
+        class mem(object):
+            def __init__(self):
+                self.total = 10000000
+        self.test_config.set('hugepages', '10%')
+        _virt_mem.side_effect = mem
+        _call.return_value = 1
+        utils.install_hugepages()
+        self.hugepage_support.assert_called_with(
+            'nova',
+            mnt_point='/run/hugepages/kvm',
+            group='root',
+            nr_hugepages=488,
+            mount=False,
+            set_shmmax=True,
+        )
+        check_call_calls = [
+            call('/etc/init.d/qemu-hugefsdir'),
+            call(['update-rc.d', 'qemu-hugefsdir', 'defaults']),
+        ]
+        _check_call.assert_has_calls(check_call_calls)
+        self.fstab_mount.assert_called_with('/run/hugepages/kvm')
+
+    @patch('psutil.virtual_memory')
+    @patch('subprocess.check_call')
+    @patch('subprocess.call')
+    def test_install_hugepages_explicit_size(self, _call, _check_call,
+                                             _virt_mem):
+        self.test_config.set('hugepages', '2048')
+        utils.install_hugepages()
+        self.hugepage_support.assert_called_with(
+            'nova',
+            mnt_point='/run/hugepages/kvm',
+            group='root',
+            nr_hugepages=2048,
+            mount=False,
+            set_shmmax=True,
+        )
+
+    @patch('psutil.virtual_memory')
+    @patch('subprocess.check_call')
+    @patch('subprocess.call')
+    def test_install_hugepages_already_mounted(self, _call, _check_call,
+                                               _virt_mem):
+        self.test_config.set('hugepages', '2048')
+        _call.return_value = 0
+        utils.install_hugepages()
+        self.assertEqual(self.fstab_mount.call_args_list, [])
