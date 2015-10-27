@@ -1,5 +1,7 @@
 import uuid
+import os
 import platform
+
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -24,7 +26,6 @@ from charmhelpers.contrib.network.ovs import add_bridge
 from charmhelpers.contrib.network.ip import (
     get_address_in_network,
     get_ipv6_addr,
-    format_ipv6_addr,
 )
 
 # This is just a label and it must be consistent across
@@ -124,6 +125,15 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('disk-cachemodes'):
             ctxt['disk_cachemodes'] = config('disk-cachemodes')
 
+        if config('cpu-mode'):
+            ctxt['cpu_mode'] = config('cpu-mode')
+
+        if config('cpu-model'):
+            ctxt['cpu_model'] = config('cpu-model')
+
+        if config('hugepages'):
+            ctxt['hugepages'] = True
+
         ctxt['host_uuid'] = '%s' % uuid.uuid4()
         return ctxt
 
@@ -147,7 +157,7 @@ class NovaComputeVirtContext(context.OSContextGenerator):
 
 def assert_libvirt_imagebackend_allowed():
     os_rel = "Juno"
-    os_ver = get_os_version_package('nova-compute')
+    os_ver = get_os_version_package('nova-common')
     if float(os_ver) < float(get_os_version_codename(os_rel.lower())):
         msg = ("Libvirt RBD imagebackend only supported for openstack >= %s" %
                os_rel)
@@ -177,6 +187,23 @@ class NovaComputeCephContext(context.CephContext):
             ctxt['libvirt_rbd_images_ceph_conf'] = ceph_config_file()
         elif config('libvirt-image-backend') == 'lvm':
             ctxt['libvirt_images_type'] = 'lvm'
+
+        rbd_cache = config('rbd-client-cache') or ""
+        if rbd_cache.lower() == "enabled":
+            # We use write-though only to be safe for migration
+            ctxt['rbd_client_cache_settings'] = \
+                {'rbd cache': 'true',
+                 'rbd cache size': '64 MiB',
+                 'rbd cache max dirty': '0 MiB',
+                 'rbd cache writethrough until flush': 'true',
+                 'admin socket': '/var/run/ceph/rbd-client-$pid.asok'}
+
+            asok_path = '/var/run/ceph/'
+            if not os.path.isdir(asok_path):
+                os.mkdir(asok_path)
+
+        elif rbd_cache.lower() == "disabled":
+            ctxt['rbd_client_cache_settings'] = {'rbd cache': 'false'}
 
         return ctxt
 
@@ -471,6 +498,7 @@ class HostIPContext(context.OSContextGenerator):
             host_ip = get_host_ip(unit_get('private-address'))
 
         if host_ip:
-            ctxt['host_ip'] = format_ipv6_addr(host_ip) or host_ip
+            # NOTE: do not format this even for ipv6 (see bug 1499656)
+            ctxt['host_ip'] = host_ip
 
         return ctxt

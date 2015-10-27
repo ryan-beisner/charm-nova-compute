@@ -6,7 +6,6 @@ from charmhelpers.core.hookenv import (
     config,
     is_relation_made,
     log,
-    INFO,
     ERROR,
     relation_ids,
     relation_get,
@@ -14,6 +13,7 @@ from charmhelpers.core.hookenv import (
     service_name,
     unit_get,
     UnregisteredHookError,
+    status_set,
 )
 from charmhelpers.core.host import (
     restart_on_change,
@@ -33,13 +33,15 @@ from charmhelpers.contrib.openstack.utils import (
     git_install_requested,
     openstack_upgrade_available,
     os_requires_version,
+    set_os_workload_status,
 )
 
 from charmhelpers.contrib.storage.linux.ceph import (
     ensure_ceph_keyring,
     CephBrokerRq,
-    CephBrokerRsp,
     delete_keyring,
+    send_request_if_needed,
+    is_request_complete,
 )
 from charmhelpers.payload.execd import execd_preinstall
 from nova_compute_utils import (
@@ -65,11 +67,16 @@ from nova_compute_utils import (
     get_topics,
     assert_charm_supports_ipv6,
     manage_ovs,
+    install_hugepages,
+    REQUIRED_INTERFACES,
+    check_optional_relations,
 )
 
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
+
+from charmhelpers.core.unitdata import kv
 
 from nova_compute_context import (
     CEPH_SECRET_UUID,
@@ -84,14 +91,17 @@ hooks = Hooks()
 CONFIGS = register_configs()
 
 
-@hooks.hook()
+@hooks.hook('install.real')
 def install():
+    status_set('maintenance', 'Executing pre-install')
     execd_preinstall()
     configure_installation_source(config('openstack-origin'))
 
+    status_set('maintenance', 'Installing apt packages')
     apt_update()
     apt_install(determine_packages(), fatal=True)
 
+    status_set('maintenance', 'Git install')
     git_install(config('openstack-origin-git'))
 
 
@@ -99,15 +109,18 @@ def install():
 @restart_on_change(restart_map())
 def config_changed():
     if config('prefer-ipv6'):
+        status_set('maintenance', 'configuring ipv6')
         assert_charm_supports_ipv6()
 
     global CONFIGS
     if git_install_requested():
         if config_value_changed('openstack-origin-git'):
+            status_set('maintenance', 'Running Git install')
             git_install(config('openstack-origin-git'))
-    else:
+    elif not config('action-managed-upgrade'):
         if openstack_upgrade_available('nova-common'):
-            CONFIGS = do_openstack_upgrade()
+            status_set('maintenance', 'Running openstack upgrade')
+            do_openstack_upgrade(CONFIGS)
 
     sysctl_dict = config('sysctl')
     if sysctl_dict:
@@ -116,11 +129,13 @@ def config_changed():
     if migration_enabled() and config('migration-auth-type') == 'ssh':
         # Check-in with nova-c-c and register new ssh key, if it has just been
         # generated.
+        status_set('maintenance', 'SSH key exchange')
         initialize_ssh_keys()
         import_authorized_keys()
 
     if config('enable-resize') is True:
         enable_shell(user='nova')
+        status_set('maintenance', 'SSH key exchange')
         initialize_ssh_keys(user='nova')
         import_authorized_keys(user='nova', prefix='nova')
     else:
@@ -139,6 +154,9 @@ def config_changed():
 
     if is_relation_made("nrpe-external-master"):
         update_nrpe_config()
+
+    if config('hugepages'):
+        install_hugepages()
 
     CONFIGS.write_all()
 
@@ -255,9 +273,17 @@ def compute_changed():
 @hooks.hook('ceph-relation-joined')
 @restart_on_change(restart_map())
 def ceph_joined():
+    status_set('maintenance', 'Installing apt packages')
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
     # Bug 1427660
     service_restart('libvirt-bin')
+
+
+def get_ceph_request():
+    rq = CephBrokerRq()
+    replicas = config('ceph-osd-replication-count')
+    rq.add_op_create_pool(name=config('rbd-pool'), replica_count=replicas)
+    return rq
 
 
 @hooks.hook('ceph-relation-changed')
@@ -278,36 +304,20 @@ def ceph_changed():
 
     # With some refactoring, this can move into NovaComputeCephContext
     # and allow easily extended to support other compute flavors.
-    if config('virt-type') in ['kvm', 'qemu', 'lxc']:
+    if config('virt-type') in ['kvm', 'qemu', 'lxc'] and relation_get('key'):
         create_libvirt_secret(secret_file=CEPH_SECRET,
                               secret_uuid=CEPH_SECRET_UUID,
                               key=relation_get('key'))
 
     if (config('libvirt-image-backend') == 'rbd' and
             assert_libvirt_imagebackend_allowed()):
-        settings = relation_get()
-        if settings and 'broker_rsp' in settings:
-            rsp = CephBrokerRsp(settings['broker_rsp'])
-            # Non-zero return code implies failure
-            if rsp.exit_code:
-                log("Ceph broker request failed (rc=%s, msg=%s)" %
-                    (rsp.exit_code, rsp.exit_msg), level=ERROR)
-                return
-
-            log("Ceph broker request succeeded (rc=%s, msg=%s)" %
-                (rsp.exit_code, rsp.exit_msg), level=INFO)
+        if is_request_complete(get_ceph_request()):
+            log('Request complete')
             # Ensure that nova-compute is restarted since only now can we
             # guarantee that ceph resources are ready.
-            if config('libvirt-image-backend') == 'rbd':
-                service_restart('nova-compute')
+            service_restart('nova-compute')
         else:
-            rq = CephBrokerRq()
-            replicas = config('ceph-osd-replication-count')
-            rq.add_op_create_pool(name=config('rbd-pool'),
-                                  replica_count=replicas)
-            for rid in relation_ids('ceph'):
-                relation_set(broker_req=rq.request)
-                log("Request(s) sent to Ceph broker (rid=%s)" % (rid))
+            send_request_if_needed(get_ceph_request())
 
 
 @hooks.hook('ceph-relation-broken')
@@ -328,6 +338,9 @@ def relation_broken():
 
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
+    # NOTE: ensure psutil install for hugepages configuration
+    status_set('maintenance', 'Installing apt packages')
+    apt_install(filter_installed_packages(['python-psutil']))
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
 
@@ -379,11 +392,29 @@ def neutron_plugin_changed():
     CONFIGS.write(NOVA_CONF)
 
 
+@hooks.hook('lxd-relation-joined')
+def lxd_joined(relid=None):
+    relation_set(relation_id=relid,
+                 user='nova')
+
+
+@hooks.hook('lxd-relation-changed')
+def lxc_changed():
+    nonce = relation_get('nonce')
+    db = kv()
+    if nonce and db.get('lxd-nonce') != nonce:
+        db.set('lxd-nonce', nonce)
+        configure_lxd(user='nova')
+        service_restart('nova-compute')
+
+
 def main():
     try:
         hooks.execute(sys.argv)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
+    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
+                           charm_func=check_optional_relations)
 
 
 if __name__ == '__main__':
