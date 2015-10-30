@@ -326,7 +326,7 @@ class NovaComputeUtilsTests(CharmTestCase):
                 call(authkey_root + '0'),
                 call(authkey_root + '1'),
                 call(authkey_root + '2')
-                ]
+            ]
             self.assertEquals(sorted(self.relation_get.call_args_list),
                               sorted(expected_relations))
 
