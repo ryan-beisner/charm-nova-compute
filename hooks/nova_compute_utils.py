@@ -299,8 +299,9 @@ def resource_map():
 
             conf = neutron_plugin_attribute(plugin, 'config', net_manager)
             svcs = neutron_plugin_attribute(plugin, 'services', net_manager)
-            ctxts = (neutron_plugin_attribute(plugin, 'contexts', net_manager)
-                     or [])
+            ctxts = (neutron_plugin_attribute(plugin,
+                                              'contexts', net_manager) or
+                     [])
             resource_map[conf] = {}
             resource_map[conf]['services'] = svcs
             resource_map[conf]['contexts'] = ctxts
@@ -373,8 +374,8 @@ def determine_packages():
     if (net_manager in ['flatmanager', 'flatdhcpmanager'] and
             config('multi-host').lower() == 'yes'):
         packages.extend(['nova-api', 'nova-network'])
-    elif (net_manager in ['quantum', 'neutron']
-            and neutron_plugin_legacy_mode()):
+    elif (net_manager in ['quantum', 'neutron'] and
+            neutron_plugin_legacy_mode()):
         plugin = neutron_plugin()
         pkg_lists = neutron_plugin_attribute(plugin, 'packages', net_manager)
         for pkg_list in pkg_lists:
