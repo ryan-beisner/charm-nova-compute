@@ -10,6 +10,7 @@ import nova_compute_context as context
 TO_PATCH = [
     'apt_install',
     'filter_installed_packages',
+    'kv',
     'relation_ids',
     'relation_get',
     'related_units',
@@ -58,6 +59,23 @@ def fake_log(msg, level=None):
     print '[juju test log (%s)] %s' % (level, msg)
 
 
+class FakeUnitdata(object):
+
+    def __init__(self, **kwargs):
+        self.unit_data = {}
+        for name, value in kwargs.items():
+            self.unit_data[name] = value
+
+    def get(self, key, default=None, record=False):
+        return self.unit_data.get(key)
+
+    def set(self, key, value):
+        self.unit_data[key] = value
+
+    def flush(self):
+        pass
+
+
 class NovaComputeContextTests(CharmTestCase):
 
     def setUp(self):
@@ -65,6 +83,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.relation_get.side_effect = self.test_relation.get
         self.config.side_effect = self.test_config.get
         self.log.side_effect = fake_log
+        self.host_uuid = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
 
     def test_cloud_compute_context_no_relation(self):
         self.relation_ids.return_value = []
@@ -173,34 +192,31 @@ class NovaComputeContextTests(CharmTestCase):
         with patch.object(qplugin, '_ensure_packages'):
             self.assertEquals({}, qplugin())
 
-    @patch.object(context.uuid, 'uuid4')
-    def test_libvirt_bin_context_no_migration(self, mock_uuid):
+    def test_libvirt_bin_context_no_migration(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
         self.test_config.set('enable-live-migration', False)
-        mock_uuid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
         libvirt = context.NovaComputeLibvirtContext()
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
              'arch': platform.machine(),
              'listen_tls': 0,
-             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
+             'host_uuid': self.host_uuid}, libvirt())
 
-    @patch.object(context.uuid, 'uuid4')
-    def test_libvirt_bin_context_migration_tcp_listen(self, mock_uuid):
+    def test_libvirt_bin_context_migration_tcp_listen(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
         self.test_config.set('enable-live-migration', True)
-        mock_uuid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
         libvirt = context.NovaComputeLibvirtContext()
 
         self.assertEqual(
             {'libvirtd_opts': '-d -l',
              'arch': platform.machine(),
              'listen_tls': 0,
-             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
+             'host_uuid': self.host_uuid}, libvirt())
 
-    @patch.object(context.uuid, 'uuid4')
-    def test_libvirt_disk_cachemodes(self, mock_uuid):
+    def test_libvirt_disk_cachemodes(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
         self.test_config.set('disk-cachemodes', 'file=unsafe,block=none')
-        mock_uuid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
         libvirt = context.NovaComputeLibvirtContext()
 
         self.assertEqual(
@@ -208,7 +224,15 @@ class NovaComputeContextTests(CharmTestCase):
              'disk_cachemodes': 'file=unsafe,block=none',
              'arch': platform.machine(),
              'listen_tls': 0,
-             'host_uuid': 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'}, libvirt())
+             'host_uuid': self.host_uuid}, libvirt())
+
+    @patch.object(context.uuid, 'uuid4')
+    def test_libvirt_new_uuid(self, mock_uuid):
+        self.kv.return_value = FakeUnitdata()
+        mock_uuid.return_value = '73874c1c-ba48-406d-8d99-ac185d83b9bc'
+        libvirt = context.NovaComputeLibvirtContext()
+        self.assertEqual(libvirt()['host_uuid'],
+                         '73874c1c-ba48-406d-8d99-ac185d83b9bc')
 
     @patch.object(context.NeutronComputeContext, 'network_manager')
     @patch.object(context.NeutronComputeContext, 'plugin')
