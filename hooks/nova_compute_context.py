@@ -2,6 +2,7 @@ import uuid
 import os
 import platform
 
+from charmhelpers.core.unitdata import kv
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import service_running, service_start
 from charmhelpers.fetch import apt_install, filter_installed_packages
@@ -134,7 +135,15 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         if config('hugepages'):
             ctxt['hugepages'] = True
 
-        ctxt['host_uuid'] = '%s' % uuid.uuid4()
+        db = kv()
+        if db.get('host_uuid'):
+            ctxt['host_uuid'] = db.get('host_uuid')
+        else:
+            host_uuid = str(uuid.uuid4())
+            db.set('host_uuid', host_uuid)
+            db.flush()
+            ctxt['host_uuid'] = host_uuid
+
         return ctxt
 
 
