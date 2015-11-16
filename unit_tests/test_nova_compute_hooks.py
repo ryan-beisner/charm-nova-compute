@@ -25,6 +25,7 @@ TO_PATCH = [
     'unit_get',
     # charmhelpers.core.host
     'apt_install',
+    'apt_purge',
     'apt_update',
     'filter_installed_packages',
     'restart_on_change',
@@ -484,5 +485,30 @@ class NovaComputeRelationsTests(CharmTestCase):
                                           'sharedsecret'}
         hooks.neutron_plugin_changed()
         self.assertTrue(self.apt_update.called)
-        self.apt_install.assert_called_with('nova-api-metadata', fatal=True)
+        self.apt_install.assert_called_with(['nova-api-metadata'],
+                                            fatal=True)
+        configs.write.assert_called_with('/etc/nova/nova.conf')
+
+    @patch.object(hooks, 'CONFIGS')
+    def test_neutron_plugin_changed_nometa_implicit(self, configs):
+        self.relation_get.return_value = {}
+        hooks.neutron_plugin_changed()
+        self.apt_purge.assert_called_with('nova-api-metadata',
+                                          fatal=True)
+        configs.write.assert_called_with('/etc/nova/nova.conf')
+
+    @patch.object(hooks, 'CONFIGS')
+    def test_neutron_plugin_changed_meta(self, configs):
+        self.relation_get.return_value = {'enable-metadata': 'True'}
+        hooks.neutron_plugin_changed()
+        self.apt_install.assert_called_with(['nova-api-metadata'],
+                                            fatal=True)
+        configs.write.assert_called_with('/etc/nova/nova.conf')
+
+    @patch.object(hooks, 'CONFIGS')
+    def test_neutron_plugin_changed_nometa_explicit(self, configs):
+        self.relation_get.return_value = {'enable-metadata': 'false'}
+        hooks.neutron_plugin_changed()
+        self.apt_purge.assert_called_with('nova-api-metadata',
+                                          fatal=True)
         configs.write.assert_called_with('/etc/nova/nova.conf')
