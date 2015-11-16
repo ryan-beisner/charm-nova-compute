@@ -19,7 +19,9 @@ from charmhelpers.core.host import (
     restart_on_change,
     service_restart,
 )
-
+from charmhelpers.core.strutils import (
+    bool_from_string,
+)
 from charmhelpers.fetch import (
     apt_install,
     apt_purge,
@@ -384,9 +386,14 @@ def update_nrpe_config():
 @restart_on_change(restart_map())
 def neutron_plugin_changed():
     settings = relation_get()
-    if 'metadata-shared-secret' in settings:
+    if settings.get('enable-metadata'):
+        enable_metadata = bool_from_string(settings['enable-metadata'])
+    else:
+        enable_metadata = False
+    if 'metadata-shared-secret' in settings or enable_metadata:
         apt_update()
-        apt_install('nova-api-metadata', fatal=True)
+        apt_install(filter_installed_packages(['nova-api-metadata']),
+                    fatal=True)
     else:
         apt_purge('nova-api-metadata', fatal=True)
     CONFIGS.write(NOVA_CONF)
