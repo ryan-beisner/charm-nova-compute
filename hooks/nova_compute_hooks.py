@@ -145,9 +145,6 @@ def config_changed():
         fp = config('instances-path')
         fix_path_ownership(fp, user='nova')
 
-    if config('virt-type').lower() == 'lxd':
-        configure_lxd(user='nova')
-
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
     for rid in relation_ids('zeromq-configuration'):
         zeromq_configuration_relation_joined(rid)
