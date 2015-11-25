@@ -70,6 +70,7 @@ from nova_compute_utils import (
     install_hugepages,
     REQUIRED_INTERFACES,
     check_optional_relations,
+    get_hugepage_number,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -148,6 +149,9 @@ def config_changed():
     [compute_joined(rid) for rid in relation_ids('cloud-compute')]
     for rid in relation_ids('zeromq-configuration'):
         zeromq_configuration_relation_joined(rid)
+
+    for rid in relation_ids('neutron-plugin'):
+        neutron_plugin_joined(rid)
 
     if is_relation_made("nrpe-external-master"):
         update_nrpe_config()
@@ -375,6 +379,12 @@ def update_nrpe_config():
     nrpe_setup = nrpe.NRPE(hostname=hostname)
     nrpe.add_init_service_checks(nrpe_setup, services(), current_unit)
     nrpe_setup.write()
+
+
+@hooks.hook('neutron-plugin-relation-joined')
+def neutron_plugin_joined(relid=None):
+    relation_set(relation_id=relid,
+                 hugepage_number=get_hugepage_number())
 
 
 @hooks.hook('neutron-plugin-relation-changed')
