@@ -124,8 +124,10 @@ class NovaComputeRelationsTests(CharmTestCase):
         hooks.config_changed()
         self.assertFalse(self.do_openstack_upgrade.called)
 
+    @patch.object(hooks, 'neutron_plugin_joined')
     @patch.object(hooks, 'compute_joined')
-    def test_config_changed_with_migration(self, compute_joined):
+    def test_config_changed_with_migration(self, compute_joined,
+                                           neutron_plugin_joined):
         self.git_install_requested.return_value = False
         self.migration_enabled.return_value = True
         _zmq_joined = self.patch('zeromq_configuration_relation_joined')
@@ -143,8 +145,10 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.assertTrue(self.initialize_ssh_keys.called)
         self.assertTrue(_zmq_joined.called)
 
+    @patch.object(hooks, 'neutron_plugin_joined')
     @patch.object(hooks, 'compute_joined')
-    def test_config_changed_with_resize(self, compute_joined):
+    def test_config_changed_with_resize(self, compute_joined,
+                                        neutron_plugin_joined):
         self.git_install_requested.return_value = False
         self.test_config.set('enable-resize', True)
         _zmq_joined = self.patch('zeromq_configuration_relation_joined')
@@ -162,8 +166,10 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.enable_shell.assert_called_with(user='nova')
         self.assertTrue(_zmq_joined.called)
 
+    @patch.object(hooks, 'neutron_plugin_joined')
     @patch.object(hooks, 'compute_joined')
-    def test_config_changed_without_resize(self, compute_joined):
+    def test_config_changed_without_resize(self, compute_joined,
+                                           neutron_plugin_joined):
         self.git_install_requested.return_value = False
         self.test_config.set('enable-resize', False)
         _zmq_joined = self.patch('zeromq_configuration_relation_joined')
