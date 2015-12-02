@@ -807,14 +807,16 @@ def get_hugepage_number():
     #       and support multiple pool sizes - e.g. 2M and 1G.
     hugepage_size = 2048
     hugepage_config = config('hugepages')
-    if hugepage_config.endswith('%'):
-        import psutil
-        mem = psutil.virtual_memory()
-        hugepage_config_pct = hugepage_config.strip('%')
-        hugepage_multiplier = float(hugepage_config_pct) / 100
-        hugepages = int((mem.total * hugepage_multiplier) / hugepage_size)
-    else:
-        hugepages = int(hugepage_config)
+    hugepages = None
+    if hugepage_config:
+        if hugepage_config.endswith('%'):
+            import psutil
+            mem = psutil.virtual_memory()
+            hugepage_config_pct = hugepage_config.strip('%')
+            hugepage_multiplier = float(hugepage_config_pct) / 100
+            hugepages = int((mem.total * hugepage_multiplier) / hugepage_size)
+        else:
+            hugepages = int(hugepage_config)
     return hugepages
 
 
