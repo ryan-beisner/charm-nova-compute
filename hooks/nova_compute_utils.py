@@ -802,27 +802,32 @@ def git_post_install(projects_yaml):
     apt_install(LATE_GIT_PACKAGES, fatal=True)
 
 
+def get_hugepage_number():
+    # TODO: defaults to 2M - this should probably be configurable
+    #       and support multiple pool sizes - e.g. 2M and 1G.
+    hugepage_size = 2048
+    hugepage_config = config('hugepages')
+    if hugepage_config.endswith('%'):
+        import psutil
+        mem = psutil.virtual_memory()
+        hugepage_config_pct = hugepage_config.strip('%')
+        hugepage_multiplier = float(hugepage_config_pct) / 100
+        hugepages = int((mem.total * hugepage_multiplier) / hugepage_size)
+    else:
+        hugepages = int(hugepage_config)
+    return hugepages
+
+
 def install_hugepages():
     """ Configure hugepages """
     hugepage_config = config('hugepages')
     if hugepage_config:
-        # TODO: defaults to 2M - this should probably be configurable
-        #       and support multiple pool sizes - e.g. 2M and 1G.
-        hugepage_size = 2048
-        if hugepage_config.endswith('%'):
-            import psutil
-            mem = psutil.virtual_memory()
-            hugepage_config_pct = hugepage_config.strip('%')
-            hugepage_multiplier = float(hugepage_config_pct) / 100
-            hugepages = int((mem.total * hugepage_multiplier) / hugepage_size)
-        else:
-            hugepages = int(hugepage_config)
         mnt_point = '/run/hugepages/kvm'
         hugepage_support(
             'nova',
             mnt_point=mnt_point,
             group='root',
-            nr_hugepages=hugepages,
+            nr_hugepages=get_hugepage_number(),
             mount=False,
             set_shmmax=True,
         )
