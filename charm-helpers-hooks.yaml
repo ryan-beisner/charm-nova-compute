@@ -11,5 +11,5 @@ include:
         - cluster
     - contrib.network
     - contrib.python.packages
-    - payload.execd
+    - payload
     - contrib.charmsupport
