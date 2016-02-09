@@ -8,6 +8,7 @@ from charmhelpers.core.hookenv import (
     log,
     ERROR,
     relation_ids,
+    related_units,
     relation_get,
     relation_set,
     service_name,
@@ -161,6 +162,12 @@ def config_changed():
     if config('hugepages'):
         install_hugepages()
 
+    if (config('libvirt-image-backend') == 'rbd' and
+            assert_libvirt_imagebackend_allowed()):
+        for rid in relation_ids('ceph'):
+            for unit in related_units(rid):
+                ceph_changed(rid=rid, unit=unit)
+
     CONFIGS.write_all()
 
 
@@ -291,7 +298,7 @@ def get_ceph_request():
 
 @hooks.hook('ceph-relation-changed')
 @restart_on_change(restart_map())
-def ceph_changed():
+def ceph_changed(rid=None, unit=None):
     if 'ceph' not in CONFIGS.complete_contexts():
         log('ceph relation incomplete. Peer not ready?')
         return
@@ -307,10 +314,10 @@ def ceph_changed():
 
     # With some refactoring, this can move into NovaComputeCephContext
     # and allow easily extended to support other compute flavors.
-    if config('virt-type') in ['kvm', 'qemu', 'lxc'] and relation_get('key'):
+    key = relation_get(attribute='key', rid=rid, unit=unit)
+    if config('virt-type') in ['kvm', 'qemu', 'lxc'] and key:
         create_libvirt_secret(secret_file=CEPH_SECRET,
-                              secret_uuid=CEPH_SECRET_UUID,
-                              key=relation_get('key'))
+                              secret_uuid=CEPH_SECRET_UUID, key=key)
 
     if (config('libvirt-image-backend') == 'rbd' and
             assert_libvirt_imagebackend_allowed()):
