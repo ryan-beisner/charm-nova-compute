@@ -456,16 +456,14 @@ class DesignateContext(context.OSContextGenerator):
 
     def __call__(self):
         ctxt = {}
-        ctxt['enable_designate_designate'] = False
+        ctxt['enable_designate'] = False
         for rid in relation_ids('nova-designate'):
             if related_units(rid):
-                ctxt['enable_designate_designate'] = True
-        if ctxt['enable_designate_designate']:
-             ctxt['notification_driver'] = 'messaging'
-             ctxt['notification_topics'] = 'notifications_designate'
-             ctxt['notify_on_state_change'] = 'vm_and_task_state'
-      #       ctxt['instance_usage_audit_period'] = 'hour'
-      #       ctxt['instance_usage_audit'] = 'true'
+                ctxt['enable_designate'] = True
+        if ctxt['enable_designate']:
+            ctxt['notification_driver'] = 'messaging'
+            ctxt['notification_topics'] = 'notifications_designate'
+            ctxt['notify_on_state_change'] = 'vm_and_task_state'
         return ctxt
 
 
