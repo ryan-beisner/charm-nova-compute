@@ -411,7 +411,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                                               db_nc_rel['nova_password'],
                                               db_nc_rel['db_host'],
                                               'nova')
-
+        # Common conf across all releases
         expected = {
             'DEFAULT': {
                 'dhcpbridge_flagfile': '/etc/nova/nova.conf',
@@ -424,51 +424,55 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                 'ec2_private_dns_show_ip': 'True',
                 'api_paste_config': '/etc/nova/api-paste.ini',
                 'enabled_apis': 'ec2,osapi_compute,metadata',
-                'auth_strategy': 'keystone',
                 'flat_interface': 'eth1',
                 'network_manager': 'nova.network.manager.FlatDHCPManager',
                 'volume_api_class': 'nova.volume.cinder.API',
+                'auth_strategy': 'keystone'
             }
         }
+
         if self._get_openstack_release() < self.trusty_kilo:
-            d = 'DEFAULT'
-            expected[d]['lock_path'] = '/var/lock/nova'
-            expected[d]['libvirt_use_virtio_for_bridges'] = 'True'
-            expected[d]['compute_driver'] = 'libvirt.LibvirtDriver'
-            expected[d]['sql_connection'] = db_uri
-            expected[d]['rabbit_userid'] = 'nova'
-            expected[d]['rabbit_virtual_host'] = 'openstack'
-            expected[d]['rabbit_password'] = rmq_nc_rel['password']
-            expected[d]['rabbit_host'] = rmq_nc_rel['hostname']
-            expected[d]['glance_api_servers'] = gl_nc_rel['glance-api-server']
+            # Juno or earlier
+#            d = 'DEFAULT'
+#            expected[d]['lock_path'] = '/var/lock/nova'
+#            expected[d]['libvirt_use_virtio_for_bridges'] = 'True'
+#            expected[d]['compute_driver'] = 'libvirt.LibvirtDriver'
+#            expected[d]['sql_connection'] = db_uri
+#            expected[d]['rabbit_userid'] = 'nova'
+#            expected[d]['rabbit_virtual_host'] = 'openstack'
+#            expected[d]['rabbit_password'] = rmq_nc_rel['password']
+#            expected[d]['rabbit_host'] = rmq_nc_rel['hostname']
+#            expected[d]['glance_api_servers'] = gl_nc_rel['glance-api-server']
+            expected['DEFAULT'].update({
+                'lock_path': '/var/lock/nova',
+                'libvirt_use_virtio_for_bridges': 'True',
+                'compute_driver': 'libvirt.LibvirtDriver',
+                'sql_connection': db_uri,
+                'rabbit_userid': 'nova',
+                'rabbit_virtual_host': 'openstack',
+                'rabbit_password': rmq_nc_rel['password'],
+                'rabbit_host': rmq_nc_rel['hostname'],
+                'glance_api_servers': gl_nc_rel['glance-api-server']
+            })
         else:
-            oslo_concurrency = {
+            # Kilo or later
+            expected.update({
                 'oslo_concurrency': {
                     'lock_path': '/var/lock/nova'
-                }
-            }
-            database = {
+                },
                 'database': {
                     'connection': db_uri
-                }
-            }
-            oslo_messaging_rabbit = {
+                },
                 'oslo_messaging_rabbit': {
                     'rabbit_userid': 'nova',
                     'rabbit_virtual_host': 'openstack',
                     'rabbit_password': rmq_nc_rel['password'],
                     'rabbit_host': rmq_nc_rel['hostname'],
-                }
-            }
-            glance = {
+                },
                 'glance': {
                     'api_servers': gl_nc_rel['glance-api-server']
                 }
-            }
-            expected.update(oslo_concurrency)
-            expected.update(database)
-            expected.update(oslo_messaging_rabbit)
-            expected.update(glance)
+            })
 
         for section, pairs in expected.iteritems():
             ret = u.validate_config_data(unit, conf, section, pairs)
