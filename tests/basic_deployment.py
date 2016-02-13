@@ -433,16 +433,6 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
         if self._get_openstack_release() < self.trusty_kilo:
             # Juno or earlier
-#            d = 'DEFAULT'
-#            expected[d]['lock_path'] = '/var/lock/nova'
-#            expected[d]['libvirt_use_virtio_for_bridges'] = 'True'
-#            expected[d]['compute_driver'] = 'libvirt.LibvirtDriver'
-#            expected[d]['sql_connection'] = db_uri
-#            expected[d]['rabbit_userid'] = 'nova'
-#            expected[d]['rabbit_virtual_host'] = 'openstack'
-#            expected[d]['rabbit_password'] = rmq_nc_rel['password']
-#            expected[d]['rabbit_host'] = rmq_nc_rel['hostname']
-#            expected[d]['glance_api_servers'] = gl_nc_rel['glance-api-server']
             expected['DEFAULT'].update({
                 'lock_path': '/var/lock/nova',
                 'libvirt_use_virtio_for_bridges': 'True',
