@@ -248,6 +248,14 @@ class CloudComputeContext(context.OSContextGenerator):
                                               rid=rid, unit=unit)
         return volume_service
 
+    @property
+    def region(self):
+        region = None
+        for rid in relation_ids('cloud-compute'):
+            for unit in related_units(rid):
+                region = relation_get('region', rid=rid, unit=unit)
+        return region
+
     def flat_dhcp_context(self):
         ec2_host = None
         for rid in relation_ids('cloud-compute'):
@@ -400,6 +408,11 @@ class CloudComputeContext(context.OSContextGenerator):
 
         if self.restart_trigger():
             ctxt['restart_trigger'] = self.restart_trigger()
+
+        region = self.region
+        if region:
+            ctxt['region'] = region
+
         return ctxt
 
 
