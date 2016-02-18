@@ -78,6 +78,7 @@ from nova_compute_context import (
     CEPH_CONF,
     ceph_config_file,
     HostIPContext,
+    DesignateContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
@@ -178,6 +179,7 @@ BASE_RESOURCE_MAP = {
                      context.NotificationDriverContext(),
                      MetadataServiceContext(),
                      HostIPContext(),
+                     DesignateContext(),
                      context.LogLevelContext()],
     },
 }

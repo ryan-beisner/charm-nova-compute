@@ -274,3 +274,33 @@ class NovaComputeContextTests(CharmTestCase):
         metadatactxt = context.MetadataServiceContext()
         self.assertEqual(metadatactxt(), {'metadata_shared_secret':
                                           'shared_secret'})
+
+
+class DesignateContextTests(CharmTestCase):
+
+    def setUp(self):
+        super(DesignateContextTests, self).setUp(context, TO_PATCH)
+        self.relation_get.side_effect = self.test_relation.get
+        self.config.side_effect = self.test_config.get
+        self.host_uuid = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
+
+    def test_designate_relation(self):
+        self.test_relation.set({})
+        designatectxt = context.DesignateContext()
+        self.relation_ids.return_value = ['nova-designate:0']
+        self.related_units.return_value = 'designate/0'
+        self.assertEqual(designatectxt(), {
+            'enable_designate': True,
+            'notification_driver': 'messaging',
+            'notification_topics': 'notifications_designate',
+            'notify_on_state_change': 'vm_and_task_state',
+        })
+
+    def test_no_designate_relation(self):
+        self.test_relation.set({})
+        designatectxt = context.DesignateContext()
+        self.relation_ids.return_value = []
+        self.related_units.return_value = None
+        self.assertEqual(designatectxt(), {
+            'enable_designate': False,
+        })

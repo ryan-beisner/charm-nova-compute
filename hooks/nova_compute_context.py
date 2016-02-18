@@ -465,6 +465,21 @@ class MetadataServiceContext(context.OSContextGenerator):
         return ctxt
 
 
+class DesignateContext(context.OSContextGenerator):
+
+    def __call__(self):
+        ctxt = {}
+        ctxt['enable_designate'] = False
+        for rid in relation_ids('nova-designate'):
+            if related_units(rid):
+                ctxt['enable_designate'] = True
+        if ctxt['enable_designate']:
+            ctxt['notification_driver'] = 'messaging'
+            ctxt['notification_topics'] = 'notifications_designate'
+            ctxt['notify_on_state_change'] = 'vm_and_task_state'
+        return ctxt
+
+
 class NeutronComputeContext(context.NeutronContext):
     interfaces = []
 

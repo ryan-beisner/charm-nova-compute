@@ -422,6 +422,12 @@ def lxc_changed():
         service_restart('nova-compute')
 
 
+@hooks.hook('nova-designate-relation-changed')
+@restart_on_change(restart_map())
+def designate_changed():
+    CONFIGS.write(NOVA_CONF)
+
+
 def main():
     try:
         hooks.execute(sys.argv)
