@@ -4,3 +4,4 @@ bin
 .testrepository
 tags
 *.sw[nop]
+*.pyc
