@@ -25,6 +25,7 @@ from charmhelpers.core.host import (
     service_restart,
     lsb_release,
     write_file,
+    init_is_systemd,
 )
 
 from charmhelpers.core.hookenv import (
@@ -770,14 +771,31 @@ def git_post_install(projects_yaml):
         'executable_name': os.path.join(bin_dir, 'nova-api'),
         'config_files': [nova_conf],
     }
-    nova_compute_context = {
-        'service_description': 'Nova compute worker',
-        'service_name': service_name,
-        'user_name': nova_user,
-        'process_name': 'nova-compute',
-        'executable_name': os.path.join(bin_dir, 'nova-compute'),
-        'config_files': [nova_conf, '/etc/nova/nova-compute.conf'],
-    }
+    # Use systemd init units/scripts from ubuntu wily onwar
+    if init_is_systemd():
+        activate_path = os.path.join(git_pip_venv_dir(projects_yaml), 'bin',
+                                     'activate')
+        nova_compute_context = {
+            'daemon_path': os.path.join(bin_dir, 'nova-compute'),
+            'activate_path': activate_path,
+        }
+        templates_dir = os.path.join(charm_dir(), 'templates/git')
+        render('git/nova-compute.system.in.template',
+               '/lib/systemd/system/nova-compute.service',
+               nova_compute_context, perms=0o644)
+    else:
+        nova_compute_context = {
+            'service_description': 'Nova compute worker',
+            'service_name': service_name,
+            'user_name': nova_user,
+            'process_name': 'nova-compute',
+            'executable_name': os.path.join(bin_dir, 'nova-compute'),
+            'config_files': [nova_conf, '/etc/nova/nova-compute.conf'],
+        }
+        render('git/upstart/nova-compute.upstart',
+               '/etc/init/nova-compute.conf',
+               nova_compute_context, perms=0o644)
+
     nova_network_context = {
         'service_description': 'Nova network worker',
         'service_name': service_name,
@@ -795,8 +813,6 @@ def git_post_install(projects_yaml):
            nova_api_metadata_context, perms=0o644, templates_dir=templates_dir)
     render('git.upstart', '/etc/init/nova-api.conf',
            nova_api_context, perms=0o644, templates_dir=templates_dir)
-    render('git/upstart/nova-compute.upstart', '/etc/init/nova-compute.conf',
-           nova_compute_context, perms=0o644)
     render('git.upstart', '/etc/init/nova-network.conf',
            nova_network_context, perms=0o644, templates_dir=templates_dir)
 
