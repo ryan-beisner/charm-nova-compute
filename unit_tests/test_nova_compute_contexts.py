@@ -108,7 +108,17 @@ class NovaComputeContextTests(CharmTestCase):
             'network_manager_config': {
                 'ec2_dmz_host': 'novaapihost',
                 'flat_interface': 'eth1'
-            }
+            },
+            'service_protocol': None,
+            'service_host': None,
+            'service_port': None,
+            'admin_tenant_name': None,
+            'admin_user': None,
+            'admin_password': None,
+            'auth_protocol': None,
+            'auth_host': None,
+            'auth_port': None,
+            'api_version': None,
         }
         self.assertEquals(ex_ctxt, cloud_compute())
 
@@ -126,6 +136,7 @@ class NovaComputeContextTests(CharmTestCase):
         ex_ctxt = {
             'network_manager': 'neutron',
             'network_manager_config': {
+                'api_version': '2.0',
                 'auth_protocol': 'https',
                 'service_protocol': 'http',
                 'auth_port': '5000',
@@ -137,8 +148,20 @@ class NovaComputeContextTests(CharmTestCase):
                 'neutron_auth_strategy': 'keystone',
                 'neutron_plugin': 'ovs',
                 'neutron_security_groups': True,
-                'neutron_url': 'http://nova-c-c:9696'
-            }
+                'neutron_url': 'http://nova-c-c:9696',
+                'service_protocol': 'http',
+                'service_port': '5000',
+            },
+            'service_host': 'keystone_host',
+            'admin_tenant_name': 'admin',
+            'admin_user': 'admin',
+            'admin_password': 'openstack',
+            'auth_port': '5000',
+            'auth_protocol': 'https',
+            'auth_host': 'keystone_host',
+            'api_version': '2.0',
+            'service_protocol': 'http',
+            'service_port': '5000',
         }
         self.assertEquals(ex_ctxt, cloud_compute())
         self._save_flag_file.assert_called_with(

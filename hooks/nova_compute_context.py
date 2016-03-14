@@ -291,6 +291,8 @@ class CloudComputeContext(context.OSContextGenerator):
                         'auth_protocol', **rel) or 'http',
                     'service_protocol': relation_get(
                         'service_protocol', **rel) or 'http',
+                    'service_port': relation_get(
+                        'service_port', **rel) or '5000',
                     'neutron_auth_strategy': 'keystone',
                     'keystone_host': relation_get(
                         'auth_host', **rel),
@@ -302,6 +304,8 @@ class CloudComputeContext(context.OSContextGenerator):
                         'service_username', **rel),
                     'neutron_admin_password': relation_get(
                         'service_password', **rel),
+                    'api_version': relation_get(
+                        'api_version', **rel) or '2.0',
                     'neutron_plugin': _neutron_plugin(),
                     'neutron_url': url,
                 }
@@ -314,9 +318,10 @@ class CloudComputeContext(context.OSContextGenerator):
 
         neutron_ctxt['neutron_security_groups'] = _neutron_security_groups()
 
-        ks_url = '%s://%s:%s/v2.0' % (neutron_ctxt['auth_protocol'],
-                                      neutron_ctxt['keystone_host'],
-                                      neutron_ctxt['auth_port'])
+        ks_url = '%s://%s:%s/v%s' % (neutron_ctxt['auth_protocol'],
+                                     neutron_ctxt['keystone_host'],
+                                     neutron_ctxt['auth_port'],
+                                     neutron_ctxt['api_version'])
         neutron_ctxt['neutron_admin_auth_url'] = ks_url
 
         return neutron_ctxt
@@ -370,6 +375,19 @@ class CloudComputeContext(context.OSContextGenerator):
         if net_manager:
             ctxt['network_manager'] = self.network_manager
             ctxt['network_manager_config'] = net_manager
+            # This is duplicating information in the context to enable
+            # common keystone fragment to be used in template
+            ctxt['service_protocol'] = net_manager.get('service_protocol')
+            ctxt['service_host'] = net_manager.get('keystone_host')
+            ctxt['service_port'] = net_manager.get('service_port')
+            ctxt['admin_tenant_name'] = net_manager.get(
+                'neutron_admin_tenant_name')
+            ctxt['admin_user'] = net_manager.get('neutron_admin_username')
+            ctxt['admin_password'] = net_manager.get('neutron_admin_password')
+            ctxt['auth_protocol'] = net_manager.get('auth_protocol')
+            ctxt['auth_host'] = net_manager.get('keystone_host')
+            ctxt['auth_port'] = net_manager.get('auth_port')
+            ctxt['api_version'] = net_manager.get('api_version')
 
         net_dev_mtu = config('network-device-mtu')
         if net_dev_mtu:
