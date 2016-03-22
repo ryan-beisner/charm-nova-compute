@@ -214,18 +214,6 @@ CEPH_RESOURCES = {
     }
 }
 
-QUANTUM_CONF_DIR = "/etc/quantum"
-QUANTUM_CONF = '%s/quantum.conf' % QUANTUM_CONF_DIR
-
-QUANTUM_RESOURCES = {
-    QUANTUM_CONF: {
-        'services': [],
-        'contexts': [NeutronComputeContext(),
-                     context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR),
-                     context.SyslogContext()],
-    },
-}
-
 NEUTRON_CONF_DIR = "/etc/neutron"
 NEUTRON_CONF = '%s/neutron.conf' % NEUTRON_CONF_DIR
 
@@ -294,8 +282,6 @@ def resource_map():
         # This stanza supports the legacy case of ovs supported within
         # compute charm code (now moved to neutron-openvswitch subordinate)
         if manage_ovs():
-            if net_manager == 'quantum':
-                nm_rsc = QUANTUM_RESOURCES
             if net_manager == 'neutron':
                 nm_rsc = NEUTRON_RESOURCES
             resource_map.update(nm_rsc)
@@ -377,8 +363,7 @@ def determine_packages():
     if (net_manager in ['flatmanager', 'flatdhcpmanager'] and
             config('multi-host').lower() == 'yes'):
         packages.extend(['nova-api', 'nova-network'])
-    elif (net_manager in ['quantum', 'neutron'] and
-            neutron_plugin_legacy_mode()):
+    elif net_manager == 'neutron' and neutron_plugin_legacy_mode():
         plugin = neutron_plugin()
         pkg_lists = neutron_plugin_attribute(plugin, 'packages', net_manager)
         for pkg_list in pkg_lists:
@@ -412,13 +397,6 @@ def migration_enabled():
     return config('enable-live-migration')
 
 
-def quantum_enabled():
-    manager = config('network-manager')
-    if not manager:
-        return False
-    return manager.lower() == 'quantum'
-
-
 def _network_config():
     '''
     Obtain all relevant network configuration settings from nova-c-c via
@@ -448,10 +426,8 @@ def network_manager():
     manager = _network_config().get('network_manager')
     if manager:
         manager = manager.lower()
-        if manager not in ['quantum', 'neutron']:
+        if manager != 'neutron':
             return manager
-        if os_release('nova-common') in ['folsom', 'grizzly']:
-            return 'quantum'
         else:
             return 'neutron'
     return manager

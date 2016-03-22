@@ -62,7 +62,7 @@ from nova_compute_utils import (
     services,
     register_configs,
     NOVA_CONF,
-    QUANTUM_CONF, NEUTRON_CONF,
+    NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     configure_lxd,
@@ -188,8 +188,6 @@ def amqp_changed():
     CONFIGS.write(NOVA_CONF)
     # No need to write NEUTRON_CONF if neutron-plugin is managing it
     if manage_ovs():
-        if network_manager() == 'quantum':
-            CONFIGS.write(QUANTUM_CONF)
         if network_manager() == 'neutron':
             CONFIGS.write(NEUTRON_CONF)
 

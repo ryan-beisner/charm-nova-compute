@@ -259,33 +259,33 @@ class NovaComputeRelationsTests(CharmTestCase):
             'amqp relation incomplete. Peer not ready?'
         )
 
-    def _amqp_test(self, configs, quantum=False):
+    def _amqp_test(self, configs, neutron=False):
         configs.complete_contexts = MagicMock()
         configs.complete_contexts.return_value = ['amqp']
         configs.write = MagicMock()
-        if quantum:
-            self.network_manager.return_value = 'quantum'
+        if neutron:
+            self.network_manager.return_value = 'neutron'
         hooks.amqp_changed()
 
     @patch.object(hooks, 'CONFIGS')
-    def test_amqp_changed_with_data_no_quantum(self, configs):
-        self._amqp_test(configs, quantum=False)
+    def test_amqp_changed_with_data_no_neutron(self, configs):
+        self._amqp_test(configs, neutron=False)
         self.assertEquals([call('/etc/nova/nova.conf')],
                           configs.write.call_args_list)
 
     @patch.object(hooks, 'CONFIGS')
-    def test_amqp_changed_with_data_and_quantum(self, configs):
+    def test_amqp_changed_with_data_and_neutron(self, configs):
         self.relation_ids.return_value = []
-        self._amqp_test(configs, quantum=True)
+        self._amqp_test(configs, neutron=True)
         self.assertEquals([call('/etc/nova/nova.conf'),
-                           call('/etc/quantum/quantum.conf')],
+                           call('/etc/neutron/neutron.conf')],
                           configs.write.call_args_list)
 
     @patch.object(hooks, 'CONFIGS')
-    def test_amqp_changed_with_data_and_quantum_api(self, configs):
+    def test_amqp_changed_with_data_and_neutron_api(self, configs):
         self.manage_ovs.return_value = False
         self.relation_ids.return_value = ['neutron-plugin:0']
-        self._amqp_test(configs, quantum=True)
+        self._amqp_test(configs, neutron=True)
         self.assertEquals([call('/etc/nova/nova.conf')],
                           configs.write.call_args_list)
 

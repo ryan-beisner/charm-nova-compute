@@ -37,7 +37,7 @@ TO_PATCH = [
 ]
 
 OVS_PKGS = [
-    ['quantum-plugin-openvswitch-agent'],
+    ['neutron-plugin-openvswitch-agent'],
     ['openvswitch-datapath-dkms'],
 ]
 
@@ -81,12 +81,12 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
-    def test_determine_packages_quantum(self, git_requested, net_man, n_plugin,
+    def test_determine_packages_neutron(self, git_requested, net_man, n_plugin,
                                         en_meta):
         git_requested.return_value = False
         en_meta.return_value = False
         self.neutron_plugin_attribute.return_value = OVS_PKGS
-        net_man.return_value = 'quantum'
+        net_man.return_value = 'neutron'
         n_plugin.return_value = 'ovs'
         self.relation_ids.return_value = []
         result = utils.determine_packages()
@@ -98,14 +98,14 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
-    def test_determine_packages_quantum_legacy_off(self, git_requested,
+    def test_determine_packages_neutron_legacy_off(self, git_requested,
                                                    net_man, n_plugin,
                                                    en_meta, leg_mode):
         git_requested.return_value = False
         en_meta.return_value = False
         leg_mode.return_value = False
         self.neutron_plugin_attribute.return_value = OVS_PKGS
-        net_man.return_value = 'quantum'
+        net_man.return_value = 'neutron'
         n_plugin.return_value = 'ovs'
         self.relation_ids.return_value = []
         result = utils.determine_packages()
@@ -117,13 +117,13 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
-    def test_determine_packages_quantum_ceph(self, git_requested, net_man,
+    def test_determine_packages_neutron_ceph(self, git_requested, net_man,
                                              n_plugin, en_meta, leg_mode):
         git_requested.return_value = False
         en_meta.return_value = False
         leg_mode.return_value = True
         self.neutron_plugin_attribute.return_value = OVS_PKGS
-        net_man.return_value = 'quantum'
+        net_man.return_value = 'neutron'
         n_plugin.return_value = 'ovs'
         self.relation_ids.return_value = ['ceph:0']
         result = utils.determine_packages()
@@ -196,51 +196,6 @@ class NovaComputeUtilsTests(CharmTestCase):
             }
         }
         self.assertEquals(ex, result)
-
-    @patch.object(utils, 'neutron_plugin')
-    @patch.object(utils, 'network_manager')
-    def test_resource_map_quantum_ovs(self, net_man, _plugin):
-        self.skipTest('skipped until contexts are properly mocked.')
-        net_man.return_value = 'Quantum'
-        _plugin.return_value = 'ovs'
-        result = utils.resource_map()
-        ex = {
-            '/etc/default/libvirt-bin': {
-                'contexts': [],
-                'services': ['libvirt-bin']
-            },
-            '/etc/libvirt/qemu.conf': {
-                'contexts': [],
-                'services': ['libvirt-bin']
-            },
-            '/etc/nova/nova-compute.conf': {
-                'contexts': [],
-                'services': ['nova-compute']
-            },
-            '/etc/nova/nova.conf': {
-                'contexts': [],
-                'services': ['nova-compute']
-            },
-            '/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini': {
-                'contexts': [],
-                'services': ['quantum-plugin-openvswitch-agent']
-            },
-            '/etc/quantum/quantum.conf': {
-                'contexts': [],
-                'services': ['quantum-plugin-openvswitch-agent']}
-        }
-
-        self.assertEquals(ex, result)
-
-    @patch.object(utils, 'neutron_plugin')
-    @patch.object(utils, 'network_manager')
-    def test_resource_map_neutron_ovs_plugin(self, net_man, _plugin):
-        self.skipTest('skipped until contexts are properly mocked.')
-        self.is_relation_made = True
-        net_man.return_value = 'Neutron'
-        _plugin.return_value = 'ovs'
-        result = utils.resource_map()
-        self.assertTrue('/etc/neutron/neutron.conf' not in result)
 
     @patch.object(utils, 'enable_nova_metadata')
     @patch.object(utils, 'neutron_plugin')
@@ -361,11 +316,9 @@ class NovaComputeUtilsTests(CharmTestCase):
 
     @patch.object(utils, 'ceph_config_file')
     @patch('charmhelpers.contrib.openstack.templating.OSConfigRenderer')
-    @patch.object(utils, 'quantum_enabled')
     @patch.object(utils, 'resource_map')
-    def test_register_configs(self, resource_map, quantum, renderer,
+    def test_register_configs(self, resource_map, renderer,
                               mock_ceph_config_file):
-        quantum.return_value = False
         self.os_release.return_value = 'havana'
         fake_renderer = MagicMock()
         fake_renderer.register = MagicMock()
@@ -611,6 +564,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         ]
         self.assertEquals(write_file.call_args_list, expected)
 
+    @patch.object(utils, 'init_is_systemd')
     @patch.object(utils, 'git_src_dir')
     @patch.object(utils, 'service_restart')
     @patch.object(utils, 'render')
@@ -625,7 +579,8 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'apt_update')
     def test_git_post_install(self, apt_update, apt_install, check_call,
                               rmtree, copytree, symlink, exists, join, venv,
-                              render, service_restart, git_src_dir):
+                              render, service_restart, git_src_dir, systemd):
+        systemd.return_value = False
         projects_yaml = openstack_origin_git
         join.return_value = 'joined-string'
         venv.return_value = '/mnt/openstack-git/venv'

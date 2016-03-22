@@ -18,7 +18,6 @@ from charmhelpers.core.hookenv import (
 )
 from charmhelpers.contrib.openstack.utils import (
     get_host_ip,
-    os_release,
     get_os_version_package,
     get_os_version_codename
 )
@@ -277,15 +276,6 @@ class CloudComputeContext(context.OSContextGenerator):
         # generate config context for neutron or quantum. these get converted
         # directly into flags in nova.conf
         # NOTE: Its up to release templates to set correct driver
-
-        def _legacy_quantum(ctxt):
-            # rename neutron flags to support legacy quantum.
-            renamed = {}
-            for k, v in ctxt.iteritems():
-                k = k.replace('neutron', 'quantum')
-                renamed[k] = v
-            return renamed
-
         neutron_ctxt = {'neutron_url': None}
         for rid in relation_ids('cloud-compute'):
             for unit in related_units(rid):
@@ -329,9 +319,6 @@ class CloudComputeContext(context.OSContextGenerator):
                                       neutron_ctxt['auth_port'])
         neutron_ctxt['neutron_admin_auth_url'] = ks_url
 
-        if self.network_manager == 'quantum':
-            return _legacy_quantum(neutron_ctxt)
-
         return neutron_ctxt
 
     def volume_context(self):
@@ -342,23 +329,9 @@ class CloudComputeContext(context.OSContextGenerator):
         if not self.volume_service:
             return {}
 
-        os_rel = os_release('nova-common')
-
         # ensure volume service is supported on specific openstack release.
         if self.volume_service == 'cinder':
-            if os_rel == 'essex':
-                e = ('Attempting to configure cinder volume manager on '
-                     'an unsupported OpenStack release (essex)')
-                log(e, level=ERROR)
-                raise context.OSContextError(e)
             return 'cinder'
-        elif self.volume_service == 'nova-volume':
-            if os_release('nova-common') not in ['essex', 'folsom']:
-                e = ('Attempting to configure nova-volume manager on '
-                     'an unsupported OpenStack release (%s).' % os_rel)
-                log(e, level=ERROR)
-                raise context.OSContextError(e)
-            return 'nova-volume'
         else:
             e = ('Invalid volume service received via cloud-compute: %s' %
                  self.volume_service)
@@ -369,7 +342,7 @@ class CloudComputeContext(context.OSContextGenerator):
         ctxt = {}
         if self.network_manager == 'flatdhcpmanager':
             ctxt = self.flat_dhcp_context()
-        elif self.network_manager in ['neutron', 'quantum']:
+        elif self.network_manager == 'neutron':
             ctxt = self.neutron_context()
 
         _save_flag_file(path='/etc/nova/nm.conf', data=self.network_manager)
