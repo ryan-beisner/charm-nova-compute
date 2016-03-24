@@ -175,6 +175,13 @@ options:
       nagios_context will be used as the servicegroup.
   # Network configuration options
   # NOTE: by default all access is over 'private-address'
+  use-internal-endpoints:
+    default: False
+    type: boolean
+    description: |
+      Openstack mostly defaults to using public endpoints for
+      internal communication between services. If set to True this option will
+      configure services to use internal endpoints where possible.
   network-device-mtu:
     type: int
     default:

@@ -181,7 +181,8 @@ BASE_RESOURCE_MAP = {
                      MetadataServiceContext(),
                      HostIPContext(),
                      DesignateContext(),
-                     context.LogLevelContext()],
+                     context.LogLevelContext(),
+                     context.InternalEndpointContext()],
     },
 }
 
