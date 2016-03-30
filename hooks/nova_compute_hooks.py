@@ -88,6 +88,7 @@ from nova_compute_context import (
 )
 from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.core.sysctl import create as create_sysctl
+from charmhelpers.contrib.hardening.harden import harden
 
 from socket import gethostname
 
@@ -96,6 +97,7 @@ CONFIGS = register_configs()
 
 
 @hooks.hook('install.real')
+@harden()
 def install():
     status_set('maintenance', 'Executing pre-install')
     execd_preinstall()
@@ -111,6 +113,7 @@ def install():
 
 @hooks.hook('config-changed')
 @restart_on_change(restart_map())
+@harden()
 def config_changed():
     if config('prefer-ipv6'):
         status_set('maintenance', 'configuring ipv6')
@@ -345,6 +348,7 @@ def relation_broken():
 
 
 @hooks.hook('upgrade-charm')
+@harden()
 def upgrade_charm():
     # NOTE: ensure psutil install for hugepages configuration
     status_set('maintenance', 'Installing apt packages')
@@ -431,6 +435,12 @@ def lxc_changed():
 @restart_on_change(restart_map())
 def designate_changed():
     CONFIGS.write(NOVA_CONF)
+
+
+@hooks.hook('update-status')
+@harden()
+def update_status():
+    log('Updating status.')
 
 
 def main():

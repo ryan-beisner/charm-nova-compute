@@ -1,12 +1,22 @@
-from mock import patch
+import sys
+
+from mock import patch, MagicMock
+
+# python-apt is not installed as part of test-requirements but is imported by
+# some charmhelpers modules so create a fake import.
+sys.modules['apt'] = MagicMock()
+sys.modules['apt_pkg'] = MagicMock()
 
 with patch('charmhelpers.core.hookenv.config') as config:
     config.return_value = 'nova'
     import nova_compute_utils as utils  # noqa
 
-with patch('nova_compute_utils.restart_map'):
-    with patch('nova_compute_utils.register_configs'):
-        import git_reinstall
+with patch('charmhelpers.contrib.hardening.harden.harden') as mock_dec:
+    mock_dec.side_effect = (lambda *dargs, **dkwargs: lambda f:
+                            lambda *args, **kwargs: f(*args, **kwargs))
+    with patch('nova_compute_utils.restart_map'):
+        with patch('nova_compute_utils.register_configs'):
+            import git_reinstall
 
 from test_utils import (
     CharmTestCase
