@@ -17,7 +17,6 @@ from charmhelpers.core.hookenv import (
     status_set,
 )
 from charmhelpers.core.host import (
-    restart_on_change,
     service_restart,
 )
 from charmhelpers.core.strutils import (
@@ -36,7 +35,8 @@ from charmhelpers.contrib.openstack.utils import (
     git_install_requested,
     openstack_upgrade_available,
     os_requires_version,
-    set_os_workload_status,
+    is_unit_paused_set,
+    pausable_restart_on_change as restart_on_change,
 )
 
 from charmhelpers.contrib.storage.linux.ceph import (
@@ -71,9 +71,8 @@ from nova_compute_utils import (
     assert_charm_supports_ipv6,
     manage_ovs,
     install_hugepages,
-    REQUIRED_INTERFACES,
-    check_optional_relations,
     get_hugepage_number,
+    assess_status,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -287,7 +286,8 @@ def ceph_joined():
     status_set('maintenance', 'Installing apt packages')
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
     # Bug 1427660
-    service_restart('libvirt-bin')
+    if not is_unit_paused_set():
+        service_restart('libvirt-bin')
 
 
 def get_ceph_request():
@@ -325,8 +325,9 @@ def ceph_changed(rid=None, unit=None):
         if is_request_complete(get_ceph_request()):
             log('Request complete')
             # Ensure that nova-compute is restarted since only now can we
-            # guarantee that ceph resources are ready.
-            service_restart('nova-compute')
+            # guarantee that ceph resources are ready, but only if not paused.
+            if not is_unit_paused_set():
+                service_restart('nova-compute')
         else:
             send_request_if_needed(get_ceph_request())
 
@@ -428,7 +429,8 @@ def lxc_changed():
     if nonce and db.get('lxd-nonce') != nonce:
         db.set('lxd-nonce', nonce)
         configure_lxd(user='nova')
-        service_restart('nova-compute')
+        if not is_unit_paused_set():
+            service_restart('nova-compute')
 
 
 @hooks.hook('nova-designate-relation-changed')
@@ -448,8 +450,7 @@ def main():
         hooks.execute(sys.argv)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
-    set_os_workload_status(CONFIGS, REQUIRED_INTERFACES,
-                           charm_func=check_optional_relations)
+    assess_status(CONFIGS)
 
 
 if __name__ == '__main__':

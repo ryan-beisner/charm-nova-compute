@@ -551,3 +551,19 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             sleep_time = 0
 
         self.d.configure(juju_service, set_default)
+
+    def test_910_pause_and_resume(self):
+        """The services can be paused and resumed. """
+        u.log.debug('Checking pause and resume actions...')
+        sentry_unit = self.nova_compute_sentry
+
+        assert u.status_get(sentry_unit)[0] == "active"
+
+        action_id = u.run_action(sentry_unit, "pause")
+        assert u.wait_on_action(action_id), "Pause action failed."
+        assert u.status_get(sentry_unit)[0] == "maintenance"
+
+        action_id = u.run_action(sentry_unit, "resume")
+        assert u.wait_on_action(action_id), "Resume action failed."
+        assert u.status_get(sentry_unit)[0] == "active"
+        u.log.debug('OK')
