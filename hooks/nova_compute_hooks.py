@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import platform
 import sys
 
 from charmhelpers.core.hookenv import (
@@ -74,6 +75,7 @@ from nova_compute_utils import (
     REQUIRED_INTERFACES,
     check_optional_relations,
     get_hugepage_number,
+    set_ppc64_cpu_smt_state,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -164,6 +166,15 @@ def config_changed():
 
     if config('hugepages'):
         install_hugepages()
+
+    if config('ppc64-cpu-smt-state'):
+        arch = platform.machine()
+        log('CPU architecture: {}'.format(arch))
+        if arch not in ['ppc64el', 'ppc64le']:
+            e = ('ppc64-cpu-smt-state cannot be used with {}'.format(arch))
+            log(e, level=ERROR)
+            raise Exception(e)
+        set_ppc64_cpu_smt_state(config('ppc64-cpu-smt-state'))
 
     if (config('libvirt-image-backend') == 'rbd' and
             assert_libvirt_imagebackend_allowed()):

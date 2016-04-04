@@ -288,6 +288,12 @@ options:
     description: |
       The pecentage of system memory to use for hugepages eg '10%' or the total
       number of 2M hugepages - eg "1024".
+  ppc64-cpu-smt-state:
+    type: string
+    default:
+    description: |
+      Sets the ppc64_cpu smt state value.  Common values are 'on', 'off'
+      or an integer.  Typically, set to 'off' for ppc64el compute nodes.
   action-managed-upgrade:
     type: boolean
     default: False
