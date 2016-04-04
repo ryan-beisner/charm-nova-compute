@@ -127,6 +127,8 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
 
         if config('cpu-mode'):
             ctxt['cpu_mode'] = config('cpu-mode')
+        elif ctxt['arch'] in ['ppc64el', 'ppc64le']:
+            ctxt['cpu_mode'] = 'host-passthrough'
 
         if config('cpu-model'):
             ctxt['cpu_model'] = config('cpu-model')

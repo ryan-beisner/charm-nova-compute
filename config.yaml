@@ -226,7 +226,8 @@ options:
       'host-passthrough' to use the host CPU model exactly; to 'custom' to 
       use a named CPU model; to 'none' to not set any CPU model. If 
       virt_type='kvm|qemu', it will default to 'host-model', otherwise it will 
-      default to 'none'.
+      default to 'none'.  Defaults to 'host-passthrough' for ppc64el, ppc64le
+      if no value is set.
   cpu-model:
     type: string
     default:
@@ -288,12 +289,6 @@ options:
     description: |
       The pecentage of system memory to use for hugepages eg '10%' or the total
       number of 2M hugepages - eg "1024".
-  ppc64-cpu-smt-state:
-    type: string
-    default:
-    description: |
-      Sets the ppc64_cpu smt state value.  Common values are 'on', 'off'
-      or an integer.  Typically, set to 'off' for ppc64el compute nodes.
   action-managed-upgrade:
     type: boolean
     default: False

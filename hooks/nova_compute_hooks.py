@@ -167,14 +167,11 @@ def config_changed():
     if config('hugepages'):
         install_hugepages()
 
-    if config('ppc64-cpu-smt-state'):
-        arch = platform.machine()
+    # Disable smt for ppc64, required for nova/libvirt/kvm
+    arch = platform.machine()
+    if arch in ['ppc64el', 'ppc64le']:
         log('CPU architecture: {}'.format(arch))
-        if arch not in ['ppc64el', 'ppc64le']:
-            e = ('ppc64-cpu-smt-state cannot be used with {}'.format(arch))
-            log(e, level=ERROR)
-            raise Exception(e)
-        set_ppc64_cpu_smt_state(config('ppc64-cpu-smt-state'))
+        set_ppc64_cpu_smt_state('off')
 
     if (config('libvirt-image-backend') == 'rbd' and
             assert_libvirt_imagebackend_allowed()):
