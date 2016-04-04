@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import platform
 import sys
 
 from charmhelpers.core.hookenv import (
@@ -73,6 +74,7 @@ from nova_compute_utils import (
     install_hugepages,
     get_hugepage_number,
     assess_status,
+    set_ppc64_cpu_smt_state,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -163,6 +165,12 @@ def config_changed():
 
     if config('hugepages'):
         install_hugepages()
+
+    # Disable smt for ppc64, required for nova/libvirt/kvm
+    arch = platform.machine()
+    log('CPU architecture: {}'.format(arch))
+    if arch in ['ppc64el', 'ppc64le']:
+        set_ppc64_cpu_smt_state('off')
 
     if (config('libvirt-image-backend') == 'rbd' and
             assert_libvirt_imagebackend_allowed()):

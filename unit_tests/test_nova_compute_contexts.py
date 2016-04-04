@@ -230,6 +230,20 @@ class NovaComputeContextTests(CharmTestCase):
         libvirt = context.NovaComputeLibvirtContext()
         self.assertEqual(libvirt()['libvirtd_opts'], '')
 
+    @patch.object(context.uuid, 'uuid4')
+    def test_libvirt_cpu_mode_host_passthrough(self, mock_uuid):
+        self.test_config.set('cpu-mode', 'host-passthrough')
+        mock_uuid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
+        libvirt = context.NovaComputeLibvirtContext()
+
+        self.assertEqual(libvirt()['cpu_mode'],
+                         'host-passthrough')
+
+    @patch.object(context.uuid, 'uuid4')
+    def test_libvirt_cpu_mode_default(self, mock_uuid):
+        libvirt = context.NovaComputeLibvirtContext()
+        self.assertFalse('cpu-mode' in libvirt())
+
     @patch.object(context.NeutronComputeContext, 'network_manager')
     @patch.object(context.NeutronComputeContext, 'plugin')
     def test_disable_security_groups_true(self, plugin, nm):

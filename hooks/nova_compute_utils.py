@@ -468,6 +468,13 @@ def initialize_ssh_keys(user='root'):
     check_output(['chown', '-R', user, ssh_dir])
 
 
+def set_ppc64_cpu_smt_state(smt_state):
+    """Set ppc64_cpu smt state."""
+    log('Setting ppc64_cpu smt state: %s' % smt_state)
+    cmd = ['ppc64_cpu', '--smt=%s' % smt_state]
+    check_output(cmd)
+
+
 def import_authorized_keys(user='root', prefix=None):
     """Import SSH authorized_keys + known_hosts from a cloud-compute relation.
     Store known_hosts in user's $HOME/.ssh and authorized_keys in a path

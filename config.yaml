@@ -226,7 +226,8 @@ options:
       'host-passthrough' to use the host CPU model exactly; to 'custom' to 
       use a named CPU model; to 'none' to not set any CPU model. If 
       virt_type='kvm|qemu', it will default to 'host-model', otherwise it will 
-      default to 'none'.
+      default to 'none'.  Defaults to 'host-passthrough' for ppc64el, ppc64le
+      if no value is set.
   cpu-model:
     type: string
     default:
