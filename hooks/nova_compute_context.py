@@ -19,7 +19,8 @@ from charmhelpers.core.hookenv import (
 from charmhelpers.contrib.openstack.utils import (
     get_host_ip,
     get_os_version_package,
-    get_os_version_codename
+    get_os_version_codename,
+    is_unit_paused_set,
 )
 from charmhelpers.contrib.network.ovs import add_bridge
 
@@ -487,9 +488,12 @@ class NeutronComputeContext(context.NeutronContext):
         return _neutron_security_groups()
 
     def _ensure_bridge(self):
-        if not service_running('openvswitch-switch'):
-            service_start('openvswitch-switch')
-        add_bridge(OVS_BRIDGE)
+        # NOTE(ajkavanagh) as this is called during the context usage (via
+        # __call__()) it should get executed when the unit comes off pause.
+        if not is_unit_paused_set():
+            if not service_running('openvswitch-switch'):
+                service_start('openvswitch-switch')
+            add_bridge(OVS_BRIDGE)
 
     def ovs_ctxt(self):
         # In addition to generating config context, ensure the OVS service
