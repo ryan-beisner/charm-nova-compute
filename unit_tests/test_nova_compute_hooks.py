@@ -53,8 +53,6 @@ TO_PATCH = [
     'initialize_ssh_keys',
     'migration_enabled',
     'do_openstack_upgrade',
-    'network_manager',
-    'manage_ovs',
     'public_ssh_key',
     'register_configs',
     'disable_shell',
@@ -273,29 +271,11 @@ class NovaComputeRelationsTests(CharmTestCase):
         configs.complete_contexts = MagicMock()
         configs.complete_contexts.return_value = ['amqp']
         configs.write = MagicMock()
-        if neutron:
-            self.network_manager.return_value = 'neutron'
         hooks.amqp_changed()
 
     @patch.object(hooks, 'CONFIGS')
     def test_amqp_changed_with_data_no_neutron(self, configs):
-        self._amqp_test(configs, neutron=False)
-        self.assertEquals([call('/etc/nova/nova.conf')],
-                          configs.write.call_args_list)
-
-    @patch.object(hooks, 'CONFIGS')
-    def test_amqp_changed_with_data_and_neutron(self, configs):
-        self.relation_ids.return_value = []
-        self._amqp_test(configs, neutron=True)
-        self.assertEquals([call('/etc/nova/nova.conf'),
-                           call('/etc/neutron/neutron.conf')],
-                          configs.write.call_args_list)
-
-    @patch.object(hooks, 'CONFIGS')
-    def test_amqp_changed_with_data_and_neutron_api(self, configs):
-        self.manage_ovs.return_value = False
-        self.relation_ids.return_value = ['neutron-plugin:0']
-        self._amqp_test(configs, neutron=True)
+        self._amqp_test(configs)
         self.assertEquals([call('/etc/nova/nova.conf')],
                           configs.write.call_args_list)
 

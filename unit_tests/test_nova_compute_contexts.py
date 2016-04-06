@@ -168,13 +168,13 @@ class NovaComputeContextTests(CharmTestCase):
         self._save_flag_file.assert_called_with(
             path='/etc/nova/nm.conf', data='neutron')
 
-    @patch.object(context.NeutronComputeContext, 'network_manager')
-    @patch.object(context.NeutronComputeContext, 'plugin')
+    @patch.object(context, '_network_manager')
+    @patch.object(context, '_neutron_plugin')
     def test_neutron_plugin_context_no_setting(self, plugin, nm):
         plugin.return_value = None
+        nm.return_Value = None
         qplugin = context.NeutronComputeContext()
-        with patch.object(qplugin, '_ensure_packages'):
-            self.assertEquals({}, qplugin())
+        self.assertEquals({}, qplugin())
 
     def test_libvirt_bin_context_no_migration(self):
         self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
@@ -243,21 +243,6 @@ class NovaComputeContextTests(CharmTestCase):
     def test_libvirt_cpu_mode_default(self, mock_uuid):
         libvirt = context.NovaComputeLibvirtContext()
         self.assertFalse('cpu-mode' in libvirt())
-
-    @patch.object(context.NeutronComputeContext, 'network_manager')
-    @patch.object(context.NeutronComputeContext, 'plugin')
-    def test_disable_security_groups_true(self, plugin, nm):
-        plugin.return_value = "ovs"
-        nm.return_value = "neutron"
-        self.test_config.set('disable-neutron-security-groups', True)
-        qplugin = context.NeutronComputeContext()
-        with patch.object(qplugin, '_ensure_packages'):
-            self.assertEquals({'disable_neutron_security_groups': True},
-                              qplugin())
-        self.test_config.set('disable-neutron-security-groups', False)
-        qplugin = context.NeutronComputeContext()
-        with patch.object(qplugin, '_ensure_packages'):
-            self.assertEquals({}, qplugin())
 
     @patch('subprocess.call')
     def test_host_IP_context(self, _call):

@@ -41,7 +41,6 @@ from charmhelpers.core.hookenv import (
 
 from charmhelpers.core.templating import render
 from charmhelpers.core.decorators import retry_on_exception
-from charmhelpers.contrib.openstack.neutron import neutron_plugin_attribute
 from charmhelpers.contrib.openstack import templating, context
 from charmhelpers.contrib.openstack.alternatives import install_alternative
 
@@ -217,19 +216,6 @@ CEPH_RESOURCES = {
     }
 }
 
-NEUTRON_CONF_DIR = "/etc/neutron"
-NEUTRON_CONF = '%s/neutron.conf' % NEUTRON_CONF_DIR
-
-NEUTRON_RESOURCES = {
-    NEUTRON_CONF: {
-        'services': [],
-        'contexts': [NeutronComputeContext(),
-                     context.AMQPContext(ssl_dir=NEUTRON_CONF_DIR),
-                     context.SyslogContext()],
-    },
-}
-
-
 # Maps virt-type config to a compute package(s).
 VIRT_TYPES = {
     'kvm': ['nova-compute-kvm'],
@@ -268,7 +254,6 @@ def resource_map():
     else:
         resource_map = deepcopy(LIBVIRT_RESOURCE_MAP)
     net_manager = network_manager()
-    plugin = neutron_plugin()
 
     # Network manager gets set late by the cloud-compute interface.
     # FlatDHCPManager only requires some extra packages.
@@ -282,26 +267,6 @@ def resource_map():
     # depending on the plugin used.
     # NOTE(james-page): only required for ovs plugin right now
     if net_manager in ['neutron', 'quantum']:
-        # This stanza supports the legacy case of ovs supported within
-        # compute charm code (now moved to neutron-openvswitch subordinate)
-        if manage_ovs():
-            if net_manager == 'neutron':
-                nm_rsc = NEUTRON_RESOURCES
-            resource_map.update(nm_rsc)
-
-            conf = neutron_plugin_attribute(plugin, 'config', net_manager)
-            svcs = neutron_plugin_attribute(plugin, 'services', net_manager)
-            ctxts = (neutron_plugin_attribute(plugin,
-                                              'contexts', net_manager) or
-                     [])
-            resource_map[conf] = {}
-            resource_map[conf]['services'] = svcs
-            resource_map[conf]['contexts'] = ctxts
-            resource_map[conf]['contexts'].append(NeutronComputeContext())
-
-            # associate the plugin agent with main network manager config(s)
-            [resource_map[nmc]['services'].extend(svcs) for nmc in nm_rsc]
-
         resource_map[NOVA_CONF]['contexts'].append(NeutronComputeContext())
 
     if relation_ids('ceph'):
@@ -366,11 +331,6 @@ def determine_packages():
     if (net_manager in ['flatmanager', 'flatdhcpmanager'] and
             config('multi-host').lower() == 'yes'):
         packages.extend(['nova-api', 'nova-network'])
-    elif net_manager == 'neutron' and neutron_plugin_legacy_mode():
-        plugin = neutron_plugin()
-        pkg_lists = neutron_plugin_attribute(plugin, 'packages', net_manager)
-        for pkg_list in pkg_lists:
-            packages.extend(pkg_list)
 
     if relation_ids('ceph'):
         packages.append('ceph-common')
@@ -637,19 +597,6 @@ def assert_charm_supports_ipv6():
 def enable_nova_metadata():
     ctxt = MetadataServiceContext()()
     return 'metadata_shared_secret' in ctxt
-
-
-def neutron_plugin_legacy_mode():
-    # If a charm is attatched to the neutron-plugin relation then its managing
-    # neutron
-    if relation_ids('neutron-plugin'):
-        return False
-    else:
-        return config('manage-neutron-plugin-legacy-mode')
-
-
-def manage_ovs():
-    return neutron_plugin_legacy_mode() and neutron_plugin() == 'ovs'
 
 
 def git_install(projects_yaml):

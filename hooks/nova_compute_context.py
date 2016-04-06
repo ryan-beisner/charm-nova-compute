@@ -6,8 +6,6 @@ from charmhelpers.core.unitdata import kv
 from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import (
     lsb_release,
-    service_running,
-    service_start,
 )
 from charmhelpers.fetch import apt_install, filter_installed_packages
 from charmhelpers.core.hookenv import (
@@ -24,12 +22,9 @@ from charmhelpers.contrib.openstack.utils import (
     get_host_ip,
     get_os_version_package,
     get_os_version_codename,
-    is_unit_paused_set,
 )
-from charmhelpers.contrib.network.ovs import add_bridge
 
 from charmhelpers.contrib.network.ip import (
-    get_address_in_network,
     get_ipv6_addr,
 )
 
@@ -479,7 +474,7 @@ class DesignateContext(context.OSContextGenerator):
         return ctxt
 
 
-class NeutronComputeContext(context.NeutronContext):
+class NeutronComputeContext(context.OSContextGenerator):
     interfaces = []
 
     @property
@@ -494,38 +489,14 @@ class NeutronComputeContext(context.NeutronContext):
     def neutron_security_groups(self):
         return _neutron_security_groups()
 
-    def _ensure_bridge(self):
-        # NOTE(ajkavanagh) as this is called during the context usage (via
-        # __call__()) it should get executed when the unit comes off pause.
-        if not is_unit_paused_set():
-            if not service_running('openvswitch-switch'):
-                service_start('openvswitch-switch')
-            add_bridge(OVS_BRIDGE)
-
-    def ovs_ctxt(self):
-        # In addition to generating config context, ensure the OVS service
-        # is running and the OVS bridge exists. Also need to ensure
-        # local_ip points to actual IP, not hostname.
-        ovs_ctxt = super(NeutronComputeContext, self).ovs_ctxt()
-        if not ovs_ctxt:
-            return {}
-
-        if config('manage-neutron-plugin-legacy-mode'):
-            self._ensure_packages()
-            self._ensure_bridge()
-
-        ovs_ctxt['local_ip'] = \
-            get_address_in_network(config('os-data-network'),
-                                   get_host_ip(unit_get('private-address')))
-        return ovs_ctxt
-
     def __call__(self):
-        ctxt = super(NeutronComputeContext, self).__call__()
-        # NOTE(jamespage) support override of neutron security via config
-        if config('disable-neutron-security-groups'):
-            ctxt['disable_neutron_security_groups'] = True
-
-        return ctxt
+        if self.plugin:
+            return {
+                'network_manager': self.network_manager,
+                'neutron_plugin': self.plugin,
+                'neutron_security_groups': self.neutron_security_groups
+            }
+        return {}
 
 
 class HostIPContext(context.OSContextGenerator):

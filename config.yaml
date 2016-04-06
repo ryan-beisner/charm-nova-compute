@@ -124,14 +124,6 @@ options:
     type: string
     default: nova
     description: Nova database name.
-  neutron-database-user:
-    type: string
-    default: neutron
-    description: Username for Neutron database access (if enabled).
-  neutron-database:
-    type: string
-    default: neutron
-    description: Database name for Neutron (if enabled).
   multi-host:
     type: string
     default: 'yes'
@@ -182,30 +174,6 @@ options:
       Openstack mostly defaults to using public endpoints for
       internal communication between services. If set to True this option will
       configure services to use internal endpoints where possible.
-  network-device-mtu:
-    type: int
-    default:
-    description: |
-      The MTU size for the interfaces managed by neutron. If unset or set to
-      0, no mtu will be applied.
-  disable-neutron-security-groups:
-    type: boolean
-    default: False
-    description: |
-      Disable neutron based security groups - setting this configuration option
-      will override any settings configured via the nova-cloud-controller charm.
-      .
-      BE CAREFUL - this option allows you to disable all port level security
-      within an OpenStack cloud.
-  os-data-network:
-    type: string
-    default:
-    description: |
-      The IP address and netmask of the OpenStack Data network (e.g.,
-      192.168.0.0/24)
-
-      This network will be used for tenant network traffic in overlay
-      networks.
   prefer-ipv6:
     type: boolean
     default: False

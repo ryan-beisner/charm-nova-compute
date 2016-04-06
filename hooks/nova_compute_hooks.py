@@ -56,21 +56,18 @@ from nova_compute_utils import (
     import_keystone_ca_cert,
     initialize_ssh_keys,
     migration_enabled,
-    network_manager,
     do_openstack_upgrade,
     public_ssh_key,
     restart_map,
     services,
     register_configs,
     NOVA_CONF,
-    NEUTRON_CONF,
     ceph_config_file, CEPH_SECRET,
     enable_shell, disable_shell,
     configure_lxd,
     fix_path_ownership,
     get_topics,
     assert_charm_supports_ipv6,
-    manage_ovs,
     install_hugepages,
     get_hugepage_number,
     assess_status,
@@ -196,10 +193,6 @@ def amqp_changed():
         log('amqp relation incomplete. Peer not ready?')
         return
     CONFIGS.write(NOVA_CONF)
-    # No need to write NEUTRON_CONF if neutron-plugin is managing it
-    if manage_ovs():
-        if network_manager() == 'neutron':
-            CONFIGS.write(NEUTRON_CONF)
 
 
 @hooks.hook('shared-db-relation-joined')
