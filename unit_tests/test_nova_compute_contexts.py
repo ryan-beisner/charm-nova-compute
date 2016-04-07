@@ -16,6 +16,7 @@ TO_PATCH = [
     'log',
     '_save_flag_file',
     'unit_get',
+    'lsb_release',
 ]
 
 NEUTRON_CONTEXT = {
@@ -216,6 +217,18 @@ class NovaComputeContextTests(CharmTestCase):
         libvirt = context.NovaComputeLibvirtContext()
         self.assertEqual(libvirt()['host_uuid'],
                          '73874c1c-ba48-406d-8d99-ac185d83b9bc')
+
+    def test_libvirt_opts_trusty(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
+        self.lsb_release.return_value = {'DISTRIB_CODENAME': 'trusty'}
+        libvirt = context.NovaComputeLibvirtContext()
+        self.assertEqual(libvirt()['libvirtd_opts'], '-d')
+
+    def test_libvirt_opts_xenial(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
+        self.lsb_release.return_value = {'DISTRIB_CODENAME': 'xenial'}
+        libvirt = context.NovaComputeLibvirtContext()
+        self.assertEqual(libvirt()['libvirtd_opts'], '')
 
     @patch.object(context.NeutronComputeContext, 'network_manager')
     @patch.object(context.NeutronComputeContext, 'plugin')

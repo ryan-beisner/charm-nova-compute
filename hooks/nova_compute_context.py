@@ -4,7 +4,11 @@ import platform
 
 from charmhelpers.core.unitdata import kv
 from charmhelpers.contrib.openstack import context
-from charmhelpers.core.host import service_running, service_start
+from charmhelpers.core.host import (
+    lsb_release,
+    service_running,
+    service_start,
+)
 from charmhelpers.fetch import apt_install, filter_installed_packages
 from charmhelpers.core.hookenv import (
     config,
@@ -100,12 +104,13 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
     def __call__(self):
         # distro defaults
         ctxt = {
-            # /etc/default/libvirt-bin
-            'libvirtd_opts': '-d',
             # /etc/libvirt/libvirtd.conf (
-            'listen_tls': 0,
+            'listen_tls': 0
         }
-
+        if lsb_release()['DISTRIB_CODENAME'].lower() < "wily":
+            ctxt['libvirtd_opts'] = '-d'
+        else:
+            ctxt['libvirtd_opts'] = ''
         # get the processor architecture to use in the nova.conf template
         ctxt['arch'] = platform.machine()
 
