@@ -257,6 +257,9 @@ options:
     description: |
       The pecentage of system memory to use for hugepages eg '10%' or the total
       number of 2M hugepages - eg "1024".
+      For a systemd system (wily and later) the prefered approach is to enable
+      hugepages via kernel parameters set in MAAS and systemd will mount them
+      automatically.
   action-managed-upgrade:
     type: boolean
     default: False

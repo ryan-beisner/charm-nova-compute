@@ -136,6 +136,9 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
 
         if config('hugepages'):
             ctxt['hugepages'] = True
+            ctxt['kvm_hugepages'] = 1
+        else:
+            ctxt['kvm_hugepages'] = 0
 
         db = kv()
         if db.get('host_uuid'):

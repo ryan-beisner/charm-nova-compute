@@ -17,6 +17,7 @@ from charmhelpers.fetch import (
     apt_install,
 )
 
+from charmhelpers.core.fstab import Fstab
 from charmhelpers.core.host import (
     adduser,
     add_group,
@@ -65,7 +66,6 @@ from charmhelpers.contrib.python.packages import (
 
 from charmhelpers.core.hugepage import hugepage_support
 from charmhelpers.core.host import (
-    fstab_mount,
     rsync,
 )
 
@@ -158,6 +158,7 @@ LIBVIRTD_CONF = '/etc/libvirt/libvirtd.conf'
 LIBVIRT_BIN = '/etc/default/libvirt-bin'
 LIBVIRT_BIN_OVERRIDES = '/etc/init/libvirt-bin.override'
 NOVA_CONF = '%s/nova.conf' % NOVA_CONF_DIR
+QEMU_KVM = '/etc/default/qemu-kvm'
 
 BASE_RESOURCE_MAP = {
     NOVA_CONF: {
@@ -190,6 +191,10 @@ BASE_RESOURCE_MAP = {
 LIBVIRT_RESOURCE_MAP = {
     QEMU_CONF: {
         'services': ['libvirt-bin'],
+        'contexts': [NovaComputeLibvirtContext()],
+    },
+    QEMU_KVM: {
+        'services': ['qemu-kvm'],
         'contexts': [NovaComputeLibvirtContext()],
     },
     LIBVIRTD_CONF: {
@@ -786,8 +791,10 @@ def install_hugepages():
             mount=False,
             set_shmmax=True,
         )
+        # Remove hugepages entry if present due to Bug #1518771
+        Fstab.remove_by_mountpoint(mnt_point)
         if subprocess.call(['mountpoint', mnt_point]):
-            fstab_mount(mnt_point)
+            service_restart('qemu-kvm')
         rsync(
             charm_dir() + '/files/qemu-hugefsdir',
             '/etc/init.d/qemu-hugefsdir'

@@ -31,7 +31,7 @@ TO_PATCH = [
     'charm_dir',
     'hugepage_support',
     'rsync',
-    'fstab_mount',
+    'Fstab',
 ]
 
 openstack_origin_git = \
@@ -613,7 +613,8 @@ class NovaComputeUtilsTests(CharmTestCase):
             call(['update-rc.d', 'qemu-hugefsdir', 'defaults']),
         ]
         _check_call.assert_has_calls(check_call_calls)
-        self.fstab_mount.assert_called_with('/run/hugepages/kvm')
+        self.Fstab.remove_by_mountpoint.assert_called_with(
+            '/run/hugepages/kvm')
 
     @patch('psutil.virtual_memory')
     @patch('subprocess.check_call')
@@ -630,16 +631,6 @@ class NovaComputeUtilsTests(CharmTestCase):
             mount=False,
             set_shmmax=True,
         )
-
-    @patch('psutil.virtual_memory')
-    @patch('subprocess.check_call')
-    @patch('subprocess.call')
-    def test_install_hugepages_already_mounted(self, _call, _check_call,
-                                               _virt_mem):
-        self.test_config.set('hugepages', '2048')
-        _call.return_value = 0
-        utils.install_hugepages()
-        self.assertEqual(self.fstab_mount.call_args_list, [])
 
     def test_assess_status(self):
         with patch.object(utils, 'assess_status_func') as asf:
