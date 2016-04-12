@@ -147,6 +147,24 @@ options:
     type: string
     default: 'yes'
     description: Whether to run nova-api and nova-network on the compute nodes.
+  pci-passthrough-whitelist:
+    type: string
+    default:
+    description: |
+      Sets the pci_passthrough_whitelist option in nova.conf with is used to allow
+      pci passthrough to the VM of specific devices, for example for SR-IOV.
+  reserved-host-memory:
+    type: int
+    default: 512
+    description: |
+      Amount of memory in MB to reserve for the host. Defaults to 512MB.
+  vcpu-pin-set:
+    type: string
+    default:
+    description: |
+      Sets vcpu_pin_set option in nova.conf which defines which pcpus that
+      instance vcpus can or cannot use. For example '^0,^2' to reserve two
+      cpus for the host.
   # Required if using FlatManager (nova-network)
   bridge-interface:
     type: string

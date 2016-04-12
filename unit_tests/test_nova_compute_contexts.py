@@ -186,7 +186,8 @@ class NovaComputeContextTests(CharmTestCase):
              'arch': platform.machine(),
              'kvm_hugepages': 0,
              'listen_tls': 0,
-             'host_uuid': self.host_uuid}, libvirt())
+             'host_uuid': self.host_uuid,
+             'reserved_host_memory': 512}, libvirt())
 
     def test_libvirt_bin_context_migration_tcp_listen(self):
         self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
@@ -198,7 +199,8 @@ class NovaComputeContextTests(CharmTestCase):
              'arch': platform.machine(),
              'kvm_hugepages': 0,
              'listen_tls': 0,
-             'host_uuid': self.host_uuid}, libvirt())
+             'host_uuid': self.host_uuid,
+             'reserved_host_memory': 512}, libvirt())
 
     def test_libvirt_disk_cachemodes(self):
         self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
@@ -211,7 +213,8 @@ class NovaComputeContextTests(CharmTestCase):
              'arch': platform.machine(),
              'kvm_hugepages': 0,
              'listen_tls': 0,
-             'host_uuid': self.host_uuid}, libvirt())
+             'host_uuid': self.host_uuid,
+             'reserved_host_memory': 512}, libvirt())
 
     def test_libvirt_hugepages(self):
         self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
@@ -224,7 +227,8 @@ class NovaComputeContextTests(CharmTestCase):
              'hugepages': True,
              'kvm_hugepages': 1,
              'listen_tls': 0,
-             'host_uuid': self.host_uuid}, libvirt())
+             'host_uuid': self.host_uuid,
+             'reserved_host_memory': 512}, libvirt())
 
     @patch.object(context.uuid, 'uuid4')
     def test_libvirt_new_uuid(self, mock_uuid):
@@ -254,6 +258,25 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(libvirt()['cpu_mode'],
                          'host-passthrough')
+
+    def test_libvirt_vnf_configs(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
+        self.test_config.set('hugepages', '22')
+        self.test_config.set('reserved-host-memory', 1024)
+        self.test_config.set('vcpu-pin-set', '^0^2')
+        self.test_config.set('pci-passthrough-whitelist', 'mypcidevices')
+        libvirt = context.NovaComputeLibvirtContext()
+
+        self.assertEqual(
+            {'libvirtd_opts': '-d',
+             'arch': platform.machine(),
+             'hugepages': True,
+             'kvm_hugepages': 1,
+             'listen_tls': 0,
+             'host_uuid': self.host_uuid,
+             'reserved_host_memory': 1024,
+             'vcpu_pin_set': '^0^2',
+             'pci_passthrough_whitelist': 'mypcidevices'}, libvirt())
 
     @patch.object(context.uuid, 'uuid4')
     def test_libvirt_cpu_mode_default(self, mock_uuid):

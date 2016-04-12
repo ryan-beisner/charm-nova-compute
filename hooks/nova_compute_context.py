@@ -140,6 +140,15 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
         else:
             ctxt['kvm_hugepages'] = 0
 
+        if config('pci-passthrough-whitelist'):
+            ctxt['pci_passthrough_whitelist'] = \
+                config('pci-passthrough-whitelist')
+
+        if config('vcpu-pin-set'):
+            ctxt['vcpu_pin_set'] = config('vcpu-pin-set')
+
+        ctxt['reserved_host_memory'] = config('reserved-host-memory')
+
         db = kv()
         if db.get('host_uuid'):
             ctxt['host_uuid'] = db.get('host_uuid')
