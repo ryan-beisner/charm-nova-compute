@@ -1,0 +1,58 @@
+# Last Modified: Thu Mar 31 18:53:33 2016
+#include <tunables/global>
+
+/usr/bin/nova-api {
+  #include <abstractions/authentication>
+  #include <abstractions/base>
+  #include <abstractions/bash>
+  #include <abstractions/libvirt-qemu>
+  #include <abstractions/python>
+  #include <abstractions/wutmp>
+
+
+  capability audit_write,
+  capability net_admin,
+  capability net_raw,
+  capability sys_resource,
+
+  network inet raw,
+
+  /bin/dash ix,
+  /etc/nova/api-paste.ini r,
+  /etc/nova/nova.conf r,
+  /etc/nova/rootwrap.conf r,
+  /etc/nova/rootwrap.d/ r,
+  /etc/nova/rootwrap.d/api-metadata.filters r,
+  /etc/nova/rootwrap.d/compute.filters r,
+  /etc/nova/rootwrap.d/network.filters r,
+  /etc/sudoers r,
+  /etc/sudoers.d/ r,
+  /etc/sudoers.d/90-cloud-init-users r,
+  /etc/sudoers.d/README r,
+  /etc/sudoers.d/nova_sudoers r,
+  /lib{,32,64}/** mr,
+  owner @{PROC}/@{pid}/fd/ r,
+  owner @{PROC}/@{pid}/mounts r,
+  owner @{PROC}/@{pid}/net/ip_tables_names r,
+  owner @{PROC}/@{pid}/stat r,
+  owner @{PROC}/@{pid}/status r,
+  /run/lock/nova/nova-iptables wk,
+  /sbin/ldconfig rix,
+  /sbin/ldconfig.real rix,
+  /sbin/xtables-multi rix,
+  /tmp/ r,
+  /tmp/** rwk,
+  /usr/bin/ r,
+  /usr/bin/nova-api r,
+  /usr/bin/nova-rootwrap rix,
+  /usr/bin/python2.7 ix,
+  /usr/bin/python3.4 ix,
+  /usr/bin/sudo ix,
+  /usr/lib{,32,64}/** mr,
+  /var/lib/nova/ r,
+  /var/lib/nova/** rw,
+  /var/log/nova/nova-api.log w,
+  /var/tmp/ r,
+  /var/tmp/** rwk,
+
+}

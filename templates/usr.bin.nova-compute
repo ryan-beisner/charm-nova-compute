@@ -1,0 +1,57 @@
+# Last Modified: Tue Apr  5 22:19:53 2016
+#include <tunables/global>
+
+/usr/bin/nova-compute {
+  #include <abstractions/base>
+  #include <abstractions/bash>
+  #include <abstractions/python>
+
+  capability dac_override,
+  capability dac_read_search,
+
+  network inet dgram,
+  network inet stream,
+
+  deny /* w,
+  /bin/dash rix,
+  /bin/mv rix,
+  /bin/uname rix,
+  /etc/nova/nova-compute.conf r,
+  /etc/nova/nova.conf r,
+  /etc/nova/policy.json r,
+  /etc/nsswitch.conf r,
+  /etc/passwd r,
+  /proc/*/net/psched r,
+  /run/libvirt/libvirt-sock rw,
+  /run/lock/nova/nova-iptables wk,
+  /sbin/ldconfig rix,
+  /sbin/ldconfig.real rix,
+  /sys/devices/system/cpu/ r,
+  /sys/devices/system/node/ r,
+  /sys/devices/system/node/** r,
+  /tmp/* rw,
+  /tmp/*/ rw,
+  /usr/bin/ r,
+  /usr/bin/env rix,
+  /usr/bin/gcc-4.8 rix,
+  /usr/bin/nova-compute r,
+  /usr/bin/python2.7 ix,
+  /usr/bin/python3.4 ix,
+  /usr/bin/qemu-img rix,
+  /usr/bin/sudo rix,
+  /usr/lib/gcc/x86_64-linux-gnu/4.8/collect2 rix,
+  /usr/lib{,32,64}/** rw,
+  /usr/lib{,32,64}/python{2,3}.[34567]/**.{pyc,so} mrw,
+  /var/lib/nova/* rwk,
+  /var/lib/nova/instances/ r,
+  /var/lib/nova/instances/** rwk,
+  /var/lib/nova/instances/locks/nova-storage-registry-lock k,
+  /var/log/nova/nova-compute.log w,
+  /var/run/libvirt/* rw,
+  /var/run/libvirt/libvirt-sock rw,
+  /var/tmp/* w,
+  owner @{PROC}/@{pid}/mounts r,
+  owner @{PROC}/@{pid}/net/psched r,
+  owner @{PROC}/@{pid}/status r,
+
+}
