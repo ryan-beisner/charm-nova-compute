@@ -128,13 +128,6 @@ def service(action, service_name):
     return subprocess.call(cmd) == 0
 
 
-def systemv_services_running():
-    output = subprocess.check_output(
-        ['service', '--status-all'],
-        stderr=subprocess.STDOUT).decode('UTF-8')
-    return [row.split()[-1] for row in output.split('\n') if '[ + ]' in row]
-
-
 def service_running(service_name):
     """Determine whether a system service is running"""
     if init_is_systemd():
@@ -147,15 +140,11 @@ def service_running(service_name):
         except subprocess.CalledProcessError:
             return False
         else:
-            # This works for upstart scripts where the 'service' command
-            # returns a consistent string to represent running 'start/running'
             if ("start/running" in output or "is running" in output or
                     "up and running" in output):
                 return True
-            # Check System V scripts init script return codes
-            if service_name in systemv_services_running():
-                return True
-            return False
+            else:
+                return False
 
 
 def service_available(service_name):

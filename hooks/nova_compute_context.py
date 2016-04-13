@@ -37,10 +37,6 @@ OVS_BRIDGE = 'br-int'
 CEPH_CONF = '/etc/ceph/ceph.conf'
 CHARM_CEPH_CONF = '/var/lib/charm/{}/ceph.conf'
 
-NOVA_API_AA_PROFILE = 'usr.bin.nova-api'
-NOVA_COMPUTE_AA_PROFILE = 'usr.bin.nova-compute'
-NOVA_NETWORK_AA_PROFILE = 'usr.bin.nova-network'
-
 
 def ceph_config_file():
     return CHARM_CEPH_CONF.format(service_name())
@@ -519,45 +515,3 @@ class HostIPContext(context.OSContextGenerator):
             ctxt['host_ip'] = host_ip
 
         return ctxt
-
-
-class NovaAPIAppArmorContext(context.AppArmorContext):
-
-    def __init__(self):
-        super(NovaAPIAppArmorContext, self).__init__()
-        self.aa_profile = NOVA_API_AA_PROFILE
-
-    def __call__(self):
-        super(NovaAPIAppArmorContext, self).__call__()
-        if not self.ctxt:
-            return self.ctxt
-        self._ctxt.update({'aa-profile': self.aa_profile})
-        return self.ctxt
-
-
-class NovaComputeAppArmorContext(context.AppArmorContext):
-
-    def __init__(self):
-        super(NovaComputeAppArmorContext, self).__init__()
-        self.aa_profile = NOVA_COMPUTE_AA_PROFILE
-
-    def __call__(self):
-        super(NovaComputeAppArmorContext, self).__call__()
-        if not self.ctxt:
-            return self.ctxt
-        self._ctxt.update({'aa-profile': self.aa_profile})
-        return self.ctxt
-
-
-class NovaNetworkAppArmorContext(context.AppArmorContext):
-
-    def __init__(self):
-        super(NovaNetworkAppArmorContext, self).__init__()
-        self.aa_profile = NOVA_NETWORK_AA_PROFILE
-
-    def __call__(self):
-        super(NovaNetworkAppArmorContext, self).__call__()
-        if not self.ctxt:
-            return self.ctxt
-        self._ctxt.update({'aa-profile': self.aa_profile})
-        return self.ctxt

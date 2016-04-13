@@ -82,10 +82,7 @@ from charmhelpers.core.unitdata import kv
 
 from nova_compute_context import (
     CEPH_SECRET_UUID,
-    assert_libvirt_imagebackend_allowed,
-    NovaAPIAppArmorContext,
-    NovaComputeAppArmorContext,
-    NovaNetworkAppArmorContext,
+    assert_libvirt_imagebackend_allowed
 )
 from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.core.sysctl import create as create_sysctl
@@ -178,9 +175,6 @@ def config_changed():
             for unit in related_units(rid):
                 ceph_changed(rid=rid, unit=unit)
 
-    NovaAPIAppArmorContext().setup_aa_profile()
-    NovaComputeAppArmorContext().setup_aa_profile()
-    NovaNetworkAppArmorContext().setup_aa_profile()
     CONFIGS.write_all()
 
 
