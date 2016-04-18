@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import platform
 import sys
+import uuid
 
 from charmhelpers.core.hookenv import (
     Hooks,
@@ -118,6 +119,7 @@ def config_changed():
         assert_charm_supports_ipv6()
 
     global CONFIGS
+    send_remote_restart = False
     if git_install_requested():
         if config_value_changed('openstack-origin-git'):
             status_set('maintenance', 'Running Git install')
@@ -126,6 +128,7 @@ def config_changed():
         if openstack_upgrade_available('nova-common'):
             status_set('maintenance', 'Running openstack upgrade')
             do_openstack_upgrade(CONFIGS)
+            send_remote_restart = True
 
     sysctl_dict = config('sysctl')
     if sysctl_dict:
@@ -155,7 +158,7 @@ def config_changed():
         zeromq_configuration_relation_joined(rid)
 
     for rid in relation_ids('neutron-plugin'):
-        neutron_plugin_joined(rid)
+        neutron_plugin_joined(rid, remote_restart=send_remote_restart)
 
     if is_relation_made("nrpe-external-master"):
         update_nrpe_config()
@@ -395,9 +398,14 @@ def update_nrpe_config():
 
 
 @hooks.hook('neutron-plugin-relation-joined')
-def neutron_plugin_joined(relid=None):
+def neutron_plugin_joined(relid=None, remote_restart=False):
+    rel_settings = {
+        'hugepage_number': get_hugepage_number()
+    }
+    if remote_restart:
+        rel_settings['restart-trigger'] = str(uuid.uuid4())
     relation_set(relation_id=relid,
-                 hugepage_number=get_hugepage_number())
+                 **rel_settings)
 
 
 @hooks.hook('neutron-plugin-relation-changed')

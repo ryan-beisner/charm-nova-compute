@@ -70,6 +70,7 @@ TO_PATCH = [
     'gethostname',
     'create_sysctl',
     'install_hugepages',
+    'uuid',
 ]
 
 
@@ -118,11 +119,17 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.git_install.assert_called_with(projects_yaml)
         self.assertTrue(self.execd_preinstall.called)
 
-    def test_config_changed_with_upgrade(self):
+    @patch.object(hooks, 'neutron_plugin_joined')
+    def test_config_changed_with_upgrade(self, neutron_plugin_joined):
         self.git_install_requested.return_value = False
         self.openstack_upgrade_available.return_value = True
+
+        def rel_ids(x):
+            return {'neutron-plugin': ['rid1']}.get(x, [])
+        self.relation_ids.side_effect = rel_ids
         hooks.config_changed()
         self.assertTrue(self.do_openstack_upgrade.called)
+        neutron_plugin_joined.assert_called_with('rid1', remote_restart=True)
 
     @patch.object(hooks, 'git_install_requested')
     def test_config_changed_with_openstack_upgrade_action(self, git_requested):
@@ -508,3 +515,35 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.apt_purge.assert_called_with('nova-api-metadata',
                                           fatal=True)
         configs.write.assert_called_with('/etc/nova/nova.conf')
+
+    @patch.object(hooks, 'get_hugepage_number')
+    def test_neutron_plugin_joined_relid(self, get_hugepage_number):
+        get_hugepage_number.return_value = None
+        hooks.neutron_plugin_joined(relid='relid23')
+        self.relation_set.assert_called_with(
+            relation_id='relid23',
+            **{'hugepage_number': None}
+        )
+
+    @patch.object(hooks, 'get_hugepage_number')
+    def test_neutron_plugin_joined_huge(self, get_hugepage_number):
+        get_hugepage_number.return_value = 12
+        hooks.neutron_plugin_joined()
+        self.relation_set.assert_called_with(
+            relation_id=None,
+            **{'hugepage_number': 12}
+        )
+
+    @patch.object(hooks, 'get_hugepage_number')
+    def test_neutron_plugin_joined_remote_restart(self, get_hugepage_number):
+        get_hugepage_number.return_value = None
+        self.uuid.uuid4.return_value = 'e030b959-7207'
+        hooks.neutron_plugin_joined(remote_restart=True)
+        expect_rel_settings = {
+            'hugepage_number': None,
+            'restart-trigger': 'e030b959-7207',
+        }
+        self.relation_set.assert_called_with(
+            relation_id=None,
+            **expect_rel_settings
+        )
