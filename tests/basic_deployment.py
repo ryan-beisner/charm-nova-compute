@@ -45,8 +45,8 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         self._deploy()
 
         u.log.info('Waiting on extended status checks...')
-        exclude_services = ['mysql']
-        self._auto_wait_for_status(exclude_services=exclude_services)
+        self.exclude_services = ['mysql']
+        self._auto_wait_for_status(exclude_services=self.exclude_services)
 
         self._initialize_tests()
 
@@ -88,8 +88,10 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
     def _configure_services(self):
         """Configure all of the services."""
+        u.log.debug("Running all tests in Apparmor enforce mode.")
         nova_config = {'config-flags': 'auto_assign_floating_ip=False',
-                       'enable-live-migration': 'False'}
+                       'enable-live-migration': 'False',
+                       'aa-profile-mode': 'enforce'}
         nova_cc_config = {}
         if self.git:
             amulet_http_proxy = os.environ.get('AMULET_HTTP_PROXY')
@@ -135,12 +137,12 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
     def _initialize_tests(self):
         """Perform final initialization before tests get run."""
         # Access the sentries for inspecting service units
-        self.mysql_sentry = self.d.sentry.unit['mysql/0']
-        self.keystone_sentry = self.d.sentry.unit['keystone/0']
-        self.rabbitmq_sentry = self.d.sentry.unit['rabbitmq-server/0']
-        self.nova_compute_sentry = self.d.sentry.unit['nova-compute/0']
-        self.nova_cc_sentry = self.d.sentry.unit['nova-cloud-controller/0']
-        self.glance_sentry = self.d.sentry.unit['glance/0']
+        self.mysql_sentry = self.d.sentry['mysql'][0]
+        self.keystone_sentry = self.d.sentry['keystone'][0]
+        self.rabbitmq_sentry = self.d.sentry['rabbitmq-server'][0]
+        self.nova_compute_sentry = self.d.sentry['nova-compute'][0]
+        self.nova_cc_sentry = self.d.sentry['nova-cloud-controller'][0]
+        self.glance_sentry = self.d.sentry['glance'][0]
 
         u.log.debug('openstack release val: {}'.format(
             self._get_openstack_release()))
@@ -444,7 +446,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                 'flat_interface': 'eth1',
                 'network_manager': 'nova.network.manager.FlatDHCPManager',
                 'volume_api_class': 'nova.volume.cinder.API',
-                'auth_strategy': 'keystone'
+                'auth_strategy': 'keystone',
             }
         }
 
@@ -554,6 +556,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         u.log.debug('Making config change on {}...'.format(juju_service))
         mtime = u.get_sentry_time(sentry)
         self.d.configure(juju_service, set_alternate)
+        self._auto_wait_for_status(exclude_services=self.exclude_services)
 
         sleep_time = 30
         for s, conf_file in services.iteritems():
@@ -584,3 +587,43 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         assert u.wait_on_action(action_id), "Resume action failed."
         assert u.status_get(sentry_unit)[0] == "active"
         u.log.debug('OK')
+
+    def test_920_change_aa_profile(self):
+        """Test changing the Apparmor profile mode"""
+
+        # Services which are expected to restart upon config change,
+        # and corresponding config files affected by the change
+
+        services = {
+            'nova-compute': '/etc/apparmor.d/usr.bin.nova-compute',
+            'nova-network': '/etc/apparmor.d/usr.bin.nova-network',
+            'nova-api': '/etc/apparmor.d/usr.bin.nova-api',
+        }
+
+        sentry = self.nova_compute_sentry
+        juju_service = 'nova-compute'
+        mtime = u.get_sentry_time(sentry)
+        set_default = {'aa-profile-mode': 'enforce'}
+        set_alternate = {'aa-profile-mode': 'complain'}
+        sleep_time = 60
+
+        # Change to complain mode
+        self.d.configure(juju_service, set_alternate)
+        self._auto_wait_for_status(exclude_services=self.exclude_services)
+
+        for s, conf_file in services.iteritems():
+            u.log.debug("Checking that service restarted: {}".format(s))
+            if not u.validate_service_config_changed(sentry, mtime, s,
+                                                     conf_file,
+                                                     sleep_time=sleep_time):
+
+                self.d.configure(juju_service, set_default)
+                msg = "service {} didn't restart after config change".format(s)
+                amulet.raise_status(amulet.FAIL, msg=msg)
+            sleep_time = 0
+
+        output, code = sentry.run('aa-status '
+                                  '--complaining')
+        u.log.info("Assert output of aa-status --complaining >= 3. Result: {} "
+                   "Exit Code: {}".format(output, code))
+        assert int(output) >= 3

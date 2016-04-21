@@ -100,6 +100,12 @@ from nova_compute_context import (
     HostIPContext,
     DesignateContext,
     NovaComputeVirtContext,
+    NOVA_API_AA_PROFILE,
+    NOVA_COMPUTE_AA_PROFILE,
+    NOVA_NETWORK_AA_PROFILE,
+    NovaAPIAppArmorContext,
+    NovaComputeAppArmorContext,
+    NovaNetworkAppArmorContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
@@ -179,6 +185,12 @@ LIBVIRT_BIN = '/etc/default/libvirt-bin'
 LIBVIRT_BIN_OVERRIDES = '/etc/init/libvirt-bin.override'
 NOVA_CONF = '%s/nova.conf' % NOVA_CONF_DIR
 QEMU_KVM = '/etc/default/qemu-kvm'
+NOVA_API_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'.format(NOVA_API_AA_PROFILE))
+NOVA_COMPUTE_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'
+                                ''.format(NOVA_COMPUTE_AA_PROFILE))
+NOVA_NETWORK_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'
+                                ''.format(NOVA_NETWORK_AA_PROFILE))
+
 
 BASE_RESOURCE_MAP = {
     NOVA_CONF: {
@@ -207,6 +219,18 @@ BASE_RESOURCE_MAP = {
                      NovaComputeVirtContext(),
                      context.LogLevelContext(),
                      context.InternalEndpointContext()],
+    },
+    NOVA_API_AA_PROFILE_PATH: {
+        'services': ['nova-api'],
+        'contexts': [NovaAPIAppArmorContext()],
+    },
+    NOVA_COMPUTE_AA_PROFILE_PATH: {
+        'services': ['nova-compute'],
+        'contexts': [NovaComputeAppArmorContext()],
+    },
+    NOVA_NETWORK_AA_PROFILE_PATH: {
+        'services': ['nova-network'],
+        'contexts': [NovaNetworkAppArmorContext()],
     },
 }
 
@@ -289,6 +313,9 @@ def resource_map():
         resource_map[NOVA_CONF]['services'].extend(
             ['nova-api', 'nova-network']
         )
+    else:
+        resource_map.pop(NOVA_API_AA_PROFILE_PATH)
+        resource_map.pop(NOVA_NETWORK_AA_PROFILE_PATH)
 
     # Neutron/quantum requires additional contexts, as well as new resources
     # depending on the plugin used.

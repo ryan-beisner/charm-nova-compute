@@ -86,6 +86,7 @@ from nova_compute_utils import (
     assess_status,
     set_ppc64_cpu_smt_state,
     destroy_libvirt_network,
+    network_manager,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -97,7 +98,10 @@ from charmhelpers.core.unitdata import kv
 from nova_compute_context import (
     nova_metadata_requirement,
     CEPH_SECRET_UUID,
-    assert_libvirt_rbd_imagebackend_allowed
+    assert_libvirt_rbd_imagebackend_allowed,
+    NovaAPIAppArmorContext,
+    NovaComputeAppArmorContext,
+    NovaNetworkAppArmorContext,
 )
 from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.core.sysctl import create as create_sysctl
@@ -195,6 +199,12 @@ def config_changed():
                 ceph_changed(rid=rid, unit=unit)
 
     CONFIGS.write_all()
+
+    NovaComputeAppArmorContext().setup_aa_profile()
+    if (network_manager() in ['flatmanager', 'flatdhcpmanager'] and
+            config('multi-host').lower() == 'yes'):
+        NovaAPIAppArmorContext().setup_aa_profile()
+        NovaNetworkAppArmorContext().setup_aa_profile()
 
 
 @hooks.hook('amqp-relation-joined')

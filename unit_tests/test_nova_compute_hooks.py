@@ -76,6 +76,7 @@ TO_PATCH = [
     'update_nrpe_config',
     'git_install',
     'git_install_requested',
+    'network_manager',
     # misc_utils
     'ensure_ceph_keyring',
     'execd_preinstall',

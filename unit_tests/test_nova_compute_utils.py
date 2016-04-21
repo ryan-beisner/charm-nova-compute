@@ -137,11 +137,12 @@ class NovaComputeUtilsTests(CharmTestCase):
         result = utils.determine_packages()
         self.assertTrue('nova-api-metadata' in result)
 
+    @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
-    def test_resource_map_nova_network_no_multihost(self, net_man):
-        self.skipTest('skipped until contexts are properly mocked')
+    def test_resource_map_nova_network_no_multihost(self, net_man, en_meta):
         self.test_config.set('multi-host', 'no')
-        net_man.return_value = 'FlatDHCPManager'
+        en_meta.return_value = (False, None)
+        net_man.return_value = 'flatdhcpmanager'
         result = utils.resource_map()
         ex = {
             '/etc/default/libvirt-bin': {
@@ -151,42 +152,107 @@ class NovaComputeUtilsTests(CharmTestCase):
             '/etc/libvirt/qemu.conf': {
                 'contexts': [],
                 'services': ['libvirt-bin']
-            },
-            '/etc/nova/nova-compute.conf': {
-                'contexts': [],
-                'services': ['nova-compute']
             },
             '/etc/nova/nova.conf': {
                 'contexts': [],
                 'services': ['nova-compute']
             },
+            '/etc/ceph/secret.xml': {
+                'contexts': [],
+                'services': []
+            },
+            '/var/lib/charm/nova_compute/ceph.conf': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+            '/etc/default/qemu-kvm': {
+                'contexts': [],
+                'services': ['qemu-kvm']
+            },
+            '/etc/init/libvirt-bin.override': {
+                'contexts': [],
+                'services': ['libvirt-bin']
+            },
+            '/etc/libvirt/libvirtd.conf': {
+                'contexts': [],
+                'services': ['libvirt-bin']
+            },
+            '/etc/apparmor.d/usr.bin.nova-compute': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
         }
-        self.assertEquals(ex, result)
+        # Mocking contexts is tricky but we can still test that
+        # the correct files are monitored and the correct services
+        # will be started
+        self.assertEquals(set(ex.keys()), set(result.keys()))
+        for k in ex.keys():
+            self.assertEquals(set(ex[k]['services']),
+                              set(result[k]['services']))
 
+    @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
-    def test_resource_map_nova_network(self, net_man):
+    def test_resource_map_nova_network(self, net_man, en_meta):
 
-        self.skipTest('skipped until contexts are properly mocked')
-        net_man.return_value = 'FlatDHCPManager'
+        en_meta.return_value = (False, None)
+        self.test_config.set('multi-host', 'yes')
+        net_man.return_value = 'flatdhcpmanager'
         result = utils.resource_map()
+
         ex = {
             '/etc/default/libvirt-bin': {
-                'contexts': [], 'services': ['libvirt-bin']
+                'contexts': [],
+                'services': ['libvirt-bin']
             },
             '/etc/libvirt/qemu.conf': {
                 'contexts': [],
                 'services': ['libvirt-bin']
-            },
-            '/etc/nova/nova-compute.conf': {
-                'contexts': [],
-                'services': ['nova-compute']
             },
             '/etc/nova/nova.conf': {
                 'contexts': [],
                 'services': ['nova-compute', 'nova-api', 'nova-network']
-            }
+            },
+            '/etc/ceph/secret.xml': {
+                'contexts': [],
+                'services': []
+            },
+            '/var/lib/charm/nova_compute/ceph.conf': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+            '/etc/default/qemu-kvm': {
+                'contexts': [],
+                'services': ['qemu-kvm']
+            },
+            '/etc/init/libvirt-bin.override': {
+                'contexts': [],
+                'services': ['libvirt-bin']
+            },
+            '/etc/libvirt/libvirtd.conf': {
+                'contexts': [],
+                'services': ['libvirt-bin']
+            },
+            '/etc/apparmor.d/usr.bin.nova-network': {
+                'contexts': [],
+                'services': ['nova-network']
+            },
+            '/etc/apparmor.d/usr.bin.nova-compute': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+            '/etc/apparmor.d/usr.bin.nova-api': {
+                'contexts': [],
+                'services': ['nova-api']
+            },
+
         }
-        self.assertEquals(ex, result)
+        # Mocking contexts is tricky but we can still test that
+        # the correct files are monitored and the correct services
+        # will be started
+        self.assertEquals(set(ex.keys()), set(result.keys()))
+        for k in ex.keys():
+            self.assertEquals(set(ex[k]['services']),
+                              set(result[k]['services']))
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
