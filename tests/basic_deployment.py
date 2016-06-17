@@ -426,7 +426,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                 'use_syslog': 'False',
                 'ec2_private_dns_show_ip': 'True',
                 'api_paste_config': '/etc/nova/api-paste.ini',
-                'enabled_apis': 'ec2,osapi_compute,metadata',
+                'enabled_apis': 'osapi_compute,metadata',
                 'flat_interface': 'eth1',
                 'network_manager': 'nova.network.manager.FlatDHCPManager',
                 'volume_api_class': 'nova.volume.cinder.API',
