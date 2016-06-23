@@ -40,7 +40,6 @@ from charmhelpers.core.host import (
     service_restart,
     lsb_release,
     write_file,
-    init_is_systemd,
 )
 
 from charmhelpers.core.hookenv import (
@@ -62,11 +61,12 @@ from charmhelpers.contrib.openstack.alternatives import install_alternative
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     get_os_codename_install_source,
-    git_install_requested,
     git_clone_and_install,
     git_default_repos,
-    git_src_dir,
+    git_generate_systemd_init_files,
+    git_install_requested,
     git_pip_venv_dir,
+    git_src_dir,
     git_yaml_value,
     os_release,
     is_unit_paused_set,
@@ -118,6 +118,7 @@ BASE_GIT_PACKAGES = [
     'libxslt1-dev',
     'libvirt-dev',
     'libyaml-dev',
+    'openstack-pkg-tools',
     'python-dev',
     'python-pip',
     'python-setuptools',
@@ -705,42 +706,44 @@ def git_post_install(projects_yaml):
     render(nova_compute_conf, '/etc/nova/nova-compute.conf', {}, perms=0o644)
     render('git/nova_sudoers', '/etc/sudoers.d/nova_sudoers', {}, perms=0o440)
 
-    service_name = 'nova-compute'
-    nova_user = 'nova'
-    start_dir = '/var/lib/nova'
     bin_dir = os.path.join(git_pip_venv_dir(projects_yaml), 'bin')
-    nova_conf = '/etc/nova/nova.conf'
-    nova_api_metadata_context = {
-        'service_description': 'Nova Metadata API server',
-        'service_name': service_name,
-        'user_name': nova_user,
-        'start_dir': start_dir,
-        'process_name': 'nova-api-metadata',
-        'executable_name': os.path.join(bin_dir, 'nova-api-metadata'),
-        'config_files': [nova_conf],
-    }
-    nova_api_context = {
-        'service_description': 'Nova API server',
-        'service_name': service_name,
-        'user_name': nova_user,
-        'start_dir': start_dir,
-        'process_name': 'nova-api',
-        'executable_name': os.path.join(bin_dir, 'nova-api'),
-        'config_files': [nova_conf],
-    }
-    # Use systemd init units/scripts from ubuntu wily onwar
-    if init_is_systemd():
-        activate_path = os.path.join(git_pip_venv_dir(projects_yaml), 'bin',
-                                     'activate')
-        nova_compute_context = {
-            'daemon_path': os.path.join(bin_dir, 'nova-compute'),
-            'activate_path': activate_path,
-        }
+    # Use systemd init units/scripts from ubuntu wily onward
+    if lsb_release()['DISTRIB_RELEASE'] >= '15.10':
         templates_dir = os.path.join(charm_dir(), 'templates/git')
-        render('git/nova-compute.system.in.template',
-               '/lib/systemd/system/nova-compute.service',
-               nova_compute_context, perms=0o644)
+        daemons = ['nova-api', 'nova-api-metadata', 'nova-compute',
+                   'nova-network']
+        for daemon in daemons:
+            nova_compute_context = {
+                'daemon_path': os.path.join(bin_dir, daemon),
+            }
+            template_file = 'git/{}.init.in.template'.format(daemon)
+            init_in_file = '{}.init.in'.format(daemon)
+            render(template_file, os.path.join(templates_dir, init_in_file),
+                   nova_compute_context, perms=0o644)
+        git_generate_systemd_init_files(templates_dir)
     else:
+        service_name = 'nova-compute'
+        nova_user = 'nova'
+        start_dir = '/var/lib/nova'
+        nova_conf = '/etc/nova/nova.conf'
+        nova_api_context = {
+            'service_description': 'Nova API server',
+            'service_name': service_name,
+            'user_name': nova_user,
+            'start_dir': start_dir,
+            'process_name': 'nova-api',
+            'executable_name': os.path.join(bin_dir, 'nova-api'),
+            'config_files': [nova_conf],
+        }
+        nova_api_metadata_context = {
+            'service_description': 'Nova Metadata API server',
+            'service_name': service_name,
+            'user_name': nova_user,
+            'start_dir': start_dir,
+            'process_name': 'nova-api-metadata',
+            'executable_name': os.path.join(bin_dir, 'nova-api-metadata'),
+            'config_files': [nova_conf],
+        }
         nova_compute_context = {
             'service_description': 'Nova compute worker',
             'service_name': service_name,
@@ -749,29 +752,29 @@ def git_post_install(projects_yaml):
             'executable_name': os.path.join(bin_dir, 'nova-compute'),
             'config_files': [nova_conf, '/etc/nova/nova-compute.conf'],
         }
+        nova_network_context = {
+            'service_description': 'Nova network worker',
+            'service_name': service_name,
+            'user_name': nova_user,
+            'start_dir': start_dir,
+            'process_name': 'nova-network',
+            'executable_name': os.path.join(bin_dir, 'nova-network'),
+            'config_files': [nova_conf],
+        }
+        templates_dir = 'hooks/charmhelpers/contrib/openstack/templates'
+        templates_dir = os.path.join(charm_dir(), templates_dir)
+        render('git.upstart', '/etc/init/nova-api-metadata.conf',
+               nova_api_metadata_context, perms=0o644,
+               templates_dir=templates_dir)
+        render('git.upstart', '/etc/init/nova-api.conf',
+               nova_api_context, perms=0o644,
+               templates_dir=templates_dir)
         render('git/upstart/nova-compute.upstart',
                '/etc/init/nova-compute.conf',
                nova_compute_context, perms=0o644)
-
-    nova_network_context = {
-        'service_description': 'Nova network worker',
-        'service_name': service_name,
-        'user_name': nova_user,
-        'start_dir': start_dir,
-        'process_name': 'nova-network',
-        'executable_name': os.path.join(bin_dir, 'nova-network'),
-        'config_files': [nova_conf],
-    }
-
-    # NOTE(coreycb): Needs systemd support
-    templates_dir = 'hooks/charmhelpers/contrib/openstack/templates'
-    templates_dir = os.path.join(charm_dir(), templates_dir)
-    render('git.upstart', '/etc/init/nova-api-metadata.conf',
-           nova_api_metadata_context, perms=0o644, templates_dir=templates_dir)
-    render('git.upstart', '/etc/init/nova-api.conf',
-           nova_api_context, perms=0o644, templates_dir=templates_dir)
-    render('git.upstart', '/etc/init/nova-network.conf',
-           nova_network_context, perms=0o644, templates_dir=templates_dir)
+        render('git.upstart', '/etc/init/nova-network.conf',
+               nova_network_context, perms=0o644,
+               templates_dir=templates_dir)
 
     apt_update()
     apt_install(LATE_GIT_PACKAGES, fatal=True)
