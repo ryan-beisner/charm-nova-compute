@@ -10,3 +10,4 @@ xenial/
 precise/
 tests/cirros-*-disk.img
 .unit-state.db
+.idea
