@@ -21,9 +21,6 @@ from charmhelpers.core.hookenv import (
 from charmhelpers.core.host import (
     service_restart,
 )
-from charmhelpers.core.strutils import (
-    bool_from_string,
-)
 from charmhelpers.fetch import (
     apt_install,
     apt_purge,
@@ -82,6 +79,7 @@ from charmhelpers.contrib.network.ip import (
 from charmhelpers.core.unitdata import kv
 
 from nova_compute_context import (
+    nova_metadata_requirement,
     CEPH_SECRET_UUID,
     assert_libvirt_imagebackend_allowed
 )
@@ -411,12 +409,8 @@ def neutron_plugin_joined(relid=None, remote_restart=False):
 @hooks.hook('neutron-plugin-relation-changed')
 @restart_on_change(restart_map())
 def neutron_plugin_changed():
-    settings = relation_get()
-    if settings.get('enable-metadata'):
-        enable_metadata = bool_from_string(settings['enable-metadata'])
-    else:
-        enable_metadata = False
-    if 'metadata-shared-secret' in settings or enable_metadata:
+    enable_nova_metadata, _ = nova_metadata_requirement()
+    if enable_nova_metadata:
         apt_update()
         apt_install(filter_installed_packages(['nova-api-metadata']),
                     fatal=True)

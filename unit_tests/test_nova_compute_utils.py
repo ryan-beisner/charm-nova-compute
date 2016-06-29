@@ -51,13 +51,13 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.config.side_effect = self.test_config.get
         self.charm_dir.return_value = 'mycharm'
 
-    @patch.object(utils, 'enable_nova_metadata')
+    @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
     def test_determine_packages_nova_network(self, git_requested, net_man,
                                              en_meta):
         git_requested.return_value = False
-        en_meta.return_value = False
+        en_meta.return_value = (False, None)
         net_man.return_value = 'flatdhcpmanager'
         self.relation_ids.return_value = []
         result = utils.determine_packages()
@@ -68,14 +68,14 @@ class NovaComputeUtilsTests(CharmTestCase):
         ]
         self.assertEquals(ex, result)
 
-    @patch.object(utils, 'enable_nova_metadata')
+    @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
     def test_determine_packages_neutron(self, git_requested, net_man, n_plugin,
                                         en_meta):
         git_requested.return_value = False
-        en_meta.return_value = False
+        en_meta.return_value = (False, None)
         net_man.return_value = 'neutron'
         n_plugin.return_value = 'ovs'
         self.relation_ids.return_value = []
@@ -83,14 +83,14 @@ class NovaComputeUtilsTests(CharmTestCase):
         ex = utils.BASE_PACKAGES + ['nova-compute-kvm']
         self.assertEquals(ex, result)
 
-    @patch.object(utils, 'enable_nova_metadata')
+    @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
     def test_determine_packages_neutron_ceph(self, git_requested, net_man,
                                              n_plugin, en_meta):
         git_requested.return_value = False
-        en_meta.return_value = False
+        en_meta.return_value = (False, None)
         net_man.return_value = 'neutron'
         n_plugin.return_value = 'ovs'
         self.relation_ids.return_value = ['ceph:0']
@@ -98,14 +98,14 @@ class NovaComputeUtilsTests(CharmTestCase):
         ex = (utils.BASE_PACKAGES + ['ceph-common', 'nova-compute-kvm'])
         self.assertEquals(ex, result)
 
-    @patch.object(utils, 'enable_nova_metadata')
+    @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
     def test_determine_packages_metadata(self, git_requested, net_man,
                                          n_plugin, en_meta):
         git_requested.return_value = False
-        en_meta.return_value = True
+        en_meta.return_value = (True, None)
         net_man.return_value = 'bob'
         n_plugin.return_value = 'ovs'
         self.relation_ids.return_value = []
@@ -163,11 +163,11 @@ class NovaComputeUtilsTests(CharmTestCase):
         }
         self.assertEquals(ex, result)
 
-    @patch.object(utils, 'enable_nova_metadata')
+    @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     def test_resource_map_metadata(self, net_man, _plugin, _metadata):
-        _metadata.return_value = True
+        _metadata.return_value = (True, None)
         net_man.return_value = 'bob'
         _plugin.return_value = 'ovs'
         self.relation_ids.return_value = []
@@ -404,20 +404,6 @@ class NovaComputeUtilsTests(CharmTestCase):
         with self.assertRaises(Exception):
             utils.configure_lxd('nova')
         self.assertFalse(_configure_subuid.called)
-
-    def test_enable_nova_metadata(self):
-        class DummyContext():
-
-            def __init__(self, return_value):
-                self.return_value = return_value
-
-            def __call__(self):
-                return self.return_value
-
-        self.MetadataServiceContext.return_value = \
-            DummyContext(return_value={'metadata_shared_secret':
-                                       'sharedsecret'})
-        self.assertEqual(utils.enable_nova_metadata(), True)
 
     @patch.object(utils, 'git_install_requested')
     @patch.object(utils, 'git_clone_and_install')
