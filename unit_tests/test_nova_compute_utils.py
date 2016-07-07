@@ -29,13 +29,18 @@ from test_utils import (
 
 
 TO_PATCH = [
+    'apt_install',
+    'apt_update',
     'config',
+    'git_src_dir',
+    'git_pip_venv_dir',
     'os_release',
     'log',
     'pip_install',
     'related_units',
     'relation_ids',
     'relation_get',
+    'render',
     'service_restart',
     'mkdir',
     'install_alternative',
@@ -493,26 +498,18 @@ class NovaComputeUtilsTests(CharmTestCase):
         ]
         self.assertEquals(write_file.call_args_list, expected)
 
-    @patch.object(utils, 'init_is_systemd')
-    @patch.object(utils, 'git_src_dir')
-    @patch.object(utils, 'service_restart')
-    @patch.object(utils, 'render')
-    @patch.object(utils, 'git_pip_venv_dir')
     @patch('os.path.join')
     @patch('os.path.exists')
     @patch('os.symlink')
     @patch('shutil.copytree')
     @patch('shutil.rmtree')
     @patch('subprocess.check_call')
-    @patch.object(utils, 'apt_install')
-    @patch.object(utils, 'apt_update')
-    def test_git_post_install(self, apt_update, apt_install, check_call,
-                              rmtree, copytree, symlink, exists, join, venv,
-                              render, service_restart, git_src_dir, systemd):
-        systemd.return_value = False
+    def test_git_post_install_upstart(self, check_call, rmtree, copytree,
+                                      symlink, exists, join):
         projects_yaml = openstack_origin_git
         join.return_value = 'joined-string'
-        venv.return_value = '/mnt/openstack-git/venv'
+        self.lsb_release.return_value = {'DISTRIB_RELEASE': '15.04'}
+        self.git_pip_venv_dir.return_value = '/mnt/openstack-git/venv'
         utils.git_post_install(projects_yaml)
         expected = [
             call('joined-string', '/etc/nova'),
@@ -567,27 +564,57 @@ class NovaComputeUtilsTests(CharmTestCase):
                  {}, perms=0o644),
             call('git/nova_sudoers', '/etc/sudoers.d/nova_sudoers',
                  {}, perms=0o440),
-            call('git/upstart/nova-compute.upstart',
-                 '/etc/init/nova-compute.conf',
-                 nova_compute_context, perms=420),
             call('git.upstart', '/etc/init/nova-api-metadata.conf',
                  nova_api_metadata_context, perms=0o644,
                  templates_dir='joined-string'),
             call('git.upstart', '/etc/init/nova-api.conf',
                  nova_api_context, perms=0o644,
                  templates_dir='joined-string'),
+            call('git/upstart/nova-compute.upstart',
+                 '/etc/init/nova-compute.conf',
+                 nova_compute_context, perms=420),
             call('git.upstart', '/etc/init/nova-network.conf',
                  nova_network_context, perms=0o644,
                  templates_dir='joined-string'),
         ]
-        self.assertEquals(render.call_args_list, expected)
-        self.assertTrue(apt_update.called)
-        apt_install.assert_called_with(
+        self.assertEquals(self.render.call_args_list, expected)
+        self.assertTrue(self.apt_update.called)
+        self.apt_install.assert_called_with(
             ['bridge-utils', 'dnsmasq-base',
              'dnsmasq-utils', 'ebtables', 'genisoimage', 'iptables',
              'iputils-arping', 'kpartx', 'kvm', 'netcat', 'open-iscsi',
              'parted', 'python-libvirt', 'qemu', 'qemu-system',
              'qemu-utils', 'vlan', 'xen-system-amd64'], fatal=True)
+
+    @patch('os.listdir')
+    @patch('os.path.join')
+    @patch('os.path.exists')
+    @patch('os.symlink')
+    @patch('shutil.copytree')
+    @patch('shutil.rmtree')
+    @patch('subprocess.check_call')
+    def test_git_post_install_systemd(self, check_call, rmtree, copytree,
+                                      symlink, exists, join, listdir):
+        projects_yaml = openstack_origin_git
+        join.return_value = 'joined-string'
+        self.lsb_release.return_value = {'DISTRIB_RELEASE': '15.10'}
+        self.git_pip_venv_dir.return_value = '/mnt/openstack-git/venv'
+        utils.git_post_install(projects_yaml)
+        expected = [
+            call('git/nova-compute-kvm.conf', '/etc/nova/nova-compute.conf',
+                 {}, perms=420),
+            call('git/nova_sudoers', '/etc/sudoers.d/nova_sudoers',
+                 {}, perms=288),
+            call('git/nova-api.init.in.template', 'joined-string',
+                 {'daemon_path': 'joined-string'}, perms=420),
+            call('git/nova-api-metadata.init.in.template', 'joined-string',
+                 {'daemon_path': 'joined-string'}, perms=420),
+            call('git/nova-compute.init.in.template', 'joined-string',
+                 {'daemon_path': 'joined-string'}, perms=420),
+            call('git/nova-network.init.in.template', 'joined-string',
+                 {'daemon_path': 'joined-string'}, perms=420),
+        ]
+        self.assertEquals(self.render.call_args_list, expected)
 
     @patch('psutil.virtual_memory')
     @patch('subprocess.check_call')
