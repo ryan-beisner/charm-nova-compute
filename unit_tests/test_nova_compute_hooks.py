@@ -57,6 +57,8 @@ TO_PATCH = [
     # charmhelpers.contrib.openstack.utils
     'configure_installation_source',
     'openstack_upgrade_available',
+    # nova_compute_context
+    'nova_metadata_requirement',
     # nova_compute_utils
     # 'PACKAGES',
     'create_libvirt_secret',
@@ -498,8 +500,8 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'CONFIGS')
     def test_neutron_plugin_changed(self, configs):
-        self.relation_get.return_value = {'metadata-shared-secret':
-                                          'sharedsecret'}
+        self.nova_metadata_requirement.return_value = (True,
+                                                       'sharedsecret')
         hooks.neutron_plugin_changed()
         self.assertTrue(self.apt_update.called)
         self.apt_install.assert_called_with(['nova-api-metadata'],
@@ -507,8 +509,8 @@ class NovaComputeRelationsTests(CharmTestCase):
         configs.write.assert_called_with('/etc/nova/nova.conf')
 
     @patch.object(hooks, 'CONFIGS')
-    def test_neutron_plugin_changed_nometa_implicit(self, configs):
-        self.relation_get.return_value = {}
+    def test_neutron_plugin_changed_nometa(self, configs):
+        self.nova_metadata_requirement.return_value = (False, None)
         hooks.neutron_plugin_changed()
         self.apt_purge.assert_called_with('nova-api-metadata',
                                           fatal=True)
@@ -516,18 +518,10 @@ class NovaComputeRelationsTests(CharmTestCase):
 
     @patch.object(hooks, 'CONFIGS')
     def test_neutron_plugin_changed_meta(self, configs):
-        self.relation_get.return_value = {'enable-metadata': 'True'}
+        self.nova_metadata_requirement.return_value = (True, None)
         hooks.neutron_plugin_changed()
         self.apt_install.assert_called_with(['nova-api-metadata'],
                                             fatal=True)
-        configs.write.assert_called_with('/etc/nova/nova.conf')
-
-    @patch.object(hooks, 'CONFIGS')
-    def test_neutron_plugin_changed_nometa_explicit(self, configs):
-        self.relation_get.return_value = {'enable-metadata': 'false'}
-        hooks.neutron_plugin_changed()
-        self.apt_purge.assert_called_with('nova-api-metadata',
-                                          fatal=True)
         configs.write.assert_called_with('/etc/nova/nova.conf')
 
     @patch.object(hooks, 'get_hugepage_number')

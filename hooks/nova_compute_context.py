@@ -21,6 +21,9 @@ from charmhelpers.contrib.openstack import context
 from charmhelpers.core.host import (
     lsb_release,
 )
+from charmhelpers.core.strutils import (
+    bool_from_string,
+)
 from charmhelpers.fetch import apt_install, filter_installed_packages
 from charmhelpers.core.hookenv import (
     config,
@@ -100,6 +103,20 @@ def _neutron_url(rid, unit):
         # supports legacy relation settings.
         return (relation_get('neutron_url', rid=rid, unit=unit) or
                 relation_get('quantum_url', rid=rid, unit=unit))
+
+
+def nova_metadata_requirement():
+    enable = False
+    secret = None
+    for rid in relation_ids('neutron-plugin'):
+        for unit in related_units(rid):
+            rdata = relation_get(rid=rid, unit=unit)
+            if 'metadata-shared-secret' in rdata:
+                secret = rdata['metadata-shared-secret']
+                enable = True
+            if bool_from_string(rdata.get('enable-metadata', 'False')):
+                enable = True
+    return enable, secret
 
 
 class NovaComputeLibvirtContext(context.OSContextGenerator):
@@ -476,12 +493,9 @@ class MetadataServiceContext(context.OSContextGenerator):
 
     def __call__(self):
         ctxt = {}
-        for rid in relation_ids('neutron-plugin'):
-            for unit in related_units(rid):
-                rdata = relation_get(rid=rid, unit=unit)
-                if 'metadata-shared-secret' in rdata:
-                    ctxt['metadata_shared_secret'] = \
-                        rdata['metadata-shared-secret']
+        _, secret = nova_metadata_requirement()
+        if secret:
+            ctxt['metadata_shared_secret'] = secret
         return ctxt
 
 

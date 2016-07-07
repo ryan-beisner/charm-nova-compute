@@ -323,6 +323,19 @@ class NovaComputeContextTests(CharmTestCase):
         self.assertEqual(metadatactxt(), {'metadata_shared_secret':
                                           'shared_secret'})
 
+    def test_nova_metadata_requirement(self):
+        self.relation_ids.return_value = ['neutron-plugin:0']
+        self.related_units.return_value = ['neutron-api/0']
+        self.test_relation.set({'metadata-shared-secret': 'secret'})
+        self.assertEqual(context.nova_metadata_requirement(),
+                         (True, 'secret'))
+        self.test_relation.set({})
+        self.assertEqual(context.nova_metadata_requirement(),
+                         (False, None))
+        self.test_relation.set({'enable-metadata': 'true'})
+        self.assertEqual(context.nova_metadata_requirement(),
+                         (True, None))
+
 
 class DesignateContextTests(CharmTestCase):
 
