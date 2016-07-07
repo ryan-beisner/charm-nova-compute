@@ -172,6 +172,9 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
             db.flush()
             ctxt['host_uuid'] = host_uuid
 
+        if config('libvirt-image-backend'):
+            ctxt['libvirt_images_type'] = config('libvirt-image-backend')
+
         return ctxt
 
 
@@ -192,7 +195,7 @@ class NovaComputeVirtContext(context.OSContextGenerator):
         return {}
 
 
-def assert_libvirt_imagebackend_allowed():
+def assert_libvirt_rbd_imagebackend_allowed():
     os_rel = "Juno"
     os_ver = get_os_version_package('nova-common')
     if float(os_ver) < float(get_os_version_codename(os_rel.lower())):
@@ -219,11 +222,8 @@ class NovaComputeCephContext(context.CephContext):
         ctxt['rbd_pool'] = config('rbd-pool')
 
         if (config('libvirt-image-backend') == 'rbd' and
-                assert_libvirt_imagebackend_allowed()):
-            ctxt['libvirt_images_type'] = 'rbd'
+                assert_libvirt_rbd_imagebackend_allowed()):
             ctxt['libvirt_rbd_images_ceph_conf'] = ceph_config_file()
-        elif config('libvirt-image-backend') == 'lvm':
-            ctxt['libvirt_images_type'] = 'lvm'
 
         rbd_cache = config('rbd-client-cache') or ""
         if rbd_cache.lower() == "enabled":

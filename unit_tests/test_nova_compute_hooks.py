@@ -77,7 +77,7 @@ TO_PATCH = [
     # misc_utils
     'ensure_ceph_keyring',
     'execd_preinstall',
-    'assert_libvirt_imagebackend_allowed',
+    'assert_libvirt_rbd_imagebackend_allowed',
     'is_request_complete',
     'send_request_if_needed',
     # socket
@@ -481,7 +481,7 @@ class NovaComputeRelationsTests(CharmTestCase):
                                                      service_name):
         self.test_config.set('libvirt-image-backend', 'rbd')
         self.is_request_complete.return_value = True
-        self.assert_libvirt_imagebackend_allowed.return_value = True
+        self.assert_libvirt_rbd_imagebackend_allowed.return_value = True
         configs.complete_contexts = MagicMock()
         configs.complete_contexts.return_value = ['ceph']
         configs.write = MagicMock()

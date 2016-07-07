@@ -98,7 +98,7 @@ from charmhelpers.core.unitdata import kv
 
 from nova_compute_context import (
     CEPH_SECRET_UUID,
-    assert_libvirt_imagebackend_allowed
+    assert_libvirt_rbd_imagebackend_allowed
 )
 from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.core.sysctl import create as create_sysctl
@@ -188,7 +188,7 @@ def config_changed():
         set_ppc64_cpu_smt_state('off')
 
     if (config('libvirt-image-backend') == 'rbd' and
-            assert_libvirt_imagebackend_allowed()):
+            assert_libvirt_rbd_imagebackend_allowed()):
         for rid in relation_ids('ceph'):
             for unit in related_units(rid):
                 ceph_changed(rid=rid, unit=unit)
@@ -267,6 +267,16 @@ def image_service_changed():
     CONFIGS.write(NOVA_CONF)
 
 
+@hooks.hook('ephemeral-backend-relation-changed',
+            'ephemeral-backend-relation-broken')
+@restart_on_change(restart_map())
+def ephemeral_backend_hook():
+    if 'ephemeral-backend' not in CONFIGS.complete_contexts():
+        log('ephemeral-backend relation incomplete. Peer not ready?')
+        return
+    CONFIGS.write(NOVA_CONF)
+
+
 @hooks.hook('cloud-compute-relation-joined')
 def compute_joined(rid=None):
     # NOTE(james-page) in MAAS environments the actual hostname is a CNAME
@@ -340,7 +350,7 @@ def ceph_changed(rid=None, unit=None):
                               secret_uuid=CEPH_SECRET_UUID, key=key)
 
     if (config('libvirt-image-backend') == 'rbd' and
-            assert_libvirt_imagebackend_allowed()):
+            assert_libvirt_rbd_imagebackend_allowed()):
         if is_request_complete(get_ceph_request()):
             log('Request complete')
             # Ensure that nova-compute is restarted since only now can we
