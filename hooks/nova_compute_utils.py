@@ -571,6 +571,11 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
     check_call(cmd)
 
 
+def destroy_libvirt_network(netname):
+    """Delete a network using virsh net-destroy"""
+    return subprocess.check_call(['virsh', 'net-destroy', netname])
+
+
 def configure_lxd(user='nova'):
     ''' Configure lxd use for nova user '''
     if not git_install_requested():

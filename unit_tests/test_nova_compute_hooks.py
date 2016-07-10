@@ -82,6 +82,7 @@ TO_PATCH = [
     'assert_libvirt_rbd_imagebackend_allowed',
     'is_request_complete',
     'send_request_if_needed',
+    'destroy_libvirt_network',
     # socket
     'gethostname',
     'create_sysctl',
