@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import re
 import shutil
 import pwd
 import subprocess
@@ -51,6 +52,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     DEBUG,
     INFO,
+    WARNING,
 )
 
 from charmhelpers.core.templating import render
@@ -573,7 +575,20 @@ def create_libvirt_secret(secret_file, secret_uuid, key):
 
 def destroy_libvirt_network(netname):
     """Delete a network using virsh net-destroy"""
-    return subprocess.check_call(['virsh', 'net-destroy', netname])
+    try:
+        out = check_output(['virsh', 'net-list']).split('\n')
+        if len(out) < 3:
+            return
+
+        for line in out[2:]:
+            res = re.search("^\s+{} ".format(netname), line)
+            if res:
+                check_call(['virsh', 'net-destroy', netname])
+                return
+
+    except CalledProcessError:
+        log("Failed to destroy libvirt network '{}'".format(netname),
+            level=WARNING)
 
 
 def configure_lxd(user='nova'):

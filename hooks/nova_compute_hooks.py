@@ -17,7 +17,6 @@
 import platform
 import sys
 import uuid
-import os
 
 from charmhelpers.core.hookenv import (
     Hooks,
@@ -149,8 +148,7 @@ def config_changed():
     if sysctl_dict:
         create_sysctl(sysctl_dict, '/etc/sysctl.d/50-nova-compute.conf')
 
-    if os.path.exists('/etc/libvirt/qemu/networks/default.xml'):
-        destroy_libvirt_network('default')
+    destroy_libvirt_network('default')
 
     if migration_enabled() and config('migration-auth-type') == 'ssh':
         # Check-in with nova-c-c and register new ssh key, if it has just been

@@ -27,6 +27,12 @@ from test_utils import (
     patch_open
 )
 
+VIRSH_NET_LIST = """ Name                 State      Autostart     Persistent
+----------------------------------------------------------
+ somenet              active     yes           yes
+ default              active     yes           yes
+ altnet               active     yes           yes
+"""
 
 TO_PATCH = [
     'apt_install',
@@ -706,3 +712,19 @@ class NovaComputeUtilsTests(CharmTestCase):
             asf.assert_called_once_with('some-config')
             # ports=None whilst port checks are disabled.
             f.assert_called_once_with('assessor', services='s1', ports=None)
+
+    @patch.object(utils, 'check_call')
+    @patch.object(utils, 'check_output')
+    def test_destroy_libvirt_network(self, mock_check_output, mock_check_call):
+        mock_check_output.return_value = VIRSH_NET_LIST
+        utils.destroy_libvirt_network('default')
+        cmd = ['virsh', 'net-destroy', 'default']
+        mock_check_call.assert_has_calls([call(cmd)])
+
+    @patch.object(utils, 'check_call')
+    @patch.object(utils, 'check_output')
+    def test_destroy_libvirt_network_no_exist(self, mock_check_output,
+                                              mock_check_call):
+        mock_check_output.return_value = VIRSH_NET_LIST
+        utils.destroy_libvirt_network('defaultX')
+        self.assertFalse(mock_check_call.called)
