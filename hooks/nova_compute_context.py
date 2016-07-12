@@ -209,7 +209,11 @@ class NovaComputeVirtContext(context.OSContextGenerator):
     interfaces = []
 
     def __call__(self):
-        return {}
+        ctxt = {}
+        if lsb_release()['DISTRIB_CODENAME'].lower() >= "yakkety":
+            ctxt['virt_type'] = config('virt-type')
+            ctxt['enable_live_migration'] = config('enable-live-migration')
+        return ctxt
 
 
 def assert_libvirt_rbd_imagebackend_allowed():
