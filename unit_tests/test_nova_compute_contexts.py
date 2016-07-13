@@ -244,6 +244,25 @@ class NovaComputeContextTests(CharmTestCase):
              'host_uuid': self.host_uuid,
              'reserved_host_memory': 512}, libvirt())
 
+    def test_lxd_live_migration_opts_xenial(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
+        self.lsb_release.return_value = {'DISTRIB_CODENAME': 'xenial'}
+        self.test_config.set('enable-live-migration', False)
+        self.test_config.set('virt-type', 'lxd')
+
+        lxd = context.NovaComputeVirtContext()
+        self.assertEqual({}, lxd())
+
+    def test_lxd_live_migration_opts_yakkety(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
+        self.lsb_release.return_value = {'DISTRIB_CODENAME': 'yakkety'}
+        self.test_config.set('enable-live-migration', True)
+        self.test_config.set('virt-type', 'lxd')
+
+        lxd = context.NovaComputeVirtContext()
+        self.assertEqual(
+            {'enable_live_migration': True, 'virt_type': 'lxd'}, lxd())
+
     @patch.object(context.uuid, 'uuid4')
     def test_libvirt_new_uuid(self, mock_uuid):
         self.kv.return_value = FakeUnitdata()

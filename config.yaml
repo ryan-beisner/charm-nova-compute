@@ -103,7 +103,10 @@ options:
   enable-live-migration:
     type: boolean
     default: False
-    description: Configure libvirt for live migration.
+    description: |
+      Configure libvirt or lxd for live migration.
+
+      Live migration support for lxd is still considered experimental.
   migration-auth-type:
     type: string
     default:
