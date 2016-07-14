@@ -332,8 +332,10 @@ def ceph_joined():
 
 def get_ceph_request():
     rq = CephBrokerRq()
+    name = config('rbd-pool')
     replicas = config('ceph-osd-replication-count')
-    rq.add_op_create_pool(name=config('rbd-pool'), replica_count=replicas)
+    weight = config('ceph-pool-weight')
+    rq.add_op_create_pool(name=name, replica_count=replicas, weight=weight)
     return rq
 
 

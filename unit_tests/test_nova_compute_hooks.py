@@ -500,6 +500,15 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.assertEquals(ex, configs.write.call_args_list)
         self.service_restart.assert_called_with('nova-compute')
 
+    @patch('charmhelpers.contrib.storage.linux.ceph.CephBrokerRq'
+           '.add_op_create_pool')
+    def test_get_ceph_request(self, mock_add_op):
+        self.test_config.set('rbd-pool', 'nova')
+        self.test_config.set('ceph-osd-replication-count', 3)
+        self.test_config.set('ceph-pool-weight', 28)
+        hooks.get_ceph_request()
+        mock_add_op.assert_called_with(name='nova', replica_count=3, weight=28)
+
     @patch.object(hooks, 'CONFIGS')
     def test_neutron_plugin_changed(self, configs):
         self.nova_metadata_requirement.return_value = (True,
