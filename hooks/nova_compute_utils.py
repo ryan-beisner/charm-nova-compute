@@ -618,6 +618,13 @@ def destroy_libvirt_network(netname):
     except CalledProcessError:
         log("Failed to destroy libvirt network '{}'".format(netname),
             level=WARNING)
+    except OSError as e:
+        if e.errno == 2:
+            log("virsh is unavailable. Virt Type is '{}'. Not attempting to "
+                "destroy libvirt network '{}'"
+                "".format(config('virt-type'), netname), level=DEBUG)
+        else:
+            raise e
 
 
 def configure_lxd(user='nova'):

@@ -794,3 +794,19 @@ class NovaComputeUtilsTests(CharmTestCase):
         mock_check_output.return_value = VIRSH_NET_LIST
         utils.destroy_libvirt_network('defaultX')
         self.assertFalse(mock_check_call.called)
+
+    @patch.object(utils, 'check_call')
+    @patch.object(utils, 'check_output')
+    def test_destroy_libvirt_network_no_virsh(self, mock_check_output,
+                                              mock_check_call):
+        mock_check_output.side_effect = OSError(2, 'No such file')
+        utils.destroy_libvirt_network('default')
+
+    @patch.object(utils, 'check_call')
+    @patch.object(utils, 'check_output')
+    def test_destroy_libvirt_network_no_virsh_unknown_error(self,
+                                                            mock_check_output,
+                                                            mock_check_call):
+        mock_check_output.side_effect = OSError(100, 'Break things')
+        with self.assertRaises(OSError):
+            utils.destroy_libvirt_network('default')
