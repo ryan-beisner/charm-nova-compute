@@ -50,6 +50,7 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_ids,
     relation_get,
+    status_set,
     DEBUG,
     INFO,
     WARNING,
@@ -486,9 +487,29 @@ def initialize_ssh_keys(user='root'):
 
 def set_ppc64_cpu_smt_state(smt_state):
     """Set ppc64_cpu smt state."""
-    log('Setting ppc64_cpu smt state: %s' % smt_state)
-    cmd = ['ppc64_cpu', '--smt=%s' % smt_state]
-    check_output(cmd)
+
+    current_smt_state = check_output(['ppc64_cpu', '--smt'])
+    # Possible smt state values are integer or 'off'
+    #   Ex. common ppc64_cpu query command output values:
+    #      SMT=8
+    #   -or-
+    #      SMT is off
+
+    if 'SMT={}'.format(smt_state) in current_smt_state:
+        log('Not changing ppc64_cpu smt state ({})'.format(smt_state))
+    elif smt_state == 'off' and 'SMT is off' in current_smt_state:
+        log('Not changing ppc64_cpu smt state (already off)')
+    else:
+        log('Setting ppc64_cpu smt state: {}'.format(smt_state))
+        cmd = ['ppc64_cpu', '--smt={}'.format(smt_state)]
+        try:
+            check_output(cmd)
+        except CalledProcessError as e:
+            # Known to fail in a container (host must pre-configure smt)
+            msg = 'Failed to set ppc64_cpu smt state: {}'.format(smt_state)
+            log(msg, level=WARNING)
+            status_set('blocked', msg)
+            raise e
 
 
 def import_authorized_keys(user='root', prefix=None):
