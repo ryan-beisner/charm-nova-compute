@@ -26,8 +26,25 @@ from charmhelpers.contrib.openstack.amulet.utils import (
     # ERROR
 )
 
+from novaclient import exceptions
+
+
+class NovaOpenStackAmuletUtils(OpenStackAmuletUtils):
+    """Nova based helper extending base helper for creation of flavors"""
+
+    def create_flavor(self, nova, name, ram, vcpus, disk, flavorid="auto",
+                      ephemeral=0, swap=0, rxtx_factor=1.0, is_public=True):
+        """Create the specified flavor."""
+        try:
+            nova.flavors.find(name=name)
+        except exceptions.NotFound, exceptions.NoUniqueMatch:
+            self.log.debug('Creating flavor ({})'.format(name))
+            nova.flavors.create(name, ram, vcpus, disk, flavorid,
+                                ephemeral, swap, rxtx_factor, is_public)
+
+
 # Use DEBUG to turn on debug logging
-u = OpenStackAmuletUtils(DEBUG)
+u = NovaOpenStackAmuletUtils(DEBUG)
 
 
 class NovaBasicDeployment(OpenStackAmuletDeployment):
@@ -157,6 +174,12 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
         # Authenticate admin with glance endpoint
         self.glance = u.authenticate_glance_admin(self.keystone)
+
+        # Authenticate admin with nova endpoint
+        self.nova = u.authenticate_nova_user(self.keystone,
+                                             user='admin',
+                                             password='openstack',
+                                             tenant='admin')
 
         # Create a demo tenant/role/user
         self.demo_tenant = 'demoTenant'
@@ -503,6 +526,10 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         image = u.create_cirros_image(self.glance, "cirros-image")
         if not image:
             amulet.raise_status(amulet.FAIL, msg="Image create failed")
+
+        # NOTE(jamespage): ensure require flavor exists, required for >= newton
+        u.create_flavor(nova=self.nova,
+                        name='m1.tiny', ram=512, vcpus=1, disk=1)
 
         instance = u.create_instance(self.nova_demo, "cirros-image", "cirros",
                                      "m1.tiny")

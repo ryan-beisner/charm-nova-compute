@@ -58,6 +58,7 @@ TO_PATCH = [
     'rsync',
     'Fstab',
     'os_application_version_set',
+    'lsb_release',
 ]
 
 openstack_origin_git = \
@@ -76,6 +77,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         super(NovaComputeUtilsTests, self).setUp(utils, TO_PATCH)
         self.config.side_effect = self.test_config.get
         self.charm_dir.return_value = 'mycharm'
+        self.lsb_release.return_value = {'DISTRIB_CODENAME': 'precise'}
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
@@ -254,6 +256,70 @@ class NovaComputeUtilsTests(CharmTestCase):
         for k in ex.keys():
             self.assertEquals(set(ex[k]['services']),
                               set(result[k]['services']))
+
+    def _test_resource_map_neutron(self, net_man, en_meta,
+                                   libvirt_daemon):
+        en_meta.return_value = (False, None)
+        self.test_config.set('multi-host', 'yes')
+        net_man.return_value = 'neutron'
+        result = utils.resource_map()
+
+        ex = {
+            '/etc/default/libvirt-bin': {
+                'contexts': [],
+                'services': [libvirt_daemon]
+            },
+            '/etc/libvirt/qemu.conf': {
+                'contexts': [],
+                'services': [libvirt_daemon]
+            },
+            '/etc/nova/nova.conf': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+            '/etc/ceph/secret.xml': {
+                'contexts': [],
+                'services': []
+            },
+            '/var/lib/charm/nova_compute/ceph.conf': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+            '/etc/default/qemu-kvm': {
+                'contexts': [],
+                'services': ['qemu-kvm']
+            },
+            '/etc/init/libvirt-bin.override': {
+                'contexts': [],
+                'services': [libvirt_daemon]
+            },
+            '/etc/libvirt/libvirtd.conf': {
+                'contexts': [],
+                'services': [libvirt_daemon]
+            },
+            '/etc/apparmor.d/usr.bin.nova-compute': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+        }
+        # Mocking contexts is tricky but we can still test that
+        # the correct files are monitored and the correct services
+        # will be started
+        self.assertEquals(set(ex.keys()), set(result.keys()))
+        for k in ex.keys():
+            self.assertEquals(set(ex[k]['services']),
+                              set(result[k]['services']))
+
+    @patch.object(utils, 'nova_metadata_requirement')
+    @patch.object(utils, 'network_manager')
+    def test_resource_map_neutron(self, net_man, en_meta):
+        self._test_resource_map_neutron(net_man, en_meta, 'libvirt-bin')
+
+    @patch.object(utils, 'nova_metadata_requirement')
+    @patch.object(utils, 'network_manager')
+    def test_resource_map_neutron_yakkety(self, net_man, en_meta,):
+        self.lsb_release.return_value = {'DISTRIB_CODENAME': 'yakkety'}
+        self._test_resource_map_neutron(net_man, en_meta, 'libvirtd')
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
@@ -814,3 +880,15 @@ class NovaComputeUtilsTests(CharmTestCase):
         mock_check_output.side_effect = OSError(100, 'Break things')
         with self.assertRaises(OSError):
             utils.destroy_libvirt_network('default')
+
+    def test_libvirt_daemon_yakkety(self):
+        self.lsb_release.return_value = {
+            'DISTRIB_CODENAME': 'yakkety'
+        }
+        self.assertEqual(utils.libvirt_daemon(), utils.LIBVIRTD_DAEMON)
+
+    def test_libvirt_daemon_preyakkety(self):
+        self.lsb_release.return_value = {
+            'DISTRIB_CODENAME': 'xenial'
+        }
+        self.assertEqual(utils.libvirt_daemon(), utils.LIBVIRT_BIN_DAEMON)

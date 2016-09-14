@@ -77,6 +77,7 @@ TO_PATCH = [
     'git_install',
     'git_install_requested',
     'network_manager',
+    'libvirt_daemon',
     # misc_utils
     'ensure_ceph_keyring',
     'execd_preinstall',
@@ -456,9 +457,11 @@ class NovaComputeRelationsTests(CharmTestCase):
         )
 
     def test_ceph_joined(self):
+        self.libvirt_daemon.return_value = 'libvirt-bin'
         hooks.ceph_joined()
         self.apt_install.assert_called_with(['ceph-common'], fatal=True)
         self.service_restart.assert_called_with('libvirt-bin')
+        self.libvirt_daemon.assert_called()
 
     @patch.object(hooks, 'CONFIGS')
     def test_ceph_changed_missing_relation_data(self, configs):
