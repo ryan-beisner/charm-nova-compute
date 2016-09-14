@@ -10,6 +10,11 @@ description: |
  directly to physical servers.
 tags:
   - openstack
+series:
+  - xenial
+  - trusty
+  - precise
+  - yakkety
 provides:
   cloud-compute:
     interface: nova-compute
