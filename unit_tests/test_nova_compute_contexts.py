@@ -404,3 +404,34 @@ class DesignateContextTests(CharmTestCase):
         self.assertEqual(designatectxt(), {
             'enable_designate': False,
         })
+
+
+class SerialConsoleContextTests(CharmTestCase):
+
+    def setUp(self):
+        super(SerialConsoleContextTests, self).setUp(context, TO_PATCH)
+        self.relation_get.side_effect = self.test_relation.get
+        self.config.side_effect = self.test_config.get
+        self.host_uuid = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
+
+    def test_serial_console_not_provided(self):
+        self.relation_ids.return_value = ['cloud-compute:0']
+        self.related_units.return_value = 'nova-cloud-controller/0'
+        self.assertEqual(
+            context.SerialConsoleContext()(),
+            {'enable_serial_console': 'false',
+             'serial_console_base_url': 'ws://127.0.0.1:6083/'}
+        )
+
+    def test_serial_console_provided(self):
+        self.relation_ids.return_value = ['cloud-compute:0']
+        self.related_units.return_value = 'nova-cloud-controller/0'
+        self.test_relation.set({
+            'enable_serial_console': 'true',
+            'serial_console_base_url': 'ws://10.10.10.1:6083/'
+        })
+        self.assertEqual(
+            context.SerialConsoleContext()(),
+            {'enable_serial_console': 'true',
+             'serial_console_base_url': 'ws://10.10.10.1:6083/'}
+        )

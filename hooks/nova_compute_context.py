@@ -281,6 +281,34 @@ class NovaComputeCephContext(context.CephContext):
         return ctxt
 
 
+class SerialConsoleContext(context.OSContextGenerator):
+
+    @property
+    def enable_serial_console(self):
+        for rid in relation_ids('cloud-compute'):
+            for unit in related_units(rid):
+                if bool(relation_get('enable_serial_console',
+                                     rid=rid, unit=unit)) is True:
+                    return 'true'
+        return 'false'
+
+    @property
+    def serial_console_base_url(self):
+        for rid in relation_ids('cloud-compute'):
+            for unit in related_units(rid):
+                base_url = relation_get('serial_console_base_url',
+                                        rid=rid, unit=unit)
+                if base_url is not None:
+                    return base_url
+        return 'ws://127.0.0.1:6083/'
+
+    def __call__(self):
+        return {
+            'enable_serial_console': self.enable_serial_console,
+            'serial_console_base_url': self.serial_console_base_url,
+        }
+
+
 class CloudComputeContext(context.OSContextGenerator):
 
     '''
