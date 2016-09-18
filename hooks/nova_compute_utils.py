@@ -769,6 +769,9 @@ def git_post_install(projects_yaml):
         {'src': os.path.join(git_pip_venv_dir(projects_yaml),
                              'bin/nova-rootwrap'),
          'link': '/usr/local/bin/nova-rootwrap'},
+        {'src': os.path.join(git_pip_venv_dir(projects_yaml),
+                             'bin/privsep-helper'),
+         'link': '/usr/local/bin/privsep-helper'},
     ]
 
     for s in symlinks:
