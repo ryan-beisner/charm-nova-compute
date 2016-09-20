@@ -76,6 +76,7 @@ from charmhelpers.contrib.openstack.utils import (
     make_assess_status_func,
     pause_unit,
     resume_unit,
+    os_application_version_set,
 )
 
 from charmhelpers.contrib.python.packages import (
@@ -120,6 +121,8 @@ BASE_PACKAGES = [
     'python-six',
     'python-psutil',
 ]
+
+VERSION_PACKAGE = 'nova-common'
 
 BASE_GIT_PACKAGES = [
     'libffi-dev',
@@ -927,6 +930,7 @@ def assess_status(configs):
     @returns None - this function is executed for its side-effect
     """
     assess_status_func(configs)()
+    os_application_version_set(VERSION_PACKAGE)
 
 
 def assess_status_func(configs):
