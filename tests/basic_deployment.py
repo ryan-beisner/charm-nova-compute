@@ -37,7 +37,7 @@ class NovaOpenStackAmuletUtils(OpenStackAmuletUtils):
         """Create the specified flavor."""
         try:
             nova.flavors.find(name=name)
-        except exceptions.NotFound, exceptions.NoUniqueMatch:
+        except (exceptions.NotFound, exceptions.NoUniqueMatch):
             self.log.debug('Creating flavor ({})'.format(name))
             nova.flavors.create(name, ram, vcpus, disk, flavorid,
                                 ephemeral, swap, rxtx_factor, is_public)
@@ -62,9 +62,10 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         self._deploy()
 
         u.log.info('Waiting on extended status checks...')
-        self.exclude_services = ['mysql']
+        self.exclude_services = []
         self._auto_wait_for_status(exclude_services=self.exclude_services)
 
+        self.d.sentry.wait()
         self._initialize_tests()
 
     def _add_services(self):
@@ -75,11 +76,13 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
            compatible with the local charm (e.g. stable or next).
            """
         this_service = {'name': 'nova-compute'}
-        other_services = [{'name': 'mysql'},
-                          {'name': 'rabbitmq-server'},
-                          {'name': 'nova-cloud-controller'},
-                          {'name': 'keystone'},
-                          {'name': 'glance'}]
+        other_services = [
+            {'name': 'rabbitmq-server'},
+            {'name': 'nova-cloud-controller'},
+            {'name': 'keystone'},
+            {'name': 'glance'},
+            {'name': 'percona-cluster', 'constraints': {'mem': '3072M'}},
+        ]
         super(NovaBasicDeployment, self)._add_services(this_service,
                                                        other_services)
 
@@ -87,18 +90,18 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         """Add all of the relations for the services."""
         relations = {
             'nova-compute:image-service': 'glance:image-service',
-            'nova-compute:shared-db': 'mysql:shared-db',
+            'nova-compute:shared-db': 'percona-cluster:shared-db',
             'nova-compute:amqp': 'rabbitmq-server:amqp',
-            'nova-cloud-controller:shared-db': 'mysql:shared-db',
+            'nova-cloud-controller:shared-db': 'percona-cluster:shared-db',
             'nova-cloud-controller:identity-service': 'keystone:'
                                                       'identity-service',
             'nova-cloud-controller:amqp': 'rabbitmq-server:amqp',
             'nova-cloud-controller:cloud-compute': 'nova-compute:'
                                                    'cloud-compute',
             'nova-cloud-controller:image-service': 'glance:image-service',
-            'keystone:shared-db': 'mysql:shared-db',
+            'keystone:shared-db': 'percona-cluster:shared-db',
             'glance:identity-service': 'keystone:identity-service',
-            'glance:shared-db': 'mysql:shared-db',
+            'glance:shared-db': 'percona-cluster:shared-db',
             'glance:amqp': 'rabbitmq-server:amqp'
         }
         super(NovaBasicDeployment, self)._add_relations(relations)
@@ -145,16 +148,29 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             nova_cc_config['openstack-origin-git'] = \
                 yaml.dump(openstack_origin_git)
 
-        keystone_config = {'admin-password': 'openstack',
-                           'admin-token': 'ubuntutesting'}
-        configs = {'nova-compute': nova_config, 'keystone': keystone_config,
-                   'nova-cloud-controller': nova_cc_config}
+        keystone_config = {
+            'admin-password': 'openstack',
+            'admin-token': 'ubuntutesting',
+        }
+        pxc_config = {
+            'dataset-size': '25%',
+            'max-connections': 1000,
+            'root-password': 'ChangeMe123',
+            'sst-password': 'ChangeMe123',
+        }
+
+        configs = {
+            'nova-compute': nova_config,
+            'keystone': keystone_config,
+            'nova-cloud-controller': nova_cc_config,
+            'percona-cluster': pxc_config,
+        }
         super(NovaBasicDeployment, self)._configure_services(configs)
 
     def _initialize_tests(self):
         """Perform final initialization before tests get run."""
         # Access the sentries for inspecting service units
-        self.mysql_sentry = self.d.sentry['mysql'][0]
+        self.pxc_sentry = self.d.sentry['percona-cluster'][0]
         self.keystone_sentry = self.d.sentry['keystone'][0]
         self.rabbitmq_sentry = self.d.sentry['rabbitmq-server'][0]
         self.nova_compute_sentry = self.d.sentry['nova-compute'][0]
@@ -213,7 +229,6 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         u.log.debug('Checking system services on units...')
 
         services = {
-            self.mysql_sentry: ['mysql'],
             self.rabbitmq_sentry: ['rabbitmq-server'],
             self.nova_compute_sentry: ['nova-compute',
                                        'nova-network',
@@ -338,7 +353,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         u.log.debug('Checking n-c:mysql db relation data...')
 
         unit = self.nova_compute_sentry
-        relation = ['shared-db', 'mysql:shared-db']
+        relation = ['shared-db', 'percona-cluster:shared-db']
         expected = {
             'private-address': u.valid_ip,
             'nova_database': 'nova',
@@ -354,7 +369,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
     def test_202_mysql_shared_db_relation(self):
         """Verify the mysql to nova-compute shared-db relation data"""
         u.log.debug('Checking mysql:n-c db relation data...')
-        unit = self.mysql_sentry
+        unit = self.pxc_sentry
         relation = ['shared-db', 'nova-compute:shared-db']
         expected = {
             'private-address': u.valid_ip,
@@ -447,8 +462,8 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                                                    'nova-compute:amqp')
         gl_nc_rel = self.glance_sentry.relation('image-service',
                                                 'nova-compute:image-service')
-        db_nc_rel = self.mysql_sentry.relation('shared-db',
-                                               'nova-compute:shared-db')
+        db_nc_rel = self.pxc_sentry.relation('shared-db',
+                                             'nova-compute:shared-db')
         db_uri = "mysql://{}:{}@{}/{}".format('nova',
                                               db_nc_rel['nova_password'],
                                               db_nc_rel['db_host'],
