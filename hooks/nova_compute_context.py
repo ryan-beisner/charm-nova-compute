@@ -137,10 +137,21 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
             # /etc/libvirt/libvirtd.conf (
             'listen_tls': 0
         }
-        if lsb_release()['DISTRIB_CODENAME'].lower() < "wily":
+        distro_codename = lsb_release()['DISTRIB_CODENAME'].lower()
+
+        # NOTE(jamespage): deal with switch to systemd
+        if distro_codename < "wily":
             ctxt['libvirtd_opts'] = '-d'
         else:
             ctxt['libvirtd_opts'] = ''
+
+        # NOTE(jamespage): deal with alignment with Debian in
+        #                  Ubuntu yakkety and beyond.
+        if distro_codename >= 'yakkety':
+            ctxt['libvirt_user'] = 'libvirt'
+        else:
+            ctxt['libvirt_user'] = 'libvirtd'
+
         # get the processor architecture to use in the nova.conf template
         ctxt['arch'] = platform.machine()
 

@@ -238,9 +238,12 @@ BASE_RESOURCE_MAP = {
     },
 }
 
+LIBVIRTD_DAEMON = 'libvirtd'
+LIBVIRT_BIN_DAEMON = 'libvirt-bin'
+
 LIBVIRT_RESOURCE_MAP = {
     QEMU_CONF: {
-        'services': ['libvirt-bin'],
+        'services': [LIBVIRT_BIN_DAEMON],
         'contexts': [NovaComputeLibvirtContext()],
     },
     QEMU_KVM: {
@@ -248,15 +251,15 @@ LIBVIRT_RESOURCE_MAP = {
         'contexts': [NovaComputeLibvirtContext()],
     },
     LIBVIRTD_CONF: {
-        'services': ['libvirt-bin'],
+        'services': [LIBVIRT_BIN_DAEMON],
         'contexts': [NovaComputeLibvirtContext()],
     },
     LIBVIRT_BIN: {
-        'services': ['libvirt-bin'],
+        'services': [LIBVIRT_BIN_DAEMON],
         'contexts': [NovaComputeLibvirtContext()],
     },
     LIBVIRT_BIN_OVERRIDES: {
-        'services': ['libvirt-bin'],
+        'services': [LIBVIRT_BIN_DAEMON],
         'contexts': [NovaComputeLibvirtOverrideContext()],
     },
 }
@@ -298,6 +301,15 @@ REQUIRED_INTERFACES = {
 }
 
 
+def libvirt_daemon():
+    '''Resolve the correct name of the libvirt daemon service'''
+    distro_codename = lsb_release()['DISTRIB_CODENAME'].lower()
+    if distro_codename >= 'yakkety':
+        return LIBVIRTD_DAEMON
+    else:
+        return LIBVIRT_BIN_DAEMON
+
+
 def resource_map():
     '''
     Dynamically generate a map of resources that will be managed for a single
@@ -320,6 +332,13 @@ def resource_map():
     else:
         resource_map.pop(NOVA_API_AA_PROFILE_PATH)
         resource_map.pop(NOVA_NETWORK_AA_PROFILE_PATH)
+
+    distro_codename = lsb_release()['DISTRIB_CODENAME'].lower()
+    if distro_codename >= 'yakkety':
+        for data in resource_map.values():
+            if LIBVIRT_BIN_DAEMON in data['services']:
+                data['services'].remove(LIBVIRT_BIN_DAEMON)
+                data['services'].append(LIBVIRTD_DAEMON)
 
     # Neutron/quantum requires additional contexts, as well as new resources
     # depending on the plugin used.

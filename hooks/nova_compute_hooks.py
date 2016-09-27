@@ -87,6 +87,7 @@ from nova_compute_utils import (
     set_ppc64_cpu_smt_state,
     destroy_libvirt_network,
     network_manager,
+    libvirt_daemon,
 )
 
 from charmhelpers.contrib.network.ip import (
@@ -327,7 +328,7 @@ def ceph_joined():
     apt_install(filter_installed_packages(['ceph-common']), fatal=True)
     # Bug 1427660
     if not is_unit_paused_set():
-        service_restart('libvirt-bin')
+        service_restart(libvirt_daemon())
 
 
 def get_ceph_request():

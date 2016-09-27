@@ -190,6 +190,21 @@ class NovaComputeContextTests(CharmTestCase):
         qplugin = context.NeutronComputeContext()
         self.assertEquals({}, qplugin())
 
+    def test_libvirt_context_libvirtd(self):
+        self.lsb_release.return_value = {'DISTRIB_CODENAME': 'yakkety'}
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
+        self.test_config.set('enable-live-migration', False)
+        libvirt = context.NovaComputeLibvirtContext()
+
+        self.assertEqual(
+            {'libvirtd_opts': '',
+             'libvirt_user': 'libvirt',
+             'arch': platform.machine(),
+             'kvm_hugepages': 0,
+             'listen_tls': 0,
+             'host_uuid': self.host_uuid,
+             'reserved_host_memory': 512}, libvirt())
+
     def test_libvirt_bin_context_no_migration(self):
         self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
         self.test_config.set('enable-live-migration', False)
@@ -197,6 +212,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
+             'libvirt_user': 'libvirtd',
              'arch': platform.machine(),
              'kvm_hugepages': 0,
              'listen_tls': 0,
@@ -210,6 +226,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d -l',
+             'libvirt_user': 'libvirtd',
              'arch': platform.machine(),
              'kvm_hugepages': 0,
              'listen_tls': 0,
@@ -223,6 +240,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
+             'libvirt_user': 'libvirtd',
              'disk_cachemodes': 'file=unsafe,block=none',
              'arch': platform.machine(),
              'kvm_hugepages': 0,
@@ -237,6 +255,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
+             'libvirt_user': 'libvirtd',
              'arch': platform.machine(),
              'hugepages': True,
              'kvm_hugepages': 1,
@@ -302,6 +321,7 @@ class NovaComputeContextTests(CharmTestCase):
 
         self.assertEqual(
             {'libvirtd_opts': '-d',
+             'libvirt_user': 'libvirtd',
              'arch': platform.machine(),
              'hugepages': True,
              'kvm_hugepages': 1,
