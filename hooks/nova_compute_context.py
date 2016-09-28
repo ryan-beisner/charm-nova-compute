@@ -287,8 +287,9 @@ class SerialConsoleContext(context.OSContextGenerator):
     def enable_serial_console(self):
         for rid in relation_ids('cloud-compute'):
             for unit in related_units(rid):
-                if bool(relation_get('enable_serial_console',
-                                     rid=rid, unit=unit)) is True:
+                _enable_sc = relation_get('enable_serial_console', rid=rid,
+                                          unit=unit)
+                if _enable_sc and bool_from_string(_enable_sc):
                     return 'true'
         return 'false'
 

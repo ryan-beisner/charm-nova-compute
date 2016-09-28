@@ -414,9 +414,24 @@ class SerialConsoleContextTests(CharmTestCase):
         self.config.side_effect = self.test_config.get
         self.host_uuid = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
 
+    def test_serial_console_disabled(self):
+        self.relation_ids.return_value = ['cloud-compute:0']
+        self.related_units.return_value = 'nova-cloud-controller/0'
+        self.test_relation.set({
+            'enable_serial_console': 'false',
+        })
+        self.assertEqual(
+            context.SerialConsoleContext()(),
+            {'enable_serial_console': 'false',
+             'serial_console_base_url': 'ws://127.0.0.1:6083/'}
+        )
+
     def test_serial_console_not_provided(self):
         self.relation_ids.return_value = ['cloud-compute:0']
         self.related_units.return_value = 'nova-cloud-controller/0'
+        self.test_relation.set({
+            'enable_serial_console': None,
+        })
         self.assertEqual(
             context.SerialConsoleContext()(),
             {'enable_serial_console': 'false',
