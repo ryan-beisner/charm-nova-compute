@@ -17,6 +17,7 @@ import re
 import shutil
 import pwd
 import subprocess
+import platform
 
 from base64 import b64decode
 from copy import deepcopy
@@ -404,6 +405,16 @@ def register_configs():
     return configs
 
 
+def determine_packages_arch():
+    '''Generate list of architecture-specific packages'''
+    packages = []
+    distro_codename = lsb_release()['DISTRIB_CODENAME'].lower()
+    if platform.machine() == 'aarch64' and distro_codename >= 'wily':
+        packages.extend(['qemu-efi']),  # AArch64 cloud images require UEFI fw
+
+    return packages
+
+
 def determine_packages():
     packages = [] + BASE_PACKAGES
 
@@ -424,6 +435,8 @@ def determine_packages():
     enable_nova_metadata, _ = nova_metadata_requirement()
     if enable_nova_metadata:
         packages.append('nova-api-metadata')
+
+    packages.extend(determine_packages_arch())
 
     if git_install_requested():
         packages = list(set(packages))

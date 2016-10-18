@@ -82,11 +82,13 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
-    def test_determine_packages_nova_network(self, git_requested, net_man,
-                                             en_meta):
+    @patch('platform.machine')
+    def test_determine_packages_nova_network(self, machine, git_requested,
+                                             net_man, en_meta):
         git_requested.return_value = False
         en_meta.return_value = (False, None)
         net_man.return_value = 'flatdhcpmanager'
+        machine.return_value = 'x86_64'
         self.relation_ids.return_value = []
         result = utils.determine_packages()
         ex = utils.BASE_PACKAGES + [
@@ -100,12 +102,14 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
-    def test_determine_packages_neutron(self, git_requested, net_man, n_plugin,
-                                        en_meta):
+    @patch('platform.machine')
+    def test_determine_packages_neutron(self, machine, git_requested, net_man,
+                                        n_plugin, en_meta):
         git_requested.return_value = False
         en_meta.return_value = (False, None)
         net_man.return_value = 'neutron'
         n_plugin.return_value = 'ovs'
+        machine.return_value = 'x86_64'
         self.relation_ids.return_value = []
         result = utils.determine_packages()
         ex = utils.BASE_PACKAGES + ['nova-compute-kvm']
@@ -115,12 +119,58 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'neutron_plugin')
     @patch.object(utils, 'network_manager')
     @patch.object(utils, 'git_install_requested')
-    def test_determine_packages_neutron_ceph(self, git_requested, net_man,
-                                             n_plugin, en_meta):
+    @patch('platform.machine')
+    def test_determine_packages_neutron_aarch64_xenial(self, machine,
+                                                       git_requested,
+                                                       net_man, n_plugin,
+                                                       en_meta):
+        self.lsb_release.return_value = {
+            'DISTRIB_CODENAME': 'xenial'
+        }
         git_requested.return_value = False
         en_meta.return_value = (False, None)
         net_man.return_value = 'neutron'
         n_plugin.return_value = 'ovs'
+        machine.return_value = 'aarch64'
+        self.relation_ids.return_value = []
+        result = utils.determine_packages()
+        ex = utils.BASE_PACKAGES + ['nova-compute-kvm', 'qemu-efi']
+        self.assertEquals(ex, result)
+
+    @patch.object(utils, 'nova_metadata_requirement')
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'network_manager')
+    @patch.object(utils, 'git_install_requested')
+    @patch('platform.machine')
+    def test_determine_packages_neutron_aarch64_trusty(self, machine,
+                                                       git_requested,
+                                                       net_man, n_plugin,
+                                                       en_meta):
+        self.lsb_release.return_value = {
+            'DISTRIB_CODENAME': 'trusty'
+        }
+        git_requested.return_value = False
+        en_meta.return_value = (False, None)
+        net_man.return_value = 'neutron'
+        n_plugin.return_value = 'ovs'
+        machine.return_value = 'aarch64'
+        self.relation_ids.return_value = []
+        result = utils.determine_packages()
+        ex = utils.BASE_PACKAGES + ['nova-compute-kvm']
+        self.assertEquals(ex, result)
+
+    @patch.object(utils, 'nova_metadata_requirement')
+    @patch.object(utils, 'neutron_plugin')
+    @patch.object(utils, 'network_manager')
+    @patch.object(utils, 'git_install_requested')
+    @patch('platform.machine')
+    def test_determine_packages_neutron_ceph(self, machine, git_requested,
+                                             net_man, n_plugin, en_meta):
+        git_requested.return_value = False
+        en_meta.return_value = (False, None)
+        net_man.return_value = 'neutron'
+        n_plugin.return_value = 'ovs'
+        machine.return_value = 'x86_64'
         self.relation_ids.return_value = ['ceph:0']
         result = utils.determine_packages()
         ex = (utils.BASE_PACKAGES + ['ceph-common', 'nova-compute-kvm'])
