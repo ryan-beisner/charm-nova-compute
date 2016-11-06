@@ -1,7 +1,7 @@
 Overview
 ========
 
-This charm provides Nova Compute, the Openstack compute service. It's target
+This charm provides Nova Compute, the OpenStack compute service. It's target
 platform is Ubuntu (preferably LTS) + Openstack.
 
 Usage
@@ -36,7 +36,7 @@ your hypervisor type and storage relations.
 NFV support
 ===========
 
-This charm (in-conjunction with the nova-cloud-controller and neutron-api charms)
+This charm (in conjunction with the nova-cloud-controller and neutron-api charms)
 supports use of nova-compute nodes configured for use in Telco NFV deployments;
 specifically the following configuration options (yaml excerpt):
 
@@ -48,8 +48,8 @@ nova-compute:
   pci-passthrough-whitelist: {"vendor_id":"1137","product_id":"0071","address":"*:0a:00.*","physical_network":"physnet1"}
 ```
 
-In this example, compute nodes will be configured with 60% of avaliable RAM for
-hugepage use (decreasing memory fragmentation in virual machines, improving
+In this example, compute nodes will be configured with 60% of available RAM for
+hugepage use (decreasing memory fragmentation in virtual machines, improving
 performance), and Nova will be configured to reserve CPU cores 0 and 2 and
 1024M of RAM for host usage and use the supplied PCI device whitelist as
 PCI devices that as consumable by virtual machines, including any mapping to
@@ -57,8 +57,8 @@ underlying provider network names (used for SR-IOV VF/PF port scheduling with
 Nova and Neutron's SR-IOV support).
 
 The vcpu-pin-set configuration option is a comma-separated list of physical
-CPU numbers that virtual CPUs can be   allocated to by default. Each element
-should be either a single CPU number,  a range of CPU numbers, or a caret
+CPU numbers that virtual CPUs can be allocated to by default. Each element
+should be either a single CPU number, a range of CPU numbers, or a caret
 followed by a CPU number to be excluded from a previous range. For example:
 
 ```yaml
