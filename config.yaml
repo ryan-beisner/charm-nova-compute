@@ -311,6 +311,14 @@ options:
       wait for you to execute the openstack-upgrade action for this charm on
       each unit. If False it will revert to existing behavior of upgrading
       all units on config change.
+  os-internal-network:
+    type: string
+    default:
+    description: |
+      The IP address and netmask of the OpenStack Internal network (e.g.
+      192.168.0.0/24)
+
+      This network will be used to bind vncproxy client.
   harden:
     default:
     type: string

@@ -40,7 +40,10 @@ from charmhelpers.contrib.openstack.utils import (
     get_os_version_package,
     get_os_version_codename,
 )
-
+from charmhelpers.contrib.openstack.ip import (
+    INTERNAL,
+    resolve_address,
+)
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr,
 )
@@ -533,7 +536,7 @@ class InstanceConsoleContext(context.OSContextGenerator):
                 else:
                     ctxt = dict(ctxt, **self.get_console_info(proto, **rel))
                 break
-        ctxt['console_listen_addr'] = get_host_ip(unit_get('private-address'))
+        ctxt['console_listen_addr'] = resolve_address(endpoint_type=INTERNAL)
         return ctxt
 
 
