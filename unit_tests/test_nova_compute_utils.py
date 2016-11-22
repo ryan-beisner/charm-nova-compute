@@ -96,7 +96,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             'nova-network',
             'nova-compute-kvm'
         ]
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
@@ -113,7 +113,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.relation_ids.return_value = []
         result = utils.determine_packages()
         ex = utils.BASE_PACKAGES + ['nova-compute-kvm']
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
@@ -135,7 +135,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.relation_ids.return_value = []
         result = utils.determine_packages()
         ex = utils.BASE_PACKAGES + ['nova-compute-kvm', 'qemu-efi']
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
@@ -157,7 +157,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.relation_ids.return_value = []
         result = utils.determine_packages()
         ex = utils.BASE_PACKAGES + ['nova-compute-kvm']
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
@@ -174,7 +174,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         self.relation_ids.return_value = ['ceph:0']
         result = utils.determine_packages()
         ex = (utils.BASE_PACKAGES + ['ceph-common', 'nova-compute-kvm'])
-        self.assertEquals(ex, result)
+        self.assertEqual(ex, result)
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'neutron_plugin')
@@ -238,10 +238,10 @@ class NovaComputeUtilsTests(CharmTestCase):
         # Mocking contexts is tricky but we can still test that
         # the correct files are monitored and the correct services
         # will be started
-        self.assertEquals(set(ex.keys()), set(result.keys()))
+        self.assertEqual(set(ex.keys()), set(result.keys()))
         for k in ex.keys():
-            self.assertEquals(set(ex[k]['services']),
-                              set(result[k]['services']))
+            self.assertEqual(set(ex[k]['services']),
+                             set(result[k]['services']))
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
@@ -302,10 +302,10 @@ class NovaComputeUtilsTests(CharmTestCase):
         # Mocking contexts is tricky but we can still test that
         # the correct files are monitored and the correct services
         # will be started
-        self.assertEquals(set(ex.keys()), set(result.keys()))
+        self.assertEqual(set(ex.keys()), set(result.keys()))
         for k in ex.keys():
-            self.assertEquals(set(ex[k]['services']),
-                              set(result[k]['services']))
+            self.assertEqual(set(ex[k]['services']),
+                             set(result[k]['services']))
 
     def _test_resource_map_neutron(self, net_man, en_meta,
                                    libvirt_daemon):
@@ -355,10 +355,10 @@ class NovaComputeUtilsTests(CharmTestCase):
         # Mocking contexts is tricky but we can still test that
         # the correct files are monitored and the correct services
         # will be started
-        self.assertEquals(set(ex.keys()), set(result.keys()))
+        self.assertEqual(set(ex.keys()), set(result.keys()))
         for k in ex.keys():
-            self.assertEquals(set(ex[k]['services']),
-                              set(result[k]['services']))
+            self.assertEqual(set(ex[k]['services']),
+                             set(result[k]['services']))
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
@@ -392,7 +392,7 @@ class NovaComputeUtilsTests(CharmTestCase):
     def test_public_ssh_key_not_found(self, getpwnam, _open):
         _open.side_effect = Exception
         getpwnam.return_value = self.fake_user('foo')
-        self.assertEquals(None, utils.public_ssh_key())
+        self.assertEqual(None, utils.public_ssh_key())
 
     @patch('pwd.getpwnam')
     def test_public_ssh_key(self, getpwnam):
@@ -400,7 +400,7 @@ class NovaComputeUtilsTests(CharmTestCase):
         with patch_open() as (_open, _file):
             _file.read.return_value = 'mypubkey'
             result = utils.public_ssh_key('foo')
-        self.assertEquals(result, 'mypubkey')
+        self.assertEqual(result, 'mypubkey')
 
     def test_import_authorized_keys_missing_data(self):
         self.relation_get.return_value = None
@@ -439,8 +439,8 @@ class NovaComputeUtilsTests(CharmTestCase):
 
         with patch_open() as (_open, _file):
             utils.import_authorized_keys(user='foo', prefix=prefix)
-            self.assertEquals(ex_open, _open.call_args_list)
-            self.assertEquals(ex_write, _file.write.call_args_list)
+            self.assertEqual(ex_open, _open.call_args_list)
+            self.assertEqual(ex_write, _file.write.call_args_list)
             authkey_root = 'authorized_keys_'
             known_hosts_root = 'known_hosts_'
             if prefix:
@@ -456,8 +456,8 @@ class NovaComputeUtilsTests(CharmTestCase):
                 call(authkey_root + '1'),
                 call(authkey_root + '2')
             ]
-            self.assertEquals(sorted(self.relation_get.call_args_list),
-                              sorted(expected_relations))
+            self.assertEqual(sorted(self.relation_get.call_args_list),
+                             sorted(expected_relations))
 
     def test_import_authorized_keys_noprefix(self):
         self._test_import_authorized_keys_base()
@@ -519,7 +519,7 @@ class NovaComputeUtilsTests(CharmTestCase):
                 call('/etc/nova/nova-compute.conf', [ctxt2]),
                 call('/etc/nova/nova.conf', [ctxt1])
             ]
-            self.assertEquals(fake_renderer.register.call_args_list, ex_reg)
+            self.assertEqual(fake_renderer.register.call_args_list, ex_reg)
 
     @patch.object(utils, 'check_call')
     def test_enable_shell(self, _check_call):
@@ -645,7 +645,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             call('nova', 'nova'),
             call('nova', 'libvirtd'),
         ]
-        self.assertEquals(add_user_to_group.call_args_list, expected)
+        self.assertEqual(add_user_to_group.call_args_list, expected)
         expected = [
             call('/var/lib/nova', owner='nova',
                  group='nova', perms=0755, force=False),
@@ -674,7 +674,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             call('/var/log/nova', owner='nova',
                  group='nova', perms=0755, force=False),
         ]
-        self.assertEquals(mkdir.call_args_list, expected)
+        self.assertEqual(mkdir.call_args_list, expected)
         expected = [
             call('/var/log/nova/nova-api.log', '', owner='nova',
                  group='nova', perms=0644),
@@ -685,7 +685,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             call('/var/log/nova/nova-network.log', '', owner='nova',
                  group='nova', perms=0644),
         ]
-        self.assertEquals(write_file.call_args_list, expected)
+        self.assertEqual(write_file.call_args_list, expected)
 
     @patch('os.path.join')
     @patch('os.path.exists')
@@ -766,7 +766,7 @@ class NovaComputeUtilsTests(CharmTestCase):
                  nova_network_context, perms=0o644,
                  templates_dir='joined-string'),
         ]
-        self.assertEquals(self.render.call_args_list, expected)
+        self.assertEqual(self.render.call_args_list, expected)
         self.assertTrue(self.apt_update.called)
         self.apt_install.assert_called_with(
             ['bridge-utils', 'dnsmasq-base',
@@ -803,7 +803,7 @@ class NovaComputeUtilsTests(CharmTestCase):
             call('git/nova-network.init.in.template', 'joined-string',
                  {'daemon_path': 'joined-string'}, perms=420),
         ]
-        self.assertEquals(self.render.call_args_list, expected)
+        self.assertEqual(self.render.call_args_list, expected)
 
     @patch('psutil.virtual_memory')
     @patch('subprocess.check_call')

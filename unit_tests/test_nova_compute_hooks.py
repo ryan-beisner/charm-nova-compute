@@ -176,7 +176,7 @@ class NovaComputeRelationsTests(CharmTestCase):
             call('cloud-compute:0'),
             call('cloud-compute:1'),
         ]
-        self.assertEquals(ex, compute_joined.call_args_list)
+        self.assertEqual(ex, compute_joined.call_args_list)
         self.assertTrue(self.initialize_ssh_keys.called)
         self.assertTrue(_zmq_joined.called)
 
@@ -196,7 +196,7 @@ class NovaComputeRelationsTests(CharmTestCase):
             call('cloud-compute:0'),
             call('cloud-compute:1'),
         ]
-        self.assertEquals(ex, compute_joined.call_args_list)
+        self.assertEqual(ex, compute_joined.call_args_list)
         self.initialize_ssh_keys.assert_called_with(user='nova')
         self.enable_shell.assert_called_with(user='nova')
         self.assertTrue(_zmq_joined.called)
@@ -217,7 +217,7 @@ class NovaComputeRelationsTests(CharmTestCase):
             call('cloud-compute:0'),
             call('cloud-compute:1'),
         ]
-        self.assertEquals(ex, compute_joined.call_args_list)
+        self.assertEqual(ex, compute_joined.call_args_list)
         self.disable_shell.assert_called_with(user='nova')
         self.assertTrue(_zmq_joined.called)
 
@@ -302,8 +302,8 @@ class NovaComputeRelationsTests(CharmTestCase):
     @patch.object(hooks, 'CONFIGS')
     def test_amqp_changed_with_data_no_neutron(self, configs):
         self._amqp_test(configs)
-        self.assertEquals([call('/etc/nova/nova.conf')],
-                          configs.write.call_args_list)
+        self.assertEqual([call('/etc/nova/nova.conf')],
+                         configs.write.call_args_list)
 
     def test_db_joined(self):
         self.unit_get.return_value = 'nova.foohost.com'
@@ -372,14 +372,14 @@ class NovaComputeRelationsTests(CharmTestCase):
     @patch.object(hooks, 'CONFIGS')
     def test_db_changed_with_data(self, configs):
         self._shared_db_test(configs)
-        self.assertEquals([call('/etc/nova/nova.conf')],
-                          configs.write.call_args_list)
+        self.assertEqual([call('/etc/nova/nova.conf')],
+                         configs.write.call_args_list)
 
     @patch.object(hooks, 'CONFIGS')
     def test_postgresql_db_changed_with_data(self, configs):
         self._postgresql_db_test(configs)
-        self.assertEquals([call('/etc/nova/nova.conf')],
-                          configs.write.call_args_list)
+        self.assertEqual([call('/etc/nova/nova.conf')],
+                         configs.write.call_args_list)
 
     @patch.object(hooks, 'CONFIGS')
     def test_image_service_missing_relation_data(self, configs):
@@ -500,7 +500,7 @@ class NovaComputeRelationsTests(CharmTestCase):
             call('/etc/ceph/secret.xml'),
             call('/etc/nova/nova.conf'),
         ]
-        self.assertEquals(ex, configs.write.call_args_list)
+        self.assertEqual(ex, configs.write.call_args_list)
         self.service_restart.assert_called_with('nova-compute')
 
     @patch('charmhelpers.contrib.storage.linux.ceph.CephBrokerRq'
