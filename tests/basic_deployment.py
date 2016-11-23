@@ -233,18 +233,11 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             self.nova_compute_sentry: ['nova-compute',
                                        'nova-network',
                                        'nova-api'],
-            self.nova_cc_sentry: ['nova-api-ec2',
-                                  'nova-api-os-compute',
-                                  'nova-objectstore',
-                                  'nova-cert',
-                                  'nova-scheduler'],
+            self.nova_cc_sentry: ['nova-conductor'],
             self.keystone_sentry: ['keystone'],
             self.glance_sentry: ['glance-registry',
                                  'glance-api']
         }
-
-        if self._get_openstack_release() >= self.precise_grizzly:
-            services[self.nova_cc_sentry] = ['nova-conductor']
 
         if self._get_openstack_release() >= self.trusty_liberty:
             services[self.keystone_sentry] = ['apache2']
@@ -259,16 +252,14 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
         endpoint_vol = {'adminURL': u.valid_url,
                         'region': 'RegionOne',
+                        'id': u.not_null,
                         'publicURL': u.valid_url,
                         'internalURL': u.valid_url}
         endpoint_id = {'adminURL': u.valid_url,
                        'region': 'RegionOne',
+                       'id': u.not_null,
                        'publicURL': u.valid_url,
                        'internalURL': u.valid_url}
-
-        if self._get_openstack_release() >= self.precise_folsom:
-            endpoint_vol['id'] = u.not_null
-            endpoint_id['id'] = u.not_null
 
         if self._get_openstack_release() >= self.trusty_kilo:
             expected = {'compute': [endpoint_vol], 'identity': [endpoint_id]}
@@ -440,8 +431,6 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             'private-address': u.valid_ip,
             'restart_trigger': u.not_null
         }
-        if self._get_openstack_release() == self.precise_essex:
-            expected['volume_service'] = 'nova-volume'
 
         ret = u.validate_relation_data(unit, relation, expected)
         if ret:
@@ -450,10 +439,6 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
     def test_300_nova_config(self):
         """Verify the data in the nova config file."""
-        # NOTE(coreycb): Currently no way to test on essex because config file
-        #                has no section headers.
-        if self._get_openstack_release() == self.precise_essex:
-            return
 
         u.log.debug('Checking nova config file data...')
         unit = self.nova_compute_sentry
@@ -529,12 +514,6 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
     def test_400_image_instance_create(self):
         """Create an image/instance, verify they exist, and delete them."""
-        # NOTE(coreycb): Skipping failing test on essex until resolved. essex
-        #                nova API calls are getting "Malformed request url
-        #                (HTTP 400)".
-        if self._get_openstack_release() == self.precise_essex:
-            u.log.error("Skipping test (due to Essex)")
-            return
 
         u.log.debug('Checking nova instance creation...')
 
@@ -572,11 +551,6 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
     def test_900_restart_on_config_change(self):
         """Verify that the specified services are restarted when the config
            is changed."""
-        # NOTE(coreycb): Skipping failing test on essex until resolved.
-        #                config-flags don't take effect on essex.
-        if self._get_openstack_release() == self.precise_essex:
-            u.log.error("Skipping failing test until resolved")
-            return
 
         sentry = self.nova_compute_sentry
         juju_service = 'nova-compute'
