@@ -84,7 +84,7 @@ class NovaComputeContextTests(CharmTestCase):
     def test_cloud_compute_context_no_relation(self):
         self.relation_ids.return_value = []
         cloud_compute = context.CloudComputeContext()
-        self.assertEquals({}, cloud_compute())
+        self.assertEqual({}, cloud_compute())
 
     @patch.object(context, '_network_manager')
     def test_cloud_compute_context_restart_trigger(self, nm):
@@ -93,12 +93,12 @@ class NovaComputeContextTests(CharmTestCase):
         with patch.object(cloud_compute, 'restart_trigger') as rt:
             rt.return_value = 'footrigger'
             ctxt = cloud_compute()
-        self.assertEquals(ctxt.get('restart_trigger'), 'footrigger')
+        self.assertEqual(ctxt.get('restart_trigger'), 'footrigger')
 
         with patch.object(cloud_compute, 'restart_trigger') as rt:
             rt.return_value = None
             ctxt = cloud_compute()
-        self.assertEquals(ctxt.get('restart_trigger'), None)
+        self.assertEqual(ctxt.get('restart_trigger'), None)
 
     @patch.object(context, '_network_manager')
     def test_cloud_compute_volume_context_cinder(self, netman):
@@ -107,7 +107,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.related_units.return_value = 'nova-cloud-controller/0'
         cloud_compute = context.CloudComputeContext()
         self.test_relation.set({'volume_service': 'cinder'})
-        self.assertEquals({'volume_service': 'cinder'}, cloud_compute())
+        self.assertEqual({'volume_service': 'cinder'}, cloud_compute())
 
     @patch.object(context, '_network_manager')
     def test_cloud_compute_flatdhcp_context(self, netman):
@@ -135,7 +135,7 @@ class NovaComputeContextTests(CharmTestCase):
             'auth_port': None,
             'api_version': None,
         }
-        self.assertEquals(ex_ctxt, cloud_compute())
+        self.assertEqual(ex_ctxt, cloud_compute())
 
     @patch.object(context, '_neutron_plugin')
     @patch.object(context, '_neutron_url')
@@ -178,7 +178,7 @@ class NovaComputeContextTests(CharmTestCase):
             'service_protocol': 'http',
             'service_port': '5000',
         }
-        self.assertEquals(ex_ctxt, cloud_compute())
+        self.assertEqual(ex_ctxt, cloud_compute())
         self._save_flag_file.assert_called_with(
             path='/etc/nova/nm.conf', data='neutron')
 
@@ -188,7 +188,7 @@ class NovaComputeContextTests(CharmTestCase):
         plugin.return_value = None
         nm.return_Value = None
         qplugin = context.NeutronComputeContext()
-        self.assertEquals({}, qplugin())
+        self.assertEqual({}, qplugin())
 
     def test_libvirt_context_libvirtd(self):
         self.lsb_release.return_value = {'DISTRIB_CODENAME': 'yakkety'}
@@ -341,7 +341,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.log = fake_log
         self.unit_get.return_value = '172.24.0.79'
         host_ip = context.HostIPContext()
-        self.assertEquals({'host_ip': '172.24.0.79'}, host_ip())
+        self.assertEqual({'host_ip': '172.24.0.79'}, host_ip())
         self.unit_get.assert_called_with('private-address')
 
     @patch.object(context, 'get_ipv6_addr')
@@ -351,7 +351,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.test_config.set('prefer-ipv6', True)
         mock_get_ipv6_addr.return_value = ['2001:db8:0:1::2']
         host_ip = context.HostIPContext()
-        self.assertEquals({'host_ip': '2001:db8:0:1::2'}, host_ip())
+        self.assertEqual({'host_ip': '2001:db8:0:1::2'}, host_ip())
         self.assertTrue(mock_get_ipv6_addr.called)
 
     def test_metadata_service_ctxt(self):
