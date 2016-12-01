@@ -16,10 +16,13 @@ import sys
 import yaml
 
 from mock import (
+    ANY,
     call,
     patch,
     MagicMock
 )
+
+from nova_compute_hooks import update_nrpe_config
 
 # python-apt is not installed as part of test-requirements but is imported by
 # some charmhelpers modules so create a fake import.
@@ -277,6 +280,18 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.is_relation_made.return_value = True
         hooks.config_changed()
         self.assertTrue(self.update_nrpe_config.called)
+
+    @patch('nova_compute_hooks.nrpe')
+    @patch('nova_compute_hooks.services')
+    @patch('charmhelpers.core.hookenv')
+    def test_nrpe_services_no_qemu_kvm(self, hookenv, services, nrpe):
+        '''
+        The qemu-kvm service is not monitored by NRPE, since it's one-shot.
+        '''
+        services.return_value = ['libvirtd', 'qemu-kvm', 'libvirt-bin']
+        update_nrpe_config()
+        nrpe.add_init_service_checks.assert_called_with(
+            ANY, ['libvirtd', 'libvirt-bin'], ANY)
 
     def test_amqp_joined(self):
         hooks.amqp_joined()

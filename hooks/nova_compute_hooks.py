@@ -432,7 +432,13 @@ def update_nrpe_config():
     hostname = nrpe.get_nagios_hostname()
     current_unit = nrpe.get_nagios_unit_name()
     nrpe_setup = nrpe.NRPE(hostname=hostname)
-    nrpe.add_init_service_checks(nrpe_setup, services(), current_unit)
+    monitored_services = services()
+    try:
+        # qemu-kvm is a one-shot service
+        monitored_services.remove('qemu-kvm')
+    except ValueError:
+        pass
+    nrpe.add_init_service_checks(nrpe_setup, monitored_services, current_unit)
     nrpe_setup.write()
 
 

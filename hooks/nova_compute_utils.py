@@ -19,6 +19,7 @@ import pwd
 import subprocess
 import platform
 
+from itertools import chain
 from base64 import b64decode
 from copy import deepcopy
 from subprocess import (
@@ -371,11 +372,8 @@ def restart_map():
 
 
 def services():
-    ''' Returns a list of services associate with this charm '''
-    _services = []
-    for v in restart_map().values():
-        _services = _services + v
-    return list(set(_services))
+    ''' Returns a list of services associated with this charm '''
+    return list(set(chain(*restart_map().itervalues())))
 
 
 def register_configs():
