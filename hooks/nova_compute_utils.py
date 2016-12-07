@@ -111,6 +111,7 @@ from nova_compute_context import (
     NovaComputeAppArmorContext,
     NovaNetworkAppArmorContext,
     SerialConsoleContext,
+    NovaComputeAvailabilityZoneContext,
 )
 
 CA_CERT_PATH = '/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt'
@@ -226,7 +227,8 @@ BASE_RESOURCE_MAP = {
                      NovaComputeVirtContext(),
                      context.LogLevelContext(),
                      context.InternalEndpointContext(),
-                     SerialConsoleContext()],
+                     SerialConsoleContext(),
+                     NovaComputeAvailabilityZoneContext()],
     },
     NOVA_API_AA_PROFILE_PATH: {
         'services': ['nova-api'],

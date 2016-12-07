@@ -445,7 +445,8 @@ def update_nrpe_config():
 @hooks.hook('neutron-plugin-relation-joined')
 def neutron_plugin_joined(relid=None, remote_restart=False):
     rel_settings = {
-        'hugepage_number': get_hugepage_number()
+        'hugepage_number': get_hugepage_number(),
+        'default_availability_zone': config('default-availability-zone')
     }
     if remote_restart:
         rel_settings['restart-trigger'] = str(uuid.uuid4())

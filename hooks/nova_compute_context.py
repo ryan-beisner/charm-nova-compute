@@ -645,3 +645,13 @@ class NovaNetworkAppArmorContext(context.AppArmorContext):
             return self.ctxt
         self._ctxt.update({'aa_profile': self.aa_profile})
         return self.ctxt
+
+
+class NovaComputeAvailabilityZoneContext(context.OSContextGenerator):
+
+    def __call__(self):
+        ctxt = {}
+        if config('default-availability-zone'):
+            ctxt['default_availability_zone'] = config(
+                'default-availability-zone')
+        return ctxt
