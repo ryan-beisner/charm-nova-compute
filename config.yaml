@@ -83,6 +83,8 @@ options:
     description: |
       Virtualization flavor. Supported flavors are: kvm, xen, uml, lxc, qemu,
       lxd.
+
+      NOTE: Changing virtualization flavor after deployment is not supported.
   disk-cachemodes:
     type: string
     default:
