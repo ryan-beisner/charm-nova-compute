@@ -557,18 +557,26 @@ class NovaComputeRelationsTests(CharmTestCase):
     def test_neutron_plugin_joined_relid(self, get_hugepage_number):
         get_hugepage_number.return_value = None
         hooks.neutron_plugin_joined(relid='relid23')
+        expect_rel_settings = {
+            'hugepage_number': None,
+            'default_availability_zone': 'nova',
+        }
         self.relation_set.assert_called_with(
             relation_id='relid23',
-            **{'hugepage_number': None}
+            **expect_rel_settings
         )
 
     @patch.object(hooks, 'get_hugepage_number')
     def test_neutron_plugin_joined_huge(self, get_hugepage_number):
         get_hugepage_number.return_value = 12
         hooks.neutron_plugin_joined()
+        expect_rel_settings = {
+            'hugepage_number': 12,
+            'default_availability_zone': 'nova',
+        }
         self.relation_set.assert_called_with(
             relation_id=None,
-            **{'hugepage_number': 12}
+            **expect_rel_settings
         )
 
     @patch.object(hooks, 'get_hugepage_number')
@@ -579,6 +587,7 @@ class NovaComputeRelationsTests(CharmTestCase):
         expect_rel_settings = {
             'hugepage_number': None,
             'restart-trigger': 'e030b959-7207',
+            'default_availability_zone': 'nova',
         }
         self.relation_set.assert_called_with(
             relation_id=None,
