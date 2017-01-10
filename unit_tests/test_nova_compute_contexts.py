@@ -31,6 +31,7 @@ TO_PATCH = [
     '_save_flag_file',
     'unit_get',
     'lsb_release',
+    'os_release',
 ]
 
 NEUTRON_CONTEXT = {
@@ -192,6 +193,7 @@ class NovaComputeContextTests(CharmTestCase):
 
     def test_libvirt_context_libvirtd(self):
         self.lsb_release.return_value = {'DISTRIB_CODENAME': 'yakkety'}
+        self.os_release.return_value = 'ocata'
         self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
         self.test_config.set('enable-live-migration', False)
         libvirt = context.NovaComputeLibvirtContext()

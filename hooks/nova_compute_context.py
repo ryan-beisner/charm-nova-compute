@@ -39,6 +39,7 @@ from charmhelpers.contrib.openstack.utils import (
     get_host_ip,
     get_os_version_package,
     get_os_version_codename,
+    os_release,
 )
 from charmhelpers.contrib.openstack.ip import (
     INTERNAL,
@@ -141,6 +142,7 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
             'listen_tls': 0
         }
         distro_codename = lsb_release()['DISTRIB_CODENAME'].lower()
+        release = os_release('nova-common')
 
         # NOTE(jamespage): deal with switch to systemd
         if distro_codename < "wily":
@@ -150,7 +152,7 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
 
         # NOTE(jamespage): deal with alignment with Debian in
         #                  Ubuntu yakkety and beyond.
-        if distro_codename >= 'yakkety':
+        if distro_codename >= 'yakkety' or release >= 'ocata':
             ctxt['libvirt_user'] = 'libvirt'
         else:
             ctxt['libvirt_user'] = 'libvirtd'
