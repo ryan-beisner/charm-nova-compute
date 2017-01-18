@@ -272,7 +272,7 @@ class NovaComputeContextTests(CharmTestCase):
         self.test_config.set('virt-type', 'lxd')
 
         lxd = context.NovaComputeVirtContext()
-        self.assertEqual({}, lxd())
+        self.assertEqual({'resume_guests_state_on_host_boot': False}, lxd())
 
     def test_lxd_live_migration_opts_yakkety(self):
         self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
@@ -282,7 +282,15 @@ class NovaComputeContextTests(CharmTestCase):
 
         lxd = context.NovaComputeVirtContext()
         self.assertEqual(
-            {'enable_live_migration': True, 'virt_type': 'lxd'}, lxd())
+            {'enable_live_migration': True,
+             'resume_guests_state_on_host_boot': False,
+             'virt_type': 'lxd'}, lxd())
+
+    def test_resume_guests_state_on_host_boot(self):
+        self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
+        self.test_config.set('resume-guests-state-on-host-boot', True)
+        lxd = context.NovaComputeVirtContext()
+        self.assertEqual({'resume_guests_state_on_host_boot': True}, lxd())
 
     @patch.object(context.uuid, 'uuid4')
     def test_libvirt_new_uuid(self, mock_uuid):

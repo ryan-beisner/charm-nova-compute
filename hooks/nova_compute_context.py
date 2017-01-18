@@ -233,6 +233,8 @@ class NovaComputeVirtContext(context.OSContextGenerator):
         if lsb_release()['DISTRIB_CODENAME'].lower() >= "yakkety":
             ctxt['virt_type'] = config('virt-type')
             ctxt['enable_live_migration'] = config('enable-live-migration')
+        ctxt['resume_guests_state_on_host_boot'] =\
+            config('resume-guests-state-on-host-boot')
         return ctxt
 
 

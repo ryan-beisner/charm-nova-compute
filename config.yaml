@@ -346,3 +346,9 @@ options:
       NOTE: Availability zones must be created manually using the
       'openstack aggregate create' command.
       .
+  resume-guests-state-on-host-boot:
+    type: boolean
+    default: False
+    description: |
+      This option determines whether to start guests that were running
+      before the host rebooted
