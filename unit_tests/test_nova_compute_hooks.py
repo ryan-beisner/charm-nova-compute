@@ -93,6 +93,8 @@ TO_PATCH = [
     'create_sysctl',
     'install_hugepages',
     'uuid',
+    # unitdata
+    'unitdata',
 ]
 
 
@@ -527,8 +529,10 @@ class NovaComputeRelationsTests(CharmTestCase):
         hooks.get_ceph_request()
         mock_add_op.assert_called_with(name='nova', replica_count=3, weight=28)
 
+    @patch.object(hooks, 'service_restart_handler')
     @patch.object(hooks, 'CONFIGS')
-    def test_neutron_plugin_changed(self, configs):
+    def test_neutron_plugin_changed(self, configs,
+                                    service_restart_handler):
         self.nova_metadata_requirement.return_value = (True,
                                                        'sharedsecret')
         hooks.neutron_plugin_changed()
@@ -536,22 +540,32 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.apt_install.assert_called_with(['nova-api-metadata'],
                                             fatal=True)
         configs.write.assert_called_with('/etc/nova/nova.conf')
+        service_restart_handler.assert_called_with(
+            default_service='nova-compute')
 
+    @patch.object(hooks, 'service_restart_handler')
     @patch.object(hooks, 'CONFIGS')
-    def test_neutron_plugin_changed_nometa(self, configs):
+    def test_neutron_plugin_changed_nometa(self, configs,
+                                           service_restart_handler):
         self.nova_metadata_requirement.return_value = (False, None)
         hooks.neutron_plugin_changed()
         self.apt_purge.assert_called_with('nova-api-metadata',
                                           fatal=True)
         configs.write.assert_called_with('/etc/nova/nova.conf')
+        service_restart_handler.assert_called_with(
+            default_service='nova-compute')
 
+    @patch.object(hooks, 'service_restart_handler')
     @patch.object(hooks, 'CONFIGS')
-    def test_neutron_plugin_changed_meta(self, configs):
+    def test_neutron_plugin_changed_meta(self, configs,
+                                         service_restart_handler):
         self.nova_metadata_requirement.return_value = (True, None)
         hooks.neutron_plugin_changed()
         self.apt_install.assert_called_with(['nova-api-metadata'],
                                             fatal=True)
         configs.write.assert_called_with('/etc/nova/nova.conf')
+        service_restart_handler.assert_called_with(
+            default_service='nova-compute')
 
     @patch.object(hooks, 'get_hugepage_number')
     def test_neutron_plugin_joined_relid(self, get_hugepage_number):
@@ -593,3 +607,65 @@ class NovaComputeRelationsTests(CharmTestCase):
             relation_id=None,
             **expect_rel_settings
         )
+
+    @patch.object(hooks, 'is_unit_paused_set')
+    def test_service_restart_handler(self,
+                                     is_unit_paused_set):
+        self.relation_get.return_value = None
+        mock_kv = MagicMock()
+        mock_kv.get.return_value = None
+        self.unitdata.kv.return_value = mock_kv
+
+        hooks.service_restart_handler(default_service='foorbar')
+
+        self.relation_get.assert_called_with(
+            attribute='restart-nonce',
+            unit=None,
+            rid=None
+        )
+        is_unit_paused_set.assert_not_called()
+
+    @patch.object(hooks, 'is_unit_paused_set')
+    def test_service_restart_handler_with_service(self,
+                                                  is_unit_paused_set):
+        self.relation_get.side_effect = ['nonce', 'foobar-service']
+        mock_kv = MagicMock()
+        mock_kv.get.return_value = None
+        self.unitdata.kv.return_value = mock_kv
+        is_unit_paused_set.return_value = False
+
+        hooks.service_restart_handler()
+
+        self.relation_get.assert_has_calls([
+            call(attribute='restart-nonce',
+                 unit=None,
+                 rid=None),
+            call(attribute='remote-service',
+                 unit=None,
+                 rid=None),
+        ])
+        self.service_restart.assert_called_with('foobar-service')
+        mock_kv.set.assert_called_with('restart-nonce',
+                                       'nonce')
+        self.assertTrue(mock_kv.flush.called)
+
+    @patch.object(hooks, 'is_unit_paused_set')
+    def test_service_restart_handler_when_paused(self,
+                                                 is_unit_paused_set):
+        self.relation_get.side_effect = ['nonce', 'foobar-service']
+        mock_kv = MagicMock()
+        mock_kv.get.return_value = None
+        self.unitdata.kv.return_value = mock_kv
+        is_unit_paused_set.return_value = True
+
+        hooks.service_restart_handler()
+
+        self.relation_get.assert_has_calls([
+            call(attribute='restart-nonce',
+                 unit=None,
+                 rid=None),
+        ])
+        self.service_restart.assert_not_called()
+        mock_kv.set.assert_called_with('restart-nonce',
+                                       'nonce')
+        self.assertTrue(mock_kv.flush.called)

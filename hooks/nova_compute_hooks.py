@@ -18,6 +18,9 @@ import platform
 import sys
 import uuid
 
+
+import charmhelpers.core.unitdata as unitdata
+
 from charmhelpers.core.hookenv import (
     Hooks,
     config,
@@ -464,7 +467,29 @@ def neutron_plugin_changed():
                     fatal=True)
     else:
         apt_purge('nova-api-metadata', fatal=True)
+    service_restart_handler(default_service='nova-compute')
     CONFIGS.write(NOVA_CONF)
+
+
+# TODO(jamespage): Move this into charmhelpers for general reuse.
+def service_restart_handler(relation_id=None, unit=None,
+                            default_service=None):
+    '''Handler for detecting requests from subordinate
+    charms for restarts of services'''
+    restart_nonce = relation_get(attribute='restart-nonce',
+                                 unit=unit,
+                                 rid=relation_id)
+    db = unitdata.kv()
+    nonce_key = 'restart-nonce'
+    if restart_nonce != db.get(nonce_key):
+        if not is_unit_paused_set():
+            service = relation_get(attribute='remote-service',
+                                   unit=unit,
+                                   rid=relation_id) or default_service
+            if service:
+                service_restart(service)
+        db.set(nonce_key, restart_nonce)
+        db.flush()
 
 
 @hooks.hook('lxd-relation-joined')
