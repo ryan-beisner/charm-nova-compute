@@ -17,6 +17,7 @@
 import platform
 import sys
 import uuid
+import yaml
 
 from charmhelpers.core.hookenv import (
     Hooks,
@@ -149,9 +150,12 @@ def config_changed():
             do_openstack_upgrade(CONFIGS)
             send_remote_restart = True
 
-    sysctl_dict = config('sysctl')
-    if sysctl_dict:
-        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-nova-compute.conf')
+    sysctl_settings = config('sysctl')
+    if sysctl_settings:
+        sysctl_dict = yaml.safe_load(sysctl_settings)
+        sysctl_dict['vm.swappiness'] = sysctl_dict.get('vm.swappiness', 1)
+        create_sysctl(yaml.dump(sysctl_dict),
+                      '/etc/sysctl.d/50-nova-compute.conf')
 
     destroy_libvirt_network('default')
 
