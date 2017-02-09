@@ -321,6 +321,15 @@ class NovaComputeContextTests(CharmTestCase):
         self.assertEqual(libvirt()['cpu_mode'],
                          'host-passthrough')
 
+    @patch.object(context.uuid, 'uuid4')
+    def test_libvirt_cpu_mode_none(self, mock_uuid):
+        self.test_config.set('cpu-mode', 'none')
+        mock_uuid.return_value = 'e46e530d-18ae-4a67-9ff0-e6e2ba7c60a7'
+        libvirt = context.NovaComputeLibvirtContext()
+
+        self.assertEqual(libvirt()['cpu_mode'],
+                         'none')
+
     def test_libvirt_vnf_configs(self):
         self.kv.return_value = FakeUnitdata(**{'host_uuid': self.host_uuid})
         self.test_config.set('hugepages', '22')
