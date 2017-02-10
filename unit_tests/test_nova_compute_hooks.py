@@ -238,9 +238,24 @@ class NovaComputeRelationsTests(CharmTestCase):
     @patch.object(hooks, 'compute_joined')
     def test_config_changed_with_sysctl(self, compute_joined):
         self.git_install_requested.return_value = False
-        self.test_config.set('sysctl', '{ kernel.max_pid : "1337" }')
+        self.test_config.set(
+            'sysctl',
+            '{ kernel.max_pid : "1337", vm.swappiness : 10 }')
         hooks.config_changed()
-        self.assertTrue(self.create_sysctl.called)
+        self.create_sysctl.assert_called_with(
+            "{kernel.max_pid: '1337', vm.swappiness: 10}\n",
+            '/etc/sysctl.d/50-nova-compute.conf')
+
+    @patch.object(hooks, 'compute_joined')
+    def test_config_changed_with_sysctl_swappy_default(self, compute_joined):
+        self.git_install_requested.return_value = False
+        self.test_config.set(
+            'sysctl',
+            '{ kernel.max_pid : "1337" }')
+        hooks.config_changed()
+        self.create_sysctl.assert_called_with(
+            "{kernel.max_pid: '1337', vm.swappiness: 1}\n",
+            '/etc/sysctl.d/50-nova-compute.conf')
 
     @patch.object(hooks, 'config_value_changed')
     def test_config_changed_git(self, config_val_changed):
