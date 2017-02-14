@@ -49,6 +49,7 @@ TO_PATCH = [
     'relation_ids',
     'relation_set',
     'service_name',
+    'related_units',
     'unit_get',
     # charmhelpers.core.host
     'apt_install',
@@ -143,17 +144,22 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.git_install.assert_called_with(projects_yaml)
         self.assertTrue(self.execd_preinstall.called)
 
+    @patch.object(hooks, 'ceph_changed')
     @patch.object(hooks, 'neutron_plugin_joined')
-    def test_config_changed_with_upgrade(self, neutron_plugin_joined):
+    def test_config_changed_with_upgrade(self, neutron_plugin_joined,
+                                         ceph_changed):
         self.git_install_requested.return_value = False
         self.openstack_upgrade_available.return_value = True
 
         def rel_ids(x):
-            return {'neutron-plugin': ['rid1']}.get(x, [])
+            return {'neutron-plugin': ['rid1'],
+                    'ceph': ['ceph:0']}.get(x, [])
         self.relation_ids.side_effect = rel_ids
+        self.related_units.return_value = ['ceph/0']
         hooks.config_changed()
         self.assertTrue(self.do_openstack_upgrade.called)
         neutron_plugin_joined.assert_called_with('rid1', remote_restart=True)
+        ceph_changed.assert_called_with(rid='ceph:0', unit='ceph/0')
 
     @patch.object(hooks, 'git_install_requested')
     def test_config_changed_with_openstack_upgrade_action(self, git_requested):
@@ -536,13 +542,57 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.service_restart.assert_called_with('nova-compute')
 
     @patch('charmhelpers.contrib.storage.linux.ceph.CephBrokerRq'
+           '.add_op_request_access_to_group')
+    @patch('charmhelpers.contrib.storage.linux.ceph.CephBrokerRq'
            '.add_op_create_pool')
-    def test_get_ceph_request(self, mock_add_op):
+    def test_get_ceph_request(self, mock_create_pool,
+                              mock_request_access):
+        self.assert_libvirt_rbd_imagebackend_allowed.return_value = True
         self.test_config.set('rbd-pool', 'nova')
         self.test_config.set('ceph-osd-replication-count', 3)
         self.test_config.set('ceph-pool-weight', 28)
         hooks.get_ceph_request()
-        mock_add_op.assert_called_with(name='nova', replica_count=3, weight=28)
+        mock_create_pool.assert_not_called()
+        mock_request_access.assert_not_called()
+
+    @patch('charmhelpers.contrib.storage.linux.ceph.CephBrokerRq'
+           '.add_op_request_access_to_group')
+    @patch('charmhelpers.contrib.storage.linux.ceph.CephBrokerRq'
+           '.add_op_create_pool')
+    def test_get_ceph_request_rbd(self, mock_create_pool,
+                                  mock_request_access):
+        self.assert_libvirt_rbd_imagebackend_allowed.return_value = True
+        self.test_config.set('rbd-pool', 'nova')
+        self.test_config.set('ceph-osd-replication-count', 3)
+        self.test_config.set('ceph-pool-weight', 28)
+        self.test_config.set('libvirt-image-backend', 'rbd')
+        hooks.get_ceph_request()
+        mock_create_pool.assert_called_with(name='nova', replica_count=3,
+                                            weight=28,
+                                            group='vms')
+        mock_request_access.assert_not_called()
+
+    @patch('charmhelpers.contrib.storage.linux.ceph.CephBrokerRq'
+           '.add_op_request_access_to_group')
+    @patch('charmhelpers.contrib.storage.linux.ceph.CephBrokerRq'
+           '.add_op_create_pool')
+    def test_get_ceph_request_perms(self, mock_create_pool,
+                                    mock_request_access):
+        self.assert_libvirt_rbd_imagebackend_allowed.return_value = True
+        self.test_config.set('rbd-pool', 'nova')
+        self.test_config.set('ceph-osd-replication-count', 3)
+        self.test_config.set('ceph-pool-weight', 28)
+        self.test_config.set('libvirt-image-backend', 'rbd')
+        self.test_config.set('restrict-ceph-pools', True)
+        hooks.get_ceph_request()
+        mock_create_pool.assert_called_with(name='nova', replica_count=3,
+                                            weight=28,
+                                            group='vms')
+        mock_request_access.assert_has_calls([
+            call(name='volumes', permission='rwx'),
+            call(name='images', permission='rwx'),
+            call(name='vms', permission='rwx'),
+        ])
 
     @patch.object(hooks, 'service_restart_handler')
     @patch.object(hooks, 'CONFIGS')

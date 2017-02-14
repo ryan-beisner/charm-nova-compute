@@ -200,11 +200,11 @@ def config_changed():
     if arch in ['ppc64el', 'ppc64le']:
         set_ppc64_cpu_smt_state('off')
 
-    if (config('libvirt-image-backend') == 'rbd' and
-            assert_libvirt_rbd_imagebackend_allowed()):
-        for rid in relation_ids('ceph'):
-            for unit in related_units(rid):
-                ceph_changed(rid=rid, unit=unit)
+    # NOTE(jamespage): trigger any configuration related changes
+    #                  for cephx permissions restrictions
+    for rid in relation_ids('ceph'):
+        for unit in related_units(rid):
+            ceph_changed(rid=rid, unit=unit)
 
     CONFIGS.write_all()
 
@@ -340,10 +340,20 @@ def ceph_joined():
 
 def get_ceph_request():
     rq = CephBrokerRq()
-    name = config('rbd-pool')
-    replicas = config('ceph-osd-replication-count')
-    weight = config('ceph-pool-weight')
-    rq.add_op_create_pool(name=name, replica_count=replicas, weight=weight)
+    if (config('libvirt-image-backend') == 'rbd' and
+            assert_libvirt_rbd_imagebackend_allowed()):
+        name = config('rbd-pool')
+        replicas = config('ceph-osd-replication-count')
+        weight = config('ceph-pool-weight')
+        rq.add_op_create_pool(name=name, replica_count=replicas, weight=weight,
+                              group='vms')
+    if config('restrict-ceph-pools'):
+        rq.add_op_request_access_to_group(name="volumes",
+                                          permission='rwx')
+        rq.add_op_request_access_to_group(name="images",
+                                          permission='rwx')
+        rq.add_op_request_access_to_group(name="vms",
+                                          permission='rwx')
     return rq
 
 
@@ -370,16 +380,14 @@ def ceph_changed(rid=None, unit=None):
         create_libvirt_secret(secret_file=CEPH_SECRET,
                               secret_uuid=CEPH_SECRET_UUID, key=key)
 
-    if (config('libvirt-image-backend') == 'rbd' and
-            assert_libvirt_rbd_imagebackend_allowed()):
-        if is_request_complete(get_ceph_request()):
-            log('Request complete')
-            # Ensure that nova-compute is restarted since only now can we
-            # guarantee that ceph resources are ready, but only if not paused.
-            if not is_unit_paused_set():
-                service_restart('nova-compute')
-        else:
-            send_request_if_needed(get_ceph_request())
+    if is_request_complete(get_ceph_request()):
+        log('Request complete')
+        # Ensure that nova-compute is restarted since only now can we
+        # guarantee that ceph resources are ready, but only if not paused.
+        if not is_unit_paused_set():
+            service_restart('nova-compute')
+    else:
+        send_request_if_needed(get_ceph_request())
 
 
 @hooks.hook('ceph-relation-broken')
