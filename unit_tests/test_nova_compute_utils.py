@@ -85,6 +85,7 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch('platform.machine')
     def test_determine_packages_nova_network(self, machine, git_requested,
                                              net_man, en_meta):
+        self.os_release.return_value = 'icehouse'
         git_requested.return_value = False
         en_meta.return_value = (False, None)
         net_man.return_value = 'flatdhcpmanager'
@@ -94,6 +95,25 @@ class NovaComputeUtilsTests(CharmTestCase):
         ex = utils.BASE_PACKAGES + [
             'nova-api',
             'nova-network',
+            'nova-compute-kvm'
+        ]
+        self.assertEqual(ex, result)
+
+    @patch.object(utils, 'nova_metadata_requirement')
+    @patch.object(utils, 'network_manager')
+    @patch.object(utils, 'git_install_requested')
+    @patch('platform.machine')
+    def test_determine_packages_nova_network_ocata(self, machine,
+                                                   git_requested,
+                                                   net_man, en_meta):
+        self.os_release.return_value = 'ocata'
+        git_requested.return_value = False
+        en_meta.return_value = (False, None)
+        net_man.return_value = 'flatdhcpmanager'
+        machine.return_value = 'x86_64'
+        self.relation_ids.return_value = []
+        result = utils.determine_packages()
+        ex = utils.BASE_PACKAGES + [
             'nova-compute-kvm'
         ]
         self.assertEqual(ex, result)
@@ -193,6 +213,7 @@ class NovaComputeUtilsTests(CharmTestCase):
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
     def test_resource_map_nova_network_no_multihost(self, net_man, en_meta):
+        self.os_release.return_value = 'icehouse'
         self.test_config.set('multi-host', 'no')
         en_meta.return_value = (False, None)
         net_man.return_value = 'flatdhcpmanager'
@@ -245,8 +266,63 @@ class NovaComputeUtilsTests(CharmTestCase):
 
     @patch.object(utils, 'nova_metadata_requirement')
     @patch.object(utils, 'network_manager')
+    def test_resource_map_nova_network_ocata(self, net_man, en_meta):
+        self.os_release.return_value = 'ocata'
+        self.test_config.set('multi-host', 'yes')
+        en_meta.return_value = (False, None)
+        net_man.return_value = 'flatdhcpmanager'
+        result = utils.resource_map()
+        ex = {
+            '/etc/default/libvirt-bin': {
+                'contexts': [],
+                'services': ['libvirtd']
+            },
+            '/etc/libvirt/qemu.conf': {
+                'contexts': [],
+                'services': ['libvirtd']
+            },
+            '/etc/nova/nova.conf': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+            '/etc/ceph/secret.xml': {
+                'contexts': [],
+                'services': []
+            },
+            '/var/lib/charm/nova_compute/ceph.conf': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+            '/etc/default/qemu-kvm': {
+                'contexts': [],
+                'services': ['qemu-kvm']
+            },
+            '/etc/init/libvirt-bin.override': {
+                'contexts': [],
+                'services': ['libvirtd']
+            },
+            '/etc/libvirt/libvirtd.conf': {
+                'contexts': [],
+                'services': ['libvirtd']
+            },
+            '/etc/apparmor.d/usr.bin.nova-compute': {
+                'contexts': [],
+                'services': ['nova-compute']
+            },
+        }
+        # Mocking contexts is tricky but we can still test that
+        # the correct files are monitored and the correct services
+        # will be started
+        self.assertEqual(set(ex.keys()), set(result.keys()))
+        for k in ex.keys():
+            self.assertEqual(set(ex[k]['services']),
+                             set(result[k]['services']))
+
+    @patch.object(utils, 'nova_metadata_requirement')
+    @patch.object(utils, 'network_manager')
     def test_resource_map_nova_network(self, net_man, en_meta):
 
+        self.os_release.return_value = 'icehouse'
         en_meta.return_value = (False, None)
         self.test_config.set('multi-host', 'yes')
         net_man.return_value = 'flatdhcpmanager'

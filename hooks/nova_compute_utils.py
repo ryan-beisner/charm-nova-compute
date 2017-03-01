@@ -310,7 +310,8 @@ REQUIRED_INTERFACES = {
 def libvirt_daemon():
     '''Resolve the correct name of the libvirt daemon service'''
     distro_codename = lsb_release()['DISTRIB_CODENAME'].lower()
-    if distro_codename >= 'yakkety':
+    if (distro_codename >= 'yakkety' or
+            os_release('nova-common') >= 'ocata'):
         return LIBVIRTD_DAEMON
     else:
         return LIBVIRT_BIN_DAEMON
@@ -331,7 +332,8 @@ def resource_map():
     # Network manager gets set late by the cloud-compute interface.
     # FlatDHCPManager only requires some extra packages.
     if (net_manager in ['flatmanager', 'flatdhcpmanager'] and
-            config('multi-host').lower() == 'yes'):
+            config('multi-host').lower() == 'yes' and
+            os_release('nova-common') < 'ocata'):
         resource_map[NOVA_CONF]['services'].extend(
             ['nova-api', 'nova-network']
         )
@@ -340,7 +342,8 @@ def resource_map():
         resource_map.pop(NOVA_NETWORK_AA_PROFILE_PATH)
 
     distro_codename = lsb_release()['DISTRIB_CODENAME'].lower()
-    if distro_codename >= 'yakkety':
+    if (distro_codename >= 'yakkety' or
+            os_release('nova-common') >= 'ocata'):
         for data in resource_map.values():
             if LIBVIRT_BIN_DAEMON in data['services']:
                 data['services'].remove(LIBVIRT_BIN_DAEMON)
@@ -420,7 +423,8 @@ def determine_packages():
 
     net_manager = network_manager()
     if (net_manager in ['flatmanager', 'flatdhcpmanager'] and
-            config('multi-host').lower() == 'yes'):
+            config('multi-host').lower() == 'yes' and
+            os_release('nova-common') < 'ocata'):
         packages.extend(['nova-api', 'nova-network'])
 
     if relation_ids('ceph'):

@@ -83,6 +83,14 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             {'name': 'glance'},
             {'name': 'percona-cluster', 'constraints': {'mem': '3072M'}},
         ]
+        if self._get_openstack_release() >= self.xenial_ocata:
+            other_ocata_services = [
+                {'name': 'neutron-gateway'},
+                {'name': 'neutron-api'},
+                {'name': 'neutron-openvswitch'},
+            ]
+            other_services += other_ocata_services
+
         super(NovaBasicDeployment, self)._add_services(this_service,
                                                        other_services)
 
@@ -104,6 +112,21 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             'glance:shared-db': 'percona-cluster:shared-db',
             'glance:amqp': 'rabbitmq-server:amqp'
         }
+        if self._get_openstack_release() >= self.xenial_ocata:
+            ocata_relations = {
+                'neutron-gateway:amqp': 'rabbitmq-server:amqp',
+                'nova-cloud-controller:quantum-network-service':
+                'neutron-gateway:quantum-network-service',
+                'neutron-api:shared-db': 'percona-cluster:shared-db',
+                'neutron-api:amqp': 'rabbitmq-server:amqp',
+                'neutron-api:neutron-api': 'nova-cloud-controller:neutron-api',
+                'neutron-api:identity-service': 'keystone:identity-service',
+                'nova-compute:neutron-plugin': 'neutron-openvswitch:'
+                                               'neutron-plugin',
+                'rabbitmq-server:amqp': 'neutron-openvswitch:amqp',
+            }
+            relations.update(ocata_relations)
+
         super(NovaBasicDeployment, self)._add_relations(relations)
 
     def _configure_services(self):
@@ -147,6 +170,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
             nova_cc_config['openstack-origin-git'] = \
                 yaml.dump(openstack_origin_git)
+
+        if self._get_openstack_release() >= self.xenial_ocata:
+            nova_cc_config['network-manager'] = 'Neutron'
 
         keystone_config = {
             'admin-password': 'openstack',
@@ -241,6 +267,10 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
         if self._get_openstack_release() >= self.trusty_liberty:
             services[self.keystone_sentry] = ['apache2']
+
+        if self._get_openstack_release_string() >= 'ocata':
+            services[self.nova_compute_sentry].remove('nova-network')
+            services[self.nova_compute_sentry].remove('nova-api')
 
         ret = u.validate_services_by_name(services)
         if ret:
@@ -432,6 +462,9 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             'restart_trigger': u.not_null
         }
 
+        if self._get_openstack_release() >= self.xenial_ocata:
+            expected['network_manager'] = 'neutron'
+
         ret = u.validate_relation_data(unit, relation, expected)
         if ret:
             message = u.relation_error('nova-cc cloud-compute', ret)
@@ -506,6 +539,17 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                 }
             })
 
+        if self._get_openstack_release() >= self.xenial_ocata:
+            del expected['DEFAULT']['flat_interface']
+            del expected['DEFAULT']['network_manager']
+            expected['DEFAULT'].update({
+                'use_neutron': 'True',
+                'network_api_class': 'nova.network.neutronv2.api.API'})
+            expected['neutron'] = {
+                'url': u.valid_url,
+                'auth_url': u.valid_url}
+            # Add expected username?
+
         for section, pairs in expected.iteritems():
             ret = u.validate_config_data(unit, conf, section, pairs)
             if ret:
@@ -562,11 +606,13 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
         # Services which are expected to restart upon config change,
         # and corresponding config files affected by the change
         conf_file = '/etc/nova/nova.conf'
-        services = {
-            'nova-compute': conf_file,
-            'nova-api': conf_file,
-            'nova-network': conf_file
-        }
+        services = {'nova-compute': conf_file}
+
+        if self._get_openstack_release() < self.xenial_ocata:
+            services.update({
+                'nova-api': conf_file,
+                'nova-network': conf_file
+            })
 
         # Make config change, check for service restarts
         u.log.debug('Making config change on {}...'.format(juju_service))
@@ -612,9 +658,13 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
 
         services = {
             'nova-compute': '/etc/apparmor.d/usr.bin.nova-compute',
-            'nova-network': '/etc/apparmor.d/usr.bin.nova-network',
-            'nova-api': '/etc/apparmor.d/usr.bin.nova-api',
         }
+
+        if self._get_openstack_release() < self.xenial_ocata:
+            services.update({
+                'nova-network': '/etc/apparmor.d/usr.bin.nova-network',
+                'nova-api': '/etc/apparmor.d/usr.bin.nova-api',
+            })
 
         sentry = self.nova_compute_sentry
         juju_service = 'nova-compute'
@@ -642,4 +692,4 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
                                   '--complaining')
         u.log.info("Assert output of aa-status --complaining >= 3. Result: {} "
                    "Exit Code: {}".format(output, code))
-        assert int(output) >= 3
+        assert int(output) >= len(services)
