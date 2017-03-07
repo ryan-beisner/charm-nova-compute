@@ -435,7 +435,6 @@ class OpenStackAmuletUtils(AmuletUtils):
         self.log.debug('Authenticating nova user ({})...'.format(user))
         ep = keystone.service_catalog.url_for(service_type='identity',
                                               endpoint_type='publicURL')
-        self.log.debug("~~~~~~~~~~~~~~VERSION: {} ~~~~~~~~~~~~~~~~~~~~~".format(novaclient.__version__[0]))
         if novaclient.__version__[0] >= "7":
             return nova_client.Client(NOVA_CLIENT_VERSION,
                                       username=user, password=password,

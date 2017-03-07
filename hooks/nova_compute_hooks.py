@@ -33,7 +33,6 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     service_name,
-    unit_get,
     UnregisteredHookError,
     status_set,
 )
@@ -95,7 +94,7 @@ from nova_compute_utils import (
 )
 
 from charmhelpers.contrib.network.ip import (
-    get_ipv6_addr
+    get_relation_ip,
 )
 
 from charmhelpers.core.unitdata import kv
@@ -244,7 +243,7 @@ def db_joined(rid=None):
     relation_set(relation_id=rid,
                  nova_database=config('database'),
                  nova_username=config('database-user'),
-                 nova_hostname=unit_get('private-address'))
+                 nova_hostname=get_relation_ip('shared-db'))
 
 
 @hooks.hook('pgsql-db-relation-joined')
@@ -256,7 +255,8 @@ def pgsql_db_joined():
         log(e, level=ERROR)
         raise Exception(e)
 
-    relation_set(database=config('database'))
+    relation_set(**{'database': config('database'),
+                    'private-address': get_relation_ip('psql-db')})
 
 
 @hooks.hook('shared-db-relation-changed')
@@ -302,10 +302,10 @@ def compute_joined(rid=None):
     # record so won't get scanned based on private-address which is an IP
     # add the hostname configured locally to the relation.
     settings = {
-        'hostname': gethostname()
+        'hostname': gethostname(),
+        'private-address': get_relation_ip('cloud-compute'),
     }
-    if config('prefer-ipv6'):
-        settings = {'private-address': get_ipv6_addr()[0]}
+
     if migration_enabled():
         auth_type = config('migration-auth-type')
         settings['migration_auth_type'] = auth_type

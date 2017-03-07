@@ -50,7 +50,6 @@ TO_PATCH = [
     'relation_set',
     'service_name',
     'related_units',
-    'unit_get',
     # charmhelpers.core.host
     'apt_install',
     'apt_purge',
@@ -61,6 +60,8 @@ TO_PATCH = [
     # charmhelpers.contrib.openstack.utils
     'configure_installation_source',
     'openstack_upgrade_available',
+    # charmhelpers.contrib.network.ip
+    'get_relation_ip',
     # nova_compute_context
     'nova_metadata_requirement',
     # nova_compute_utils
@@ -108,6 +109,7 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.filter_installed_packages.side_effect = \
             MagicMock(side_effect=lambda pkgs: pkgs)
         self.gethostname.return_value = 'testserver'
+        self.get_relation_ip.return_value = '10.0.0.50'
 
     def test_install_hook(self):
         repo = 'cloud:precise-grizzly'
@@ -344,20 +346,19 @@ class NovaComputeRelationsTests(CharmTestCase):
                          configs.write.call_args_list)
 
     def test_db_joined(self):
-        self.unit_get.return_value = 'nova.foohost.com'
         self.is_relation_made.return_value = False
         hooks.db_joined()
         self.relation_set.assert_called_with(relation_id=None,
                                              nova_database='nova',
                                              nova_username='nova',
-                                             nova_hostname='nova.foohost.com')
-        self.unit_get.assert_called_with('private-address')
+                                             nova_hostname='10.0.0.50')
+        self.get_relation_ip.assert_called_with('shared-db')
 
     def test_postgresql_db_joined(self):
-        self.unit_get.return_value = 'nova.foohost.com'
         self.is_relation_made.return_value = False
         hooks.pgsql_db_joined()
-        self.relation_set.assert_called_with(database='nova'),
+        self.relation_set.assert_called_with(**{
+            'database': 'nova', 'private-address': '10.0.0.50'})
 
     def test_db_joined_with_postgresql(self):
         self.is_relation_made.return_value = True
@@ -446,36 +447,40 @@ class NovaComputeRelationsTests(CharmTestCase):
         self.test_config.set('migration-auth-type', 'ssh')
         self.public_ssh_key.return_value = 'foo'
         hooks.compute_joined()
-        self.relation_set.assert_called_with(
-            relation_id=None,
-            ssh_public_key='foo',
-            migration_auth_type='ssh',
-            hostname='testserver',
-        )
+        self.relation_set.assert_called_with(**{
+            'relation_id': None,
+            'ssh_public_key': 'foo',
+            'migration_auth_type': 'ssh',
+            'hostname': 'testserver',
+            'private-address': '10.0.0.50',
+        })
         hooks.compute_joined(rid='cloud-compute:2')
-        self.relation_set.assert_called_with(
-            relation_id='cloud-compute:2',
-            ssh_public_key='foo',
-            migration_auth_type='ssh',
-            hostname='testserver',
-        )
+        self.relation_set.assert_called_with(**{
+            'relation_id': 'cloud-compute:2',
+            'ssh_public_key': 'foo',
+            'migration_auth_type': 'ssh',
+            'hostname': 'testserver',
+            'private-address': '10.0.0.50',
+        })
 
     def test_compute_joined_with_resize(self):
         self.migration_enabled.return_value = False
         self.test_config.set('enable-resize', True)
         self.public_ssh_key.return_value = 'bar'
         hooks.compute_joined()
-        self.relation_set.assert_called_with(
-            relation_id=None,
-            nova_ssh_public_key='bar',
-            hostname='testserver',
-        )
+        self.relation_set.assert_called_with(**{
+            'relation_id': None,
+            'nova_ssh_public_key': 'bar',
+            'hostname': 'testserver',
+            'private-address': '10.0.0.50',
+        })
         hooks.compute_joined(rid='cloud-compute:2')
-        self.relation_set.assert_called_with(
-            relation_id='cloud-compute:2',
-            nova_ssh_public_key='bar',
-            hostname='testserver',
-        )
+        self.relation_set.assert_called_with(**{
+            'relation_id': 'cloud-compute:2',
+            'nova_ssh_public_key': 'bar',
+            'hostname': 'testserver',
+            'private-address': '10.0.0.50',
+        })
 
     def test_compute_changed(self):
         hooks.compute_changed()

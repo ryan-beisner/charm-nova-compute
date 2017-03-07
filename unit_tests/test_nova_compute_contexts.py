@@ -29,9 +29,9 @@ TO_PATCH = [
     'config',
     'log',
     '_save_flag_file',
-    'unit_get',
     'lsb_release',
     'os_release',
+    'get_relation_ip',
 ]
 
 NEUTRON_CONTEXT = {
@@ -358,20 +358,19 @@ class NovaComputeContextTests(CharmTestCase):
     @patch('subprocess.call')
     def test_host_IP_context(self, _call):
         self.log = fake_log
-        self.unit_get.return_value = '172.24.0.79'
+        self.get_relation_ip.return_value = '172.24.0.79'
         host_ip = context.HostIPContext()
         self.assertEqual({'host_ip': '172.24.0.79'}, host_ip())
-        self.unit_get.assert_called_with('private-address')
+        self.get_relation_ip.assert_called_with('cloud-compute')
 
-    @patch.object(context, 'get_ipv6_addr')
     @patch('subprocess.call')
-    def test_host_IP_context_ipv6(self, _call, mock_get_ipv6_addr):
+    def test_host_IP_context_ipv6(self, _call):
         self.log = fake_log
         self.test_config.set('prefer-ipv6', True)
-        mock_get_ipv6_addr.return_value = ['2001:db8:0:1::2']
+        self.get_relation_ip.return_value = '2001:db8:0:1::2'
         host_ip = context.HostIPContext()
         self.assertEqual({'host_ip': '2001:db8:0:1::2'}, host_ip())
-        self.assertTrue(mock_get_ipv6_addr.called)
+        self.assertTrue(self.get_relation_ip.called)
 
     def test_metadata_service_ctxt(self):
         self.relation_ids.return_value = 'neutron-plugin:0'

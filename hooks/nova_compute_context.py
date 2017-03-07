@@ -32,11 +32,9 @@ from charmhelpers.core.hookenv import (
     relation_ids,
     related_units,
     service_name,
-    unit_get,
     ERROR,
 )
 from charmhelpers.contrib.openstack.utils import (
-    get_host_ip,
     get_os_version_package,
     get_os_version_codename,
     os_release,
@@ -46,7 +44,7 @@ from charmhelpers.contrib.openstack.ip import (
     resolve_address,
 )
 from charmhelpers.contrib.network.ip import (
-    get_ipv6_addr,
+    get_relation_ip,
 )
 
 # This is just a label and it must be consistent across
@@ -599,10 +597,9 @@ class NeutronComputeContext(context.OSContextGenerator):
 class HostIPContext(context.OSContextGenerator):
     def __call__(self):
         ctxt = {}
-        if config('prefer-ipv6'):
-            host_ip = get_ipv6_addr()[0]
-        else:
-            host_ip = get_host_ip(unit_get('private-address'))
+        # Use the address used in the cloud-compute relation in templates for
+        # this host
+        host_ip = get_relation_ip('cloud-compute')
 
         if host_ip:
             # NOTE: do not format this even for ipv6 (see bug 1499656)
