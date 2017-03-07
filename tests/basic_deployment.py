@@ -81,7 +81,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             {'name': 'nova-cloud-controller'},
             {'name': 'keystone'},
             {'name': 'glance'},
-            {'name': 'percona-cluster', 'constraints': {'mem': '3072M'}},
+            {'name': 'percona-cluster'},
         ]
         if self._get_openstack_release() >= self.xenial_ocata:
             other_ocata_services = [
@@ -179,10 +179,7 @@ class NovaBasicDeployment(OpenStackAmuletDeployment):
             'admin-token': 'ubuntutesting',
         }
         pxc_config = {
-            'dataset-size': '25%',
             'max-connections': 1000,
-            'root-password': 'ChangeMe123',
-            'sst-password': 'ChangeMe123',
         }
 
         configs = {
