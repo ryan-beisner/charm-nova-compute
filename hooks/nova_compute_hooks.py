@@ -18,6 +18,7 @@ import platform
 import sys
 import uuid
 import yaml
+import os
 
 
 import charmhelpers.core.unitdata as unitdata
@@ -29,12 +30,16 @@ from charmhelpers.core.hookenv import (
     log,
     ERROR,
     relation_ids,
+    remote_service_name,
     related_units,
     relation_get,
     relation_set,
     service_name,
     UnregisteredHookError,
     status_set,
+)
+from charmhelpers.core.templating import (
+    render
 )
 from charmhelpers.core.host import (
     service_restart,
@@ -79,6 +84,7 @@ from nova_compute_utils import (
     register_configs,
     NOVA_CONF,
     ceph_config_file, CEPH_SECRET,
+    CEPH_BACKEND_SECRET,
     enable_shell, disable_shell,
     configure_lxd,
     fix_path_ownership,
@@ -525,6 +531,23 @@ def lxc_changed():
 @restart_on_change(restart_map())
 def designate_changed():
     CONFIGS.write(NOVA_CONF)
+
+
+@hooks.hook('ceph-access-relation-changed')
+def ceph_access(rid=None, unit=None):
+    '''Setup libvirt secret for specific ceph backend access'''
+    key = relation_get('key', unit, rid)
+    uuid = relation_get('secret-uuid', unit, rid)
+    if config('virt-type') in ['kvm', 'qemu', 'lxc'] and key and uuid:
+        secrets_filename = CEPH_BACKEND_SECRET.format(
+            remote_service_name(rid)
+        )
+        render(os.path.basename(CEPH_SECRET), secrets_filename,
+               context={'ceph_secret_uuid': uuid,
+                        'service_name': remote_service_name(rid)})
+        create_libvirt_secret(secret_file=secrets_filename,
+                              secret_uuid=uuid,
+                              key=key)
 
 
 @hooks.hook('update-status')

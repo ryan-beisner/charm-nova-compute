@@ -50,6 +50,7 @@ TO_PATCH = [
     'relation_set',
     'service_name',
     'related_units',
+    'remote_service_name',
     # charmhelpers.core.host
     'apt_install',
     'apt_purge',
@@ -97,6 +98,8 @@ TO_PATCH = [
     'uuid',
     # unitdata
     'unitdata',
+    # templating
+    'render',
 ]
 
 
@@ -739,3 +742,46 @@ class NovaComputeRelationsTests(CharmTestCase):
         mock_kv.set.assert_called_with('restart-nonce',
                                        'nonce')
         self.assertTrue(mock_kv.flush.called)
+
+    def test_ceph_access_incomplete(self):
+        self.relation_get.return_value = None
+        self.test_config.set('virt-type', 'kvm')
+        hooks.ceph_access()
+        self.relation_get.assert_has_calls([
+            call('key', None, None),
+            call('secret-uuid', None, None),
+        ])
+        self.render.assert_not_called()
+        self.create_libvirt_secret.assert_not_called()
+
+    def test_ceph_access_lxd(self):
+        self.relation_get.side_effect = ['mykey', 'uuid2']
+        self.test_config.set('virt-type', 'lxd')
+        hooks.ceph_access()
+        self.relation_get.assert_has_calls([
+            call('key', None, None),
+            call('secret-uuid', None, None),
+        ])
+        self.render.assert_not_called()
+        self.create_libvirt_secret.assert_not_called()
+
+    def test_ceph_access_complete(self):
+        self.relation_get.side_effect = ['mykey', 'uuid2']
+        self.remote_service_name.return_value = 'cinder-ceph'
+        self.test_config.set('virt-type', 'kvm')
+        hooks.ceph_access()
+        self.relation_get.assert_has_calls([
+            call('key', None, None),
+            call('secret-uuid', None, None),
+        ])
+        self.render.assert_called_with(
+            'secret.xml',
+            '/etc/ceph/secret-cinder-ceph.xml',
+            context={'ceph_secret_uuid': 'uuid2',
+                     'service_name': 'cinder-ceph'}
+        )
+        self.create_libvirt_secret.assert_called_with(
+            secret_file='/etc/ceph/secret-cinder-ceph.xml',
+            secret_uuid='uuid2',
+            key='mykey',
+        )

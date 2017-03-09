@@ -272,6 +272,7 @@ LIBVIRT_RESOURCE_MAP = {
 LIBVIRT_RESOURCE_MAP.update(BASE_RESOURCE_MAP)
 
 CEPH_SECRET = '/etc/ceph/secret.xml'
+CEPH_BACKEND_SECRET = '/etc/ceph/secret-{}.xml'
 
 CEPH_RESOURCES = {
     CEPH_SECRET: {
