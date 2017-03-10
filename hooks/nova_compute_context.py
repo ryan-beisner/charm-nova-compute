@@ -33,6 +33,7 @@ from charmhelpers.core.hookenv import (
     related_units,
     service_name,
     ERROR,
+    INFO,
 )
 from charmhelpers.contrib.openstack.utils import (
     get_os_version_package,
@@ -190,6 +191,16 @@ class NovaComputeLibvirtContext(context.OSContextGenerator):
             ctxt['kvm_hugepages'] = 1
         else:
             ctxt['kvm_hugepages'] = 0
+
+        if config('ksm') in ("1", "0",):
+            ctxt['ksm'] = config('ksm')
+        else:
+            if release < 'kilo':
+                log("KSM set to 1 by default on openstack releases < kilo",
+                    level=INFO)
+                ctxt['ksm'] = "1"
+            else:
+                ctxt['ksm'] = "AUTO"
 
         if config('pci-passthrough-whitelist'):
             ctxt['pci_passthrough_whitelist'] = \
