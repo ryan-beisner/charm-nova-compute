@@ -1,4 +1,6 @@
-branch: lp:charm-helpers
+#branch: lp:charm-helpers
+# TEMP WIP for https://bugs.launchpad.net/charm-helpers/+bug/1611134
+branch: lp:~1chb1n/charm-helpers/lp1611134
 destination: hooks/charmhelpers
 include:
     - core
